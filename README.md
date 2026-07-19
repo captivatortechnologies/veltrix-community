@@ -317,9 +317,21 @@ don't open a public issue.
 
 ## Contributing
 
-Issues and pull requests are welcome. Start with [`CONTRIBUTING.md`](./CONTRIBUTING.md)
-for the workflow and review criteria, and please follow the
-[Code of Conduct](./CODE_OF_CONDUCT.md).
+Contributions of all kinds are welcome — bug reports, docs, tests, and code.
+**[`CONTRIBUTING.md`](./CONTRIBUTING.md)** is the full guide (dev setup, code style,
+testing, and the PR process); the essentials:
+
+- **Set up** — Node 20 + pnpm 9, then `pnpm install` and `pnpm db:generate`; see
+  [Configuration](#configuration) for the required secrets.
+- **Branch** from `main`, keep changes focused, and add tests for any behavioral change.
+- **Before pushing** — `pnpm lint`, `pnpm test`, and `pnpm build` must pass.
+- **Commits** — [Conventional Commits](https://www.conventionalcommits.org/) with a
+  DCO `Signed-off-by` line (`git commit -s`).
+- **Open a PR** against `main` — CI runs the secrets scan and build/test, and one
+  maintainer approval is required to merge.
+
+Please also follow the [Code of Conduct](./CODE_OF_CONDUCT.md), and report security
+issues privately per the [Security Policy](./SECURITY.md).
 
 ## Security
 

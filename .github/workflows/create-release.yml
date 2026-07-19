@@ -1,0 +1,178 @@
+name: Release
+
+# Cuts a release from a version tag (vX.Y.Z):
+#   1. builds the workspace and packages the SDKs,
+#   2. creates the GitHub Release with auto-generated notes and the package
+#      artifacts attached, then
+#   3. publishes the packages to their registries (npm + PyPI).
+#
+# Container images are published separately by release.yml, which also triggers
+# on the tag. The registry-publish jobs below are guarded: they no-op unless the
+# matching token secret (NPM_TOKEN / PYPI_API_TOKEN) is configured, so forks and
+# token-less repositories still get a GitHub Release with downloadable artifacts.
+#
+# Normal flow:  bump the version, commit, then `git tag vX.Y.Z && git push --tags`.
+# The `workflow_dispatch` input is a manual fallback (creates the tag from the
+# current commit if it doesn't already exist).
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Version tag to release, e.g. v0.2.0 (created from the current commit if missing)"
+        required: true
+        type: string
+
+permissions:
+  contents: write # create the GitHub Release (and tag, on manual dispatch)
+
+jobs:
+  release:
+    name: Build, package & create release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (full history for release notes)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve tag + validate version
+        id: ver
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ inputs.tag }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+          # The tag (minus the leading v) must match the root package.json version,
+          # so a release can never ship packages under a mismatched version.
+          PKG_VERSION="$(node -p "require('./package.json').version")"
+          if [ "${TAG#v}" != "$PKG_VERSION" ]; then
+            echo "::error::Tag ${TAG} does not match package.json version ${PKG_VERSION}. Bump the version first."
+            exit 1
+          fi
+
+          # Tags with a pre-release suffix (e.g. v1.2.3-rc.1) are marked as prereleases.
+          if echo "$TAG" | grep -q '-'; then
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install & build
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm -r build
+
+      - name: Package the SDKs
+        run: |
+          mkdir -p dist/release
+          # npm tarball for @veltrix/sdk
+          ( cd packages/sdk-js && npm pack --pack-destination "$GITHUB_WORKSPACE/dist/release" )
+          # Python sdist + wheel for the Python SDK
+          python -m pip install --upgrade build
+          python -m build --outdir "$GITHUB_WORKSPACE/dist/release" packages/sdk-python
+          echo "Packaged artifacts:"
+          ls -l dist/release
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: Veltrix Community Edition ${{ steps.ver.outputs.tag }}
+          generate_release_notes: true
+          prerelease: ${{ steps.ver.outputs.prerelease }}
+          files: dist/release/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifacts to the workflow run
+        uses: actions/upload-artifact@v4
+        with:
+          name: packages-${{ steps.ver.outputs.tag }}
+          path: dist/release/*
+          if-no-files-found: error
+
+  publish-npm:
+    name: Publish npm (@veltrix/sdk)
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Guard — require NPM_TOKEN
+        id: guard
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "$NPM_TOKEN" ]; then
+            echo "NPM_TOKEN not set — skipping npm publish."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: pnpm/action-setup@v4
+        if: steps.guard.outputs.enabled == 'true'
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        if: steps.guard.outputs.enabled == 'true'
+        with:
+          node-version: 20
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+      - name: Install, build & publish (skips private + already-published versions)
+        if: steps.guard.outputs.enabled == 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm -r build
+          pnpm -r publish --access public --no-git-checks
+
+  publish-pypi:
+    name: Publish PyPI (veltrix_sdk)
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Guard — require PYPI_API_TOKEN
+        id: guard
+        env:
+          PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          if [ -z "$PYPI_API_TOKEN" ] || [ ! -d packages/sdk-python ]; then
+            echo "PYPI_API_TOKEN not set or packages/sdk-python missing — skipping."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/setup-python@v5
+        if: steps.guard.outputs.enabled == 'true'
+        with:
+          python-version: "3.11"
+      - name: Build & publish
+        if: steps.guard.outputs.enabled == 'true'
+        working-directory: packages/sdk-python
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          python -m pip install --upgrade build twine
+          python -m build
+          python -m twine upload --skip-existing dist/*
