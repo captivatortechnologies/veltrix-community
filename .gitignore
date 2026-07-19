@@ -36,6 +36,11 @@ out/
 **/generated/
 **/prisma/client/
 
+# Compiled seed artifacts — the seed sources are .ts; any sibling .js/.js.map
+# in prisma/seed/ is stale build output (tsc emits to dist/, not in place).
+server/prisma/seed/*.js
+server/prisma/seed/*.js.map
+
 # Python (SDK)
 __pycache__/
 *.py[cod]

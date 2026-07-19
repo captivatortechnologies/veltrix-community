@@ -39,8 +39,8 @@ db-generate: ## Generate the Prisma client
 db-migrate: ## Apply database migrations (dev)
 	pnpm db:migrate
 
-seed: ## Seed the database (default org, admin, RBAC)
-	pnpm --filter ./server seed
+seed: ## Seed the database (default org, admin, RBAC, tool + compliance catalogs)
+	pnpm --filter ./server db:seed
 
 quickstart: ## One-command self-host bootstrap (build + migrate + start)
 	bash scripts/quickstart.sh

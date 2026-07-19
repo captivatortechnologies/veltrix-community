@@ -47,7 +47,15 @@
     "lib": ["ES2022"]
   },
   "include": [
-    "src/**/*"
+    "src/**/*",
+    // The seed sources are real runtime code: src/server.ts imports several of
+    // them for first-run boot seeding, and the standalone `seed`/`db:seed`
+    // scripts run prisma/seed/index.ts (which also pulls in tools.ts, a file
+    // src/server.ts does NOT import). Include the whole seed tree so the full
+    // entrypoint compiles to dist/server/prisma/seed/index.js — otherwise the
+    // compiled `node dist/.../seed/index.js` would MODULE_NOT_FOUND on ./tools
+    // — and so every seed file is type-checked by `lint` (tsc --noEmit).
+    "prisma/seed/**/*"
   ],
   "exclude": [
     "node_modules",
