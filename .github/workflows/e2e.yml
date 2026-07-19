@@ -1,0 +1,138 @@
+name: E2E (Playwright)
+
+# PROVISIONAL / OPT-IN.
+#
+# The Community Edition e2e suite has been adapted to the OSS routes (its fixtures
+# no longer depend on the excluded /platform-admin surface — see e2e/README.md), but
+# it has NOT yet been validated end-to-end against a live stack in CI. It is therefore
+# triggered MANUALLY and does not gate pushes or PRs. Run it from the Actions tab
+# ("E2E (Playwright)" -> "Run workflow"); once it is reliably green, add `pull_request`
+# / `push` triggers to promote it to a required check.
+#
+# The suite drives the Vite DEV client on :5173 (which proxies /api -> :5000, so the
+# browser is same-origin and the double-submit CSRF cookie works) against the compiled
+# Fastify API on :5000, and logs in as the dev fixture user (dev@local.test).
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    name: Playwright e2e (provisional, non-gating)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: veltrix
+          POSTGRES_USER: veltrix
+          POSTGRES_PASSWORD: veltrix
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U veltrix"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+
+    env:
+      # Throwaway, CI-only server secrets (never real values).
+      DATABASE_URL: postgresql://veltrix:veltrix@localhost:5432/veltrix
+      REDIS_URL: redis://localhost:6379
+      JWT_SECRET: ci-e2e-jwt-not-a-real-secret-00000000000000000
+      JWT_REFRESH_SECRET: ci-e2e-refresh-not-a-real-secret-000000000
+      ENCRYPTION_KEY: ci-e2e-encryption-not-a-real-secret-00000000
+      COOKIE_SECRET: ci-e2e-cookie-not-a-real-secret-0000000000000
+      PORT: "5000"
+      # Deterministic seeded admin so the suite can authenticate as it
+      # (helpers.adminToken()). Must match the E2E_ADMIN_* values below.
+      VELTRIX_ADMIN_EMAIL: admin@example.com
+      VELTRIX_ADMIN_PASSWORD: E2eAdmin-ci-000
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install workspace deps + generate Prisma client
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm db:generate
+
+      - name: Build (server + client + shared)
+        run: pnpm build
+
+      - name: Migrate + seed
+        # Uses the COMPILED seed entrypoints (dist), which also exercises the
+        # standalone-seed build path. index.js seeds the default org, RBAC, the
+        # seeded admin, and the tool/compliance catalogs; dev-user.js adds the
+        # dev@local.test fixture the login setup logs in as.
+        run: |
+          pnpm --filter ./server prisma:migrate
+          node server/dist/server/prisma/seed/index.js
+          node server/dist/server/prisma/seed/dev-user.js
+
+      - name: Start API (compiled) on :5000
+        run: |
+          node server/dist/server/src/server.js > api.log 2>&1 &
+          for i in $(seq 1 45); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:5000/ || true)
+            [ "$code" = "200" ] && echo "API up" && exit 0
+            sleep 2
+          done
+          echo "API did not become healthy"; cat api.log; exit 1
+
+      - name: Start client (Vite dev on :5173, proxies /api -> :5000)
+        run: |
+          pnpm --filter ./client dev > client.log 2>&1 &
+          for i in $(seq 1 45); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:5173/ || true)
+            [ "$code" = "200" ] && echo "client up" && exit 0
+            sleep 2
+          done
+          echo "client did not become healthy"; cat client.log; exit 1
+
+      - name: Install e2e deps + Playwright Chrome
+        working-directory: e2e
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chrome
+
+      - name: Run Playwright e2e
+        working-directory: e2e
+        # E2E_PLATFORM_ADMIN is intentionally unset: the two idp-sso steps that
+        # require the excluded /platform-admin surface skip in Community Edition.
+        env:
+          E2E_BASE_URL: http://localhost:5173
+          E2E_API_URL: http://localhost:5000/api
+          E2E_EMAIL: dev@local.test
+          E2E_PASSWORD: DevLocal@123
+          E2E_ADMIN_EMAIL: admin@example.com
+          E2E_ADMIN_PASSWORD: E2eAdmin-ci-000
+        run: npm test
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: e2e/playwright-report
+          retention-days: 7
+
+      - name: Dump server/client logs on failure
+        if: failure()
+        run: |
+          echo "===== API log ====="; cat api.log || true
+          echo "===== client log ====="; cat client.log || true

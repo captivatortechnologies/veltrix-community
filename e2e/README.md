@@ -81,6 +81,10 @@ from that surface:
   `E2E_PLATFORM_ADMIN=1` to run them against a commercial build.
 
 > Note: the adapted specs target real OSS routes and type-check, but the full suite has not
-> yet been executed against a live Community Edition stack in CI. Because CE collapses to one
-> Organization, the `idp-sso` specs share a single tenant — run them in a single worker
-> (`--workers=1`) if you see cross-test SSO-config interference until per-run isolation is added.
+> yet been executed against a live Community Edition stack in CI. A manual GitHub Actions
+> workflow — **E2E (Playwright)** (`.github/workflows/e2e.yml`, `workflow_dispatch`) — boots
+> the stack (Postgres + Redis + compiled API on :5000 + Vite client on :5173), seeds the
+> dev-user, and runs this suite. It is opt-in and non-gating until it is reliably green; run it
+> from the Actions tab to validate. Because CE collapses to one Organization, the `idp-sso`
+> specs share a single tenant (the config already pins `workers: 1`); watch for cross-test
+> SSO-config interference until per-run isolation is added.
