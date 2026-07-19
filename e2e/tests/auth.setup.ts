@@ -28,7 +28,7 @@ setup('authenticate via the login UI', async ({ page }) => {
 
   await page.getByRole('button', { name: /^sign in$/i }).click()
 
-  // Landed on an authenticated route (home or platform-admin), no longer on /login.
+  // Landed on an authenticated route (home), no longer on /login.
   await page.waitForURL((url) => !/\/login/.test(url.pathname), { timeout: 25_000 })
   await expect(page.locator('#password')).toHaveCount(0)
 

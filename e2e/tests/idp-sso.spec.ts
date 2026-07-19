@@ -1,6 +1,6 @@
 import { test, expect, type Page, type Locator } from '@playwright/test'
 import { OAuth2Server, Events, type MutableToken } from 'oauth2-mock-server'
-import { API_URL, TEST_PASSWORD, adminToken, apiGetWithToken, apiLogin, apiPost, loginViaUI, provisionTenant, uniq } from './helpers'
+import { API_URL, PLATFORM_ADMIN_AVAILABLE, TEST_PASSWORD, adminToken, apiGetWithToken, apiLogin, apiPost, loginViaUI, provisionTenant, uniq } from './helpers'
 
 /**
  * GET a JSON API path with NO authentication — for the two genuinely public,
@@ -697,7 +697,10 @@ test.describe('Generic OIDC provider — SSO success paths', () => {
       }
     })
 
-    await test.step('deactivated user -> rejected on repeat SSO (user_inactive)', async () => {
+    // Commercial-only: deactivating a user goes through the excluded /platform-admin surface,
+    // and no OSS route deactivates a user — so this rejection path is omitted in Community
+    // Edition. Runs only against a commercial build (E2E_PLATFORM_ADMIN=1).
+    if (PLATFORM_ADMIN_AVAILABLE) await test.step('deactivated user -> rejected on repeat SSO (user_inactive)', async () => {
       // {} not undefined — apiPost always sends Content-Type: application/json;
       // an empty body with that header 400s (FST_ERR_CTP_EMPTY_JSON_BODY).
       await apiPost(request, `/platform-admin/users/${jitUserId}/deactivate`, platformToken, {})
@@ -727,7 +730,10 @@ test.describe('Generic OIDC provider — SSO success paths', () => {
     // only the final token-exchange runs after, proving the gate rejects a
     // tenant that went inactive mid-flow, not just one that was already
     // suspended before the user started.
-    await test.step('suspended tenant -> rejected (tenant_suspended)', async () => {
+    // Commercial-only: suspending a tenant/customer is a hosted multi-tenant operation
+    // (/platform-admin/customers/:id/disable) with no Community Edition equivalent. Runs only
+    // against a commercial build (E2E_PLATFORM_ADMIN=1).
+    if (PLATFORM_ADMIN_AVAILABLE) await test.step('suspended tenant -> rejected (tenant_suspended)', async () => {
       const suspendedFlowEmail = `${uniq('e2e-oidc-suspend')}@${tenant.domain}`
 
       const authUrlRes = await publicGet<{ authUrl: string; state: string }>(

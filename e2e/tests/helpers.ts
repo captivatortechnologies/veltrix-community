@@ -23,11 +23,19 @@ export const ADMIN_CREDS = {
 }
 
 export const STORAGE_STATE = 'storageState.json'
-export const ADMIN_STORAGE_STATE = 'storageState.platform-admin.json'
 export const API_URL = process.env.E2E_API_URL || 'http://localhost:5000/api'
 
 /** App slug used for app-scoped feature tests (installed by default in dev). */
 export const APP_ID = process.env.E2E_APP_ID || 'crowdstrike-edr'
+
+/**
+ * Whether the target server exposes the hosted `/platform-admin/*` provisioning surface
+ * (multi-tenant customer create/disable, cross-tenant user deactivate). It is FALSE by default
+ * because the Community Edition server excludes that surface; set `E2E_PLATFORM_ADMIN=1` when
+ * running against a commercial build to enable the handful of steps/specs that require it. Specs
+ * gate only the genuinely-commercial assertions on this — the rest run against the OSS server.
+ */
+export const PLATFORM_ADMIN_AVAILABLE = process.env.E2E_PLATFORM_ADMIN === '1'
 
 /**
  * Password for run-created fixture users — only the email needs to be unique. Env-driven;
@@ -263,15 +271,20 @@ export async function csrfPutExpectingFailure(
 }
 
 /**
- * Provisions a tenant + its initial admin user, using an explicit admin password so the caller
- * never depends on the one-time-reveal tempPassword. Returns the created ids/credentials for use
- * in beforeAll fixtures.
+ * Provisions a fixture admin user for a test to operate as, returning the ids/credentials for
+ * use in `beforeAll` fixtures. The return shape is preserved from the historical multi-tenant
+ * helper so callers are unchanged.
  *
- * NOTE (Community Edition): this helper posts to `/platform-admin/customers`, which is part of
- * the hosted/commercial surface excluded from the OSS server. The RBAC, IdP/SSO, and 2FA specs
- * that call it therefore still need decoupling from platform-admin provisioning before they run
- * green against the single-tenant OSS server (they should provision the fixture tenant/user via
- * the OSS user/role seed + admin APIs instead). Tracked as follow-up — see the e2e README.
+ * Community Edition is SINGLE-TENANT: there is no `/platform-admin/customers` provisioning
+ * surface (it is part of the excluded hosted/commercial code). Rather than minting a new
+ * customer, this creates a real `Administrator`-role user inside the caller's existing (default)
+ * Organization via the OSS `POST /users` route, and reports that org's id as `customerId`.
+ * The returned `domain` is synthetic — callers use it only to build unique JIT email addresses;
+ * `customerName`/`adminId` are retained for shape-compatibility. `opts.tier` is accepted for
+ * caller-compat and ignored (there are no tiers in Community Edition).
+ *
+ * `token` must be an existing admin token (e.g. `adminToken()`) — it needs `role:read` to find
+ * the Administrator role and `user:write` to create the fixture user.
  */
 export async function provisionTenant(
   request: APIRequestContext,
@@ -288,21 +301,34 @@ export async function provisionTenant(
   const name = uniq(opts.namePrefix)
   const domain = `${name}.e2e.test`
   const adminEmail = `${name}-admin@e2e.test`
-  const body = await apiPost<{
-    customer: { id: string; name: string }
-    admin: { id: string; email: string }
-  }>(request, '/platform-admin/customers', token, {
-    name,
-    domain,
-    tier: opts.tier,
-    admin: { email: adminEmail, firstName: 'E2E', lastName: 'Admin', password: opts.adminPassword },
+
+  // Find the seeded "Administrator" role (all:all) in the caller's default organization.
+  const roles = await apiGetWithToken<Array<{ id: string; name: string }>>(request, '/roles', token)
+  const adminRole = roles.find((r) => r.name === 'Administrator')
+  if (!adminRole) {
+    throw new Error(
+      'provisionTenant: no "Administrator" role in the default organization — is the DB seeded? ' +
+        '(see server/prisma/seed/admin-account.ts)',
+    )
+  }
+
+  // Create the fixture admin as a real user in the default org. `/users` is NOT on the CSRF
+  // exclude list (unlike the old `/platform-admin/customers`), so this must go through csrfPost.
+  // The server scopes the new user to the caller's own tenant; `customerId` in the body is not
+  // part of createUserRequestSchema and is ignored.
+  const admin = await csrfPost<{ id: string; email: string; customerId: string }>(request, '/users', token, {
+    name: `${name} Admin`,
+    email: adminEmail,
+    password: opts.adminPassword,
+    roleId: adminRole.id,
   })
+
   return {
-    customerId: body.customer.id,
-    customerName: body.customer.name,
+    customerId: admin.customerId,
+    customerName: name,
     domain,
-    adminId: body.admin.id,
-    adminEmail: body.admin.email,
+    adminId: admin.id,
+    adminEmail: admin.email,
     adminPassword: opts.adminPassword,
   }
 }

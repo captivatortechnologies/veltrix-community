@@ -63,13 +63,24 @@ and is gitignored — it is regenerated on every run.
 Shared code: `tests/helpers.ts` (API + login helpers), `tests/configHelpers.ts` (Canvas
 locators), `tests/auth.setup.ts` (login setup project).
 
-## Known follow-up
+## Community Edition vs. commercial provisioning
 
-`rbac-permissions.spec.ts`, `idp-sso.spec.ts`, and `portal-2fa.spec.ts` were carried from
-the upstream suite where they ran under a hosted platform-admin identity. Their
-`helpers.provisionTenant()` fixture still posts to `/platform-admin/customers`, which is part
-of the hosted/commercial surface that is not present in the Community Edition server. These
-three specs therefore need decoupling from platform-admin provisioning (provision the fixture
-tenant/user via the OSS user/role seed + admin APIs instead) before they run green against the
-single-tenant OSS server. The config surgery has already re-homed all three to the `chromium`
-(dev-user) project; only the provisioning seam remains.
+`rbac-permissions.spec.ts`, `idp-sso.spec.ts`, and `portal-2fa.spec.ts` were carried from the
+upstream suite where they ran under a hosted platform-admin identity. They are now decoupled
+from that surface:
+
+- `helpers.provisionTenant()` no longer posts to the excluded `/platform-admin/customers`
+  route. In the single-tenant Community Edition it creates the fixture admin as a real
+  `Administrator`-role user inside the default Organization via the OSS `GET /roles` +
+  `POST /users` routes, so `rbac-permissions`, `portal-2fa`, and the bulk of `idp-sso` run
+  against the OSS server unchanged.
+- A few `idp-sso` steps assert behavior that only exists on the hosted multi-tenant surface —
+  deactivating a user (`/platform-admin/users/:id/deactivate`) and suspending a tenant
+  (`/platform-admin/customers/:id/disable`). Those steps are gated on
+  `PLATFORM_ADMIN_AVAILABLE` (`helpers.ts`) and are **skipped by default**; set
+  `E2E_PLATFORM_ADMIN=1` to run them against a commercial build.
+
+> Note: the adapted specs target real OSS routes and type-check, but the full suite has not
+> yet been executed against a live Community Edition stack in CI. Because CE collapses to one
+> Organization, the `idp-sso` specs share a single tenant — run them in a single worker
+> (`--workers=1`) if you see cross-test SSO-config interference until per-run isolation is added.
