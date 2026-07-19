@@ -248,6 +248,30 @@ Whichever path you choose, supply strong per-environment secrets (see
 - **Data:** PostgreSQL 16 · Redis 7
 - **Deploy:** Docker Compose (single server) · Helm (Kubernetes)
 
+## Roadmap
+
+Veltrix Community Edition is pre-1.0 (`0.1.x`) and moving quickly. The roadmap
+below is directional, not a set of hard commitments — it's shaped in the open, so
+[open an issue or discussion](https://github.com/captivatortechnologies/veltrix-community/issues)
+to weigh in or propose something.
+
+**Now → 1.0 (stabilization)**
+- Freeze and document the public API and SDK surface so integrations can depend on it.
+- Promote the manual [Playwright e2e suite](./e2e/README.md) to a required check once
+  it's green against a live stack (the Docker smoke test already gates every PR).
+- Round out the self-host docs — upgrades, backup/restore drills, and scaling guidance.
+
+**Growing continuously**
+- More security-tool integrations in the [apps catalog](#apps--integrations); the app
+  engine and SDK are stable, so integrations ship independently of platform releases.
+- Incremental pipeline depth — richer canary analysis and drift reporting.
+
+**Post-1.0**
+- A formal supported-version and security-fix window (see [`SECURITY.md`](./SECURITY.md)).
+- Broader SSO and audit-export options.
+
+Nothing here is dated; priorities follow real usage and contributions.
+
 ## Contributing
 
 Issues and pull requests are welcome. Start with [`CONTRIBUTING.md`](./CONTRIBUTING.md)
