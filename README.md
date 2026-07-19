@@ -23,6 +23,34 @@ policy, …); the pipeline owns **how** it is safely delivered, verified, and ro
 back. That pipeline, its app engine, the configuration canvas, version control,
 RBAC, the React design‑system, and the developer SDKs are all open source here.
 
+## Why it matters now: AI is changing your security tools
+
+AI agents and copilots increasingly *make* security changes, not just suggest them
+— tuning SIEM detections, editing IdP and firewall policy, rotating access. They
+work at machine speed and scale, and they occasionally go confidently wrong. One
+plausible‑but‑incorrect change to a detection rule or an access policy can open a
+hole or take production down before anyone notices. The question is no longer
+"can AI change our tools?" — it's **"who's checking its work?"**
+
+Veltrix is the control plane that answers that. The same mandatory pipeline that
+governs human changes governs AI‑authored ones:
+
+- **AI proposes, humans approve.** Agents author changes through the API with
+  scoped keys — but nothing deploys until a named person approves the actual
+  diff, not a summary of it.
+- **Blast radius stays contained.** Even approved changes roll out progressively,
+  with canary steps, health checks, and automatic rollback — so a bad config is
+  caught at 10% of the fleet, not 100%.
+- **Drift is a tripwire.** If an agent (or anyone) edits a tool outside the
+  pipeline, drift detection flags the delta against the last approved state and
+  can alert on critical changes.
+- **Everything has provenance.** Who or what proposed a change, who approved it,
+  what deployed, and what it replaced are all recorded — ready for incident
+  forensics and audits.
+
+**AI drafts. Humans decide. The pipeline enforces.** Every guardrail above ships
+in the Community Edition — it's the product, not an enterprise add‑on.
+
 ## What's in the Community Edition
 
 | Included (free, self‑hostable) | Not included (hosted commercial add‑ons) |
