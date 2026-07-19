@@ -181,6 +181,66 @@ Capabilities toggle via `FEATURE_*` flags (the full set lives in `.env.example`)
   `FEATURE_MULTI_TENANT`, `FEATURE_HOSTED_CONNECTIVITY`, `FEATURE_CLOUD_PROVISIONING`
   belong to the hosted edition and have no effect here.
 
+## Deployment
+
+The [Quickstart](#quickstart) runs the stack with Docker Compose — ideal for
+evaluation and single-server self-hosting. For production, the repo also ships
+first-class Kubernetes support:
+
+| Path | Best for | Where |
+|---|---|---|
+| **Docker Compose** | Evaluation, single-server installs | [`docker-compose.yml`](./docker-compose.yml) |
+| **Helm chart** | Production Kubernetes (recommended) | [`helm/veltrix/`](./helm/veltrix/) |
+| **Raw manifests** | Kubernetes without Helm, or as a starting point | [`k8s/manifests/`](./k8s/manifests/) |
+
+### Helm
+
+The chart deploys the API and web client, bundles PostgreSQL and Redis subcharts
+(disable them to use managed services), and exposes secrets, feature flags,
+autoscaling, and ingress as values:
+
+```bash
+helm dependency update helm/veltrix
+helm install veltrix helm/veltrix \
+  --namespace veltrix --create-namespace \
+  --set backend.image.repository=<registry>/veltrix-backend \
+  --set frontend.image.repository=<registry>/veltrix-frontend \
+  --set backend.secrets.jwtSecret="$(openssl rand -hex 32)" \
+  --set backend.secrets.cookieSecret="$(openssl rand -hex 32)" \
+  --set postgresql.auth.postgresPassword="$(openssl rand -hex 24)" \
+  --set ingress.hosts[0].host=veltrix.your-domain.example
+```
+
+For real deployments, override every placeholder secret (prefer an external
+secret manager such as External Secrets Operator or Sealed Secrets), and set
+`postgresql.enabled=false` / `redis.enabled=false` to point at managed database
+and cache services. Full values reference: [`helm/veltrix/README.md`](./helm/veltrix/README.md).
+
+### Raw Kubernetes manifests
+
+Apply the bundled Deployments, Services, HPAs, ingress, network policies,
+pod-disruption budgets, PostgreSQL (with a read replica), and Redis, plus the
+Grafana observability dashboards:
+
+```bash
+kubectl apply -f k8s/manifests/
+```
+
+See [`k8s/manifests/README.md`](./k8s/manifests/README.md) for image/registry and
+ingress setup.
+
+### Running it in production
+
+Operational guides live in [`docs/operations/`](./docs/operations/):
+
+- [Database backups](./docs/operations/DATABASE-BACKUP.md)
+- [Read replicas](./docs/operations/READ-REPLICAS.md)
+- [Observability](./docs/operations/OBSERVABILITY.md) — Prometheus + Grafana
+- [CI/CD](./docs/operations/CI-CD.md)
+
+Whichever path you choose, supply strong per-environment secrets (see
+[Configuration](#configuration)) — the server fails fast without them.
+
 ## Tech stack
 
 - **Backend:** Fastify 5 · TypeScript · Prisma 6 · BullMQ (Redis)
