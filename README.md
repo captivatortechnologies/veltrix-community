@@ -128,6 +128,39 @@ Most first-run problems fall into a handful of buckets:
 - **Start completely fresh.** Wipe the containers *and* volumes (this deletes the
   database), then re-run: `docker compose down -v && ./scripts/quickstart.sh`.
 
+## Configuration
+
+Everything is configured through environment variables. Copy the template and
+fill it in — [`.env.example`](./.env.example) documents every variable inline, and
+[`docs/CONFIGURATION.md`](./docs/CONFIGURATION.md) is the full reference:
+
+```bash
+cp .env.example .env
+```
+
+| Group | Variables | Notes |
+|---|---|---|
+| **Core** | `NODE_ENV`, `PORT`, `APP_URL` | `APP_URL` is the client's public URL (used for CORS and links). |
+| **Datastores** | `DATABASE_URL`, `REDIS_URL` | PostgreSQL 16 and Redis 7 — Redis powers the BullMQ pipeline workers. |
+| **Secrets** (required) | `JWT_SECRET`, `JWT_REFRESH_SECRET`, `ENCRYPTION_KEY`, `COOKIE_SECRET` | No defaults — the server **fails fast** if any is unset. Generate each with `openssl rand -hex 32`; keep the two JWT secrets distinct. |
+| **First-run admin** | `VELTRIX_ADMIN_EMAIL`, `VELTRIX_ADMIN_PASSWORD` | Created on first boot. Leave the password blank and a random one is printed once to the server log. |
+| **Branding** | `VELTRIX_BRAND_NAME`, `VELTRIX_BRAND_TAGLINE`, `VELTRIX_BRAND_LOGO_URL` | The Community Edition brand is fully configurable; served at `GET /api/brand`. |
+| **Apps** | `APPS_DIR` | Directory the app engine discovers apps from — a checkout of the [apps repo](https://github.com/captivatortechnologies/veltrix-apps). |
+
+### Feature flags
+
+Capabilities toggle via `FEATURE_*` flags (the full set lives in `.env.example`):
+
+- **Pipeline — free, on by default:** `FEATURE_PIPELINE_DRIFT_DETECTION`,
+  `FEATURE_PIPELINE_CANARY`, `FEATURE_PIPELINE_BLUE_GREEN`,
+  `FEATURE_PIPELINE_APPROVALS`. The premium delivery features, enabled out of the box.
+- **Optional SSO — off by default:** `FEATURE_OAUTH_GOOGLE`, `FEATURE_OAUTH_MICROSOFT`,
+  `FEATURE_OAUTH_OIDC`, `FEATURE_OAUTH_COGNITO`. Local auth is the default; enable a
+  provider only alongside its credentials (`GOOGLE_CLIENT_ID`, `OIDC_ISSUER_URL`, …).
+- **Commercial — not included, leave `false`:** `FEATURE_BILLING`,
+  `FEATURE_MULTI_TENANT`, `FEATURE_HOSTED_CONNECTIVITY`, `FEATURE_CLOUD_PROVISIONING`
+  belong to the hosted edition and have no effect here.
+
 ## Tech stack
 
 - **Backend:** Fastify 5 · TypeScript · Prisma 6 · BullMQ (Redis)
