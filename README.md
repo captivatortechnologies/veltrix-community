@@ -98,6 +98,36 @@ See [`docs/QUICKSTART.md`](./docs/QUICKSTART.md) for the full self‑host guide 
 The verified end‑to‑end boot (build → migrate → seed → login) runs in CI as the
 **Docker smoke test** job.
 
+### Troubleshooting
+
+Most first-run problems fall into a handful of buckets:
+
+- **`port is already allocated` (or the stack won't bind).** The compose stack
+  publishes host ports **3000** (web), **5000** (API), **5432** (Postgres), and
+  **6379** (Redis). A local Postgres or Redis is the usual culprit. Stop the
+  conflicting service, or remap the host side in `docker-compose.yml`
+  (e.g. `"5433:5432"`) and update `DATABASE_URL` / `REDIS_URL` to match.
+- **The `server` container exits immediately or restart-loops.** A required
+  secret (`JWT_SECRET`, `JWT_REFRESH_SECRET`, `ENCRYPTION_KEY`, `COOKIE_SECRET`)
+  is missing or still a `CHANGE_ME` placeholder — the server fails fast by
+  design. Fill `.env` with real values (`openssl rand -hex 32` each; make the two
+  JWT secrets different). Confirm the reason with `docker compose logs server`.
+- **Can't log in — where's the admin password?** The first-run admin is
+  `admin@example.com`. If you ran `quickstart.sh`, the password was printed by the
+  script and saved to `.env` as `VELTRIX_ADMIN_PASSWORD`. If you booted manually
+  without setting it, a random one was generated and printed **once** to the
+  server log: `docker compose logs server | grep -i password`.
+- **Login works but the app looks empty / you see seeding warnings.** The app
+  auto-seeds on first boot, but only against a *migrated* database. If `server`
+  started before `prisma migrate deploy` ran, apply the migration and restart:
+  `docker compose restart server`. Seeding is idempotent, so re-running is safe.
+- **`docker compose: command not found` or compose errors.** The stack needs
+  Docker Compose **v2** (`docker compose`, with a space — not the legacy
+  `docker-compose`). Update Docker Desktop or the Compose plugin. On Windows, run
+  `scripts/quickstart.sh` from **Git Bash** or WSL, not PowerShell.
+- **Start completely fresh.** Wipe the containers *and* volumes (this deletes the
+  database), then re-run: `docker compose down -v && ./scripts/quickstart.sh`.
+
 ## Tech stack
 
 - **Backend:** Fastify 5 · TypeScript · Prisma 6 · BullMQ (Redis)
