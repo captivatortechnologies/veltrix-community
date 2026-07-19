@@ -44,17 +44,24 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    # Uncommon host port (8731) to avoid clashing with local dev servers;
+    # the container itself still listens on 5000 internally.
     ports:
-      - "5000:5000"
+      - "8731:5000"
 
   client:
     build:
       context: .
       dockerfile: client/Dockerfile
+      args:
+        # Baked into the SPA at build time so the browser calls the API on its
+        # published host port. Override for a real deployment (your domain).
+        VITE_API_URL: http://localhost:8731/api
     depends_on:
       - server
+    # Uncommon host port (8730); nginx still serves on port 80 inside the container.
     ports:
-      - "3000:80"
+      - "8730:80"
 
 volumes:
   db_data:

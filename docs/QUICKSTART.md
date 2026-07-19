@@ -94,7 +94,7 @@ administrator from `VELTRIX_ADMIN_EMAIL`.
 
 ## 6. Log in
 
-Open **http://localhost:3000**.
+Open **http://localhost:8730**.
 
 - **Email:** the `VELTRIX_ADMIN_EMAIL` you set.
 - **Password:** the `VELTRIX_ADMIN_PASSWORD` you set — or, if you left it blank,
@@ -125,8 +125,8 @@ docker compose down -v            # stop and delete all data (fresh start)
 
 | Service | URL / Port |
 |---|---|
-| Frontend | http://localhost:3000 |
-| Backend API | http://localhost:5000 |
+| Frontend | http://localhost:8730 |
+| Backend API | http://localhost:8731 |
 | PostgreSQL | localhost:5432 |
 | Redis | localhost:6379 |
 

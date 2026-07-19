@@ -40,8 +40,8 @@ export const env = cleanEnv(process.env, {
   LOG_LEVEL: str({ choices: ['error', 'warn', 'info', 'debug'], default: 'info' }),
 
   // ---- Public URLs / CORS ----
-  APP_URL: str({ default: 'http://localhost:3000' }),
-  CORS_ORIGIN: str({ default: 'http://localhost:3000,http://localhost:5173' }),
+  APP_URL: str({ default: 'http://localhost:8730' }),
+  CORS_ORIGIN: str({ default: 'http://localhost:8730,http://localhost:5173' }),
 
   // ---- Email / SMTP (password-reset delivery) ----
   // Baseline configuration for outbound email. The admin UI (EmailSettings in

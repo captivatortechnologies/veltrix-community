@@ -58,8 +58,8 @@ cat <<'DONE'
 
 ==> Veltrix Community Edition is starting.
 
-    Web UI:   http://localhost:3000
-    API:      http://localhost:5000
+    Web UI:   http://localhost:8730
+    API:      http://localhost:8731
 
     Check status:  docker compose ps
     Follow logs:   docker compose logs -f server

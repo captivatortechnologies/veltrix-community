@@ -49,10 +49,10 @@ smoke: ## Local docker smoke test: boot the stack and hit the live endpoints
 	bash scripts/quickstart.sh
 	@echo "==> Waiting for server health"; \
 	for i in $$(seq 1 45); do \
-	  code=$$(curl -s -o /dev/null -w '%{http_code}' http://localhost:5000/ || true); \
+	  code=$$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8731/ || true); \
 	  [ "$$code" = "200" ] && break; sleep 2; done
-	@echo "==> /api/brand"        && curl -fsS http://localhost:5000/api/brand;        echo
-	@echo "==> /api/feature-flags" && curl -fsS http://localhost:5000/api/feature-flags; echo
+	@echo "==> /api/brand"        && curl -fsS http://localhost:8731/api/brand;        echo
+	@echo "==> /api/feature-flags" && curl -fsS http://localhost:8731/api/feature-flags; echo
 	@echo "==> smoke OK"
 
 secrets-scan: ## Scan the tree for secrets (gitleaks)

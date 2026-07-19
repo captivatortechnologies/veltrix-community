@@ -100,8 +100,8 @@ boots the stack (it prints the generated admin login on first run):
 
 ```bash
 ./scripts/quickstart.sh     # or:  make quickstart
-# → Web UI  http://localhost:3000
-# → API     http://localhost:5000
+# → Web UI  http://localhost:8730
+# → API     http://localhost:8731
 ```
 
 Prefer to drive it yourself?
@@ -123,7 +123,7 @@ The verified end‑to‑end boot (build → migrate → seed → login) runs in 
 Most first-run problems fall into a handful of buckets:
 
 - **`port is already allocated` (or the stack won't bind).** The compose stack
-  publishes host ports **3000** (web), **5000** (API), **5432** (Postgres), and
+  publishes host ports **8730** (web), **8731** (API), **5432** (Postgres), and
   **6379** (Redis). A local Postgres or Redis is the usual culprit. Stop the
   conflicting service, or remap the host side in `docker-compose.yml`
   (e.g. `"5433:5432"`) and update `DATABASE_URL` / `REDIS_URL` to match.
@@ -228,6 +228,12 @@ kubectl apply -f k8s/manifests/
 
 See [`k8s/manifests/README.md`](./k8s/manifests/README.md) for image/registry and
 ingress setup.
+
+### Run it as a service (systemd)
+
+To manage the Docker Compose stack with systemd — start on boot, `systemctl
+start`/`stop`/`restart` — install the bundled unit at
+[`deploy/systemd/`](./deploy/systemd/). It wraps `docker compose up -d` / `down`.
 
 ### Running it in production
 

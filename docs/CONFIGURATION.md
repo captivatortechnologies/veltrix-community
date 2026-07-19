@@ -24,7 +24,7 @@ template.
 |---|---|---|
 | `NODE_ENV` | `development` | Runtime mode. Use `production` for deployments. |
 | `PORT` | `5000` | Port the backend listens on. |
-| `APP_URL` | `http://localhost:3000` | Public URL of the client, used for CORS and generated links. |
+| `APP_URL` | `http://localhost:8730` | Public URL of the client, used for CORS and generated links. |
 
 ## Database (PostgreSQL 16)
 

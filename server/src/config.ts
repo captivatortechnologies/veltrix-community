@@ -47,8 +47,8 @@ export const config = {
     userPoolRegion: process.env.COGNITO_USER_POOL_REGION || 'us-east-1',
     clientId: process.env.COGNITO_CLIENT_ID || '',
     clientSecret: process.env.COGNITO_CLIENT_SECRET || '',
-    redirectUri: process.env.COGNITO_REDIRECT_URI || 'http://localhost:3000/oauth/callback',
-    logoutUri: process.env.COGNITO_LOGOUT_URI || 'http://localhost:3000/login',
+    redirectUri: process.env.COGNITO_REDIRECT_URI || 'http://localhost:8730/oauth/callback',
+    logoutUri: process.env.COGNITO_LOGOUT_URI || 'http://localhost:8730/login',
     scope: process.env.COGNITO_SCOPE || 'phone email openid profile',
   },
 
@@ -57,7 +57,7 @@ export const config = {
     enabled: process.env.GOOGLE_ENABLED === 'true',
     clientId: process.env.GOOGLE_CLIENT_ID || '',
     clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
-    redirectUri: process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000/',
+    redirectUri: process.env.GOOGLE_REDIRECT_URI || 'http://localhost:8730/',
     scopes: process.env.GOOGLE_SCOPES || 'openid email profile',
   },
 
@@ -67,7 +67,7 @@ export const config = {
     tenantId: process.env.MICROSOFT_TENANT_ID || 'common',
     clientId: process.env.MICROSOFT_CLIENT_ID || '',
     clientSecret: process.env.MICROSOFT_CLIENT_SECRET || '',
-    redirectUri: process.env.MICROSOFT_REDIRECT_URI || 'http://localhost:3000/',
+    redirectUri: process.env.MICROSOFT_REDIRECT_URI || 'http://localhost:8730/',
     scopes: process.env.MICROSOFT_SCOPES || 'openid email profile User.Read',
     authority:
       process.env.MICROSOFT_AUTHORITY ||
