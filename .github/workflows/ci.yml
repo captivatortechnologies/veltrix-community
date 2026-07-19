@@ -59,3 +59,79 @@ jobs:
           JWT_SECRET: ci-test-secret-not-a-real-secret-000000000000
           JWT_REFRESH_SECRET: ci-test-refresh-not-a-real-secret-0000000
           ENCRYPTION_KEY: ci-test-encryption-not-a-real-secret-00000
+
+  smoke:
+    name: Docker smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate .env with throwaway secrets
+        run: |
+          hex() { openssl rand -hex 32; }
+          cat > .env <<EOF
+          NODE_ENV=production
+          PORT=5000
+          POSTGRES_PASSWORD=veltrix
+          DATABASE_URL=postgresql://veltrix:veltrix@db:5432/veltrix
+          REDIS_URL=redis://redis:6379
+          JWT_SECRET=$(hex)
+          JWT_REFRESH_SECRET=$(hex)
+          ENCRYPTION_KEY=$(hex)
+          COOKIE_SECRET=$(hex)
+          VELTRIX_ADMIN_EMAIL=admin@example.com
+          VELTRIX_ADMIN_PASSWORD=SmokeTest-$(openssl rand -hex 8)
+          VELTRIX_BRAND_NAME=Veltrix
+          VELTRIX_BRAND_TAGLINE=Security-as-Code
+          FEATURE_PIPELINE_CANARY=true
+          EOF
+
+      - name: Build images
+        run: docker compose build server client
+
+      - name: Start datastores and migrate
+        run: |
+          docker compose up -d db redis
+          # wait for postgres to be healthy
+          for i in $(seq 1 30); do
+            [ "$(docker inspect -f '{{.State.Health.Status}}' veltrix-community-db-1)" = "healthy" ] && break
+            sleep 2
+          done
+          docker compose run --rm --no-deps server npx prisma migrate deploy
+
+      - name: Start app (auto-seeds on boot against migrated DB)
+        run: docker compose up -d server client
+
+      - name: Wait for server health
+        run: |
+          for i in $(seq 1 45); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:5000/ || true)
+            [ "$code" = "200" ] && echo "server up" && exit 0
+            sleep 2
+          done
+          echo "server did not become healthy"; exit 1
+
+      - name: Assert public endpoints
+        run: |
+          curl -fsS http://localhost:5000/api/brand | tee /dev/stderr | grep -q '"name":"Veltrix"'
+          curl -fsS http://localhost:5000/api/feature-flags | tee /dev/stderr \
+            | grep -q '"canaryDeployments":{"enabled":true}'
+          # client (nginx) serves the SPA
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3000/)" = "200"
+
+      - name: Assert admin login (DB round-trip + JWT)
+        run: |
+          PW=$(grep '^VELTRIX_ADMIN_PASSWORD=' .env | cut -d= -f2)
+          code=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://localhost:5000/api/auth/login \
+            -H 'Content-Type: application/json' \
+            -d "{\"email\":\"admin@example.com\",\"password\":\"$PW\"}")
+          echo "login HTTP $code"
+          test "$code" = "200"
+
+      - name: Dump logs on failure
+        if: failure()
+        run: docker compose logs --tail 100
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v

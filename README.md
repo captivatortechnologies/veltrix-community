@@ -45,16 +45,30 @@ cleaning the open‑source core out of the internal Veltrix monorepo. Expect the
 tree to fill in over the coming commits (server core, app engine, DB schema,
 client, SDKs, infra, docs). Track progress in the issues / project board.
 
-## Quickstart (coming soon)
+## Quickstart
+
+One command builds the images, generates secrets, migrates the database, and
+boots the stack (it prints the generated admin login on first run):
 
 ```bash
-# Single‑server, everything in Docker
-docker compose up -d
-# → http://localhost:3000
+./scripts/quickstart.sh     # or:  make quickstart
+# → Web UI  http://localhost:3000
+# → API     http://localhost:5000
 ```
 
-A full self‑host guide (Docker Compose + Helm/Kubernetes) will land in
-`docs/` as the extraction completes.
+Prefer to drive it yourself?
+
+```bash
+cp .env.example .env        # then fill in the secrets (openssl rand -hex 32)
+docker compose up -d db redis
+docker compose run --rm --no-deps server npx prisma migrate deploy
+docker compose up -d server client
+```
+
+See [`docs/QUICKSTART.md`](./docs/QUICKSTART.md) for the full self‑host guide and
+[`docs/CONFIGURATION.md`](./docs/CONFIGURATION.md) for every environment variable.
+The verified end‑to‑end boot (build → migrate → seed → login) runs in CI as the
+**Docker smoke test** job.
 
 ## Tech stack
 
