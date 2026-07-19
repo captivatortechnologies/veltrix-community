@@ -1,0 +1,63 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "veltrix-sdk"
+version = "0.1.0"
+description = "Official Python SDK for the Veltrix API — a Security-as-Code platform (Community Edition)."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { file = "LICENSE" }
+authors = [
+    { name = "The Veltrix Community Edition contributors" },
+]
+keywords = [
+    "veltrix",
+    "security-as-code",
+    "devsecops",
+    "sdk",
+    "api-client",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Security",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "requests>=2.20.0",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/captivatortechnologies/veltrix-community"
+Repository = "https://github.com/captivatortechnologies/veltrix-community"
+Issues = "https://github.com/captivatortechnologies/veltrix-community/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["veltrix_sdk"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/veltrix_sdk",
+    "/tests",
+    "/README.md",
+    "/LICENSE",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

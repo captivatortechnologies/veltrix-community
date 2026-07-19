@@ -36,6 +36,15 @@ out/
 **/generated/
 **/prisma/client/
 
+# Python (SDK)
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+.pytest_cache/
+.venv/
+venv/
+
 # Test / coverage
 coverage/
 playwright-report/

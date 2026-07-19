@@ -1,0 +1,27 @@
+{
+  "name": "@veltrix/shared",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shared TypeScript contracts for Veltrix Community Edition (Security-as-Code pipeline, app manifest, and HTTP API types).",
+  "license": "Apache-2.0",
+  "type": "module",
+  "types": "./index.ts",
+  "main": "./index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./types/api": "./types/api.ts",
+    "./types/app": "./types/app.ts",
+    "./types/pipeline": "./types/pipeline.ts"
+  },
+  "files": [
+    "index.ts",
+    "types"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0"
+  }
+}

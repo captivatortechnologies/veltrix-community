@@ -1,0 +1,244 @@
+# Optional / advanced: PostgreSQL streaming read replica.
+# References secrets `postgres-credentials` and `postgres-replication` and the
+# storage classes `fast-ssd` / `nfs` that you must provide for your cluster.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-replica-config
+  namespace: veltrix
+data:
+  replica.conf: |
+    # PostgreSQL Read Replica Configuration
+
+    # Hot Standby Settings
+    hot_standby = on
+    hot_standby_feedback = on
+
+    # Replication Settings
+    max_standby_streaming_delay = 30s
+    max_standby_archive_delay = 60s
+
+    # WAL Receiver Settings
+    wal_receiver_status_interval = 10s
+    wal_retrieve_retry_interval = 5s
+
+    # Query Settings for Read Replica
+    max_connections = 200
+    shared_buffers = 256MB
+    effective_cache_size = 1GB
+    work_mem = 4MB
+    maintenance_work_mem = 64MB
+
+    # Logging
+    log_destination = 'stderr'
+    logging_collector = on
+    log_directory = '/var/log/postgresql'
+    log_filename = 'postgresql-%Y-%m-%d_%H%M%S.log'
+    log_rotation_age = 1d
+    log_rotation_size = 100MB
+    log_min_duration_statement = 1000
+    log_line_prefix = '%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h '
+    log_replication_commands = on
+
+    # Performance
+    random_page_cost = 1.1
+    effective_io_concurrency = 200
+
+  recovery.conf: |
+    # Recovery configuration for streaming replication
+    standby_mode = 'on'
+    primary_conninfo = 'host=postgres-primary port=5432 user=replicator password=${REPLICATION_PASSWORD} application_name=replica1'
+    recovery_target_timeline = 'latest'
+    restore_command = 'cp /var/lib/postgresql/wal_archive/%f %p'
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-replica
+  namespace: veltrix
+  labels:
+    app: postgres
+    role: replica
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5432
+      targetPort: 5432
+      protocol: TCP
+      name: postgresql
+  selector:
+    app: postgres
+    role: replica
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-replica-headless
+  namespace: veltrix
+  labels:
+    app: postgres
+    role: replica
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - port: 5432
+      targetPort: 5432
+      protocol: TCP
+      name: postgresql
+  selector:
+    app: postgres
+    role: replica
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-replica
+  namespace: veltrix
+spec:
+  serviceName: postgres-replica-headless
+  replicas: 2
+  selector:
+    matchLabels:
+      app: postgres
+      role: replica
+  template:
+    metadata:
+      labels:
+        app: postgres
+        role: replica
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - postgres
+              topologyKey: kubernetes.io/hostname
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports:
+            - containerPort: 5432
+              name: postgresql
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: password
+            - name: REPLICATION_USER
+              value: "replicator"
+            - name: REPLICATION_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-replication
+                  key: password
+            - name: POSTGRES_DB
+              value: "veltrix"
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+            - name: postgres-config
+              mountPath: /etc/postgresql/replica.conf
+              subPath: replica.conf
+            - name: wal-archive
+              mountPath: /var/lib/postgresql/wal_archive
+          resources:
+            requests:
+              cpu: 500m
+              memory: 512Mi
+            limits:
+              cpu: 2000m
+              memory: 2Gi
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - pg_isready -U $POSTGRES_USER -d $POSTGRES_DB
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  pg_isready -U $POSTGRES_USER -d $POSTGRES_DB && \
+                  psql -U $POSTGRES_USER -d $POSTGRES_DB -tAc "SELECT pg_is_in_recovery();" | grep -q 't'
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+      volumes:
+        - name: postgres-config
+          configMap:
+            name: postgres-replica-config
+        - name: wal-archive
+          persistentVolumeClaim:
+            claimName: postgres-wal-archive
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: fast-ssd
+        resources:
+          requests:
+            storage: 50Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-wal-archive
+  namespace: veltrix
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: postgres-replica-pdb
+  namespace: veltrix
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: postgres
+      role: replica
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: postgres-replica
+  namespace: veltrix
+  labels:
+    app: postgres
+    role: replica
+spec:
+  selector:
+    matchLabels:
+      app: postgres
+      role: replica
+  endpoints:
+    - port: postgresql
+      interval: 30s
+      path: /metrics

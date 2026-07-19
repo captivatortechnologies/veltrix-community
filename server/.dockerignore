@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+pnpm-debug.log*
+
+# Testing
+coverage/
+.nyc_output/
+test-results/
+**/__tests__/
+**/*.test.ts
+**/*.spec.ts
+
+# Build outputs
+dist/
+
+# Environment files (provided at runtime via env_file / compose)
+.env
+.env.*
+!.env.example
+
+# IDE / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Git / CI
+.git/
+.gitignore
+.github/
+
+# Docs
+*.md
+
+# Local dev scratch
+tmp/
+temp/
+*.log

@@ -1,0 +1,59 @@
+# Veltrix Community Edition — root .dockerignore.
+# Applies to every image built from this repo (docker-compose.yml builds both
+# server/Dockerfile and client/Dockerfile with `context: .`), so this must
+# stay build-safe for BOTH: keep config files each Dockerfile's build stage
+# needs (vite.config.ts, tsconfig*.json, prisma schema, etc.) — only exclude
+# things no build ever needs to read.
+
+# Internal planning / agent tooling — never leaves the source tree
+_ai_tasks/
+.claude/
+
+# VCS
+.git/
+.gitattributes
+
+# Secrets & environment — the Dockerfiles take config via build ARGs /
+# runtime env_file, never by copying a real .env into the image
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+**/terraform.tfvars
+*.tfstate
+*.tfstate.*
+
+# Dependencies (each Dockerfile stage runs its own install)
+node_modules/
+**/node_modules/
+.pnpm-store/
+
+# Build outputs from a local (non-Docker) build — regenerated inside the image
+dist/
+build/
+**/dist/
+*.tsbuildinfo
+
+# Test / coverage — not needed to build or run the production image
+coverage/
+playwright-report/
+test-results/
+**/__tests__/
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+
+# Docs, CI, editor/OS cruft
+docs/
+.github/
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.swp
+*.log

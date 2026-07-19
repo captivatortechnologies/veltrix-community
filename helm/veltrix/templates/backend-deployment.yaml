@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "veltrix.backend.fullname" . }}
+  labels:
+    {{- include "veltrix.labels" . | nindent 4 }}
+    {{- include "veltrix.backend.selectorLabels" . | nindent 4 }}
+spec:
+  {{- if not .Values.backend.autoscaling.enabled }}
+  replicas: {{ .Values.backend.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "veltrix.backend.selectorLabels" . | nindent 6 }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        {{- include "veltrix.backend.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      initContainers:
+        - name: wait-for-db
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z {{ .Release.Name }}-postgresql 5432; do echo waiting for db; sleep 2; done']
+      containers:
+        - name: backend
+          image: "{{ .Values.global.imageRegistry }}{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+          imagePullPolicy: {{ .Values.backend.image.pullPolicy }}
+          ports:
+            - containerPort: 5000
+              protocol: TCP
+          env:
+            - name: NODE_ENV
+              value: {{ .Values.backend.env.NODE_ENV | quote }}
+            - name: PORT
+              value: {{ .Values.backend.env.PORT | quote }}
+            - name: DATABASE_URL_VL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "veltrix.backend.fullname" . }}-secrets
+                  key: database-url
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "veltrix.backend.fullname" . }}-secrets
+                  key: jwt-secret
+            - name: REDIS_URL
+              value: {{ include "veltrix.redisUrl" . | quote }}
+            - name: COOKIE_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "veltrix.backend.fullname" . }}-secrets
+                  key: cookie-secret
+            # Feature flags
+            - name: COGNITO_ENABLED
+              value: {{ .Values.featureFlags.oauth.cognito.enabled | quote }}
+            - name: GOOGLE_ENABLED
+              value: {{ .Values.featureFlags.oauth.google.enabled | quote }}
+            - name: MICROSOFT_ENABLED
+              value: {{ .Values.featureFlags.oauth.microsoft.enabled | quote }}
+            - name: STRIPE_ENABLED
+              value: {{ .Values.featureFlags.billing.stripe.enabled | quote }}
+            - name: PAYPAL_ENABLED
+              value: {{ .Values.featureFlags.billing.paypal.enabled | quote }}
+            - name: DRIFT_DETECTION_ENABLED
+              value: {{ .Values.featureFlags.pipeline.driftDetection.enabled | quote }}
+            - name: DRIFT_DETECTION_INTERVAL_MINUTES
+              value: {{ .Values.featureFlags.pipeline.driftDetection.intervalMinutes | quote }}
+          {{- with .Values.backend.envFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          livenessProbe:
+            {{- toYaml .Values.backend.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.backend.readinessProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}

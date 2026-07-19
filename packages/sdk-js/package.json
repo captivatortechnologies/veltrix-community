@@ -1,0 +1,60 @@
+{
+  "name": "@veltrix/sdk",
+  "version": "0.1.0",
+  "description": "Official JavaScript/TypeScript SDK for the Veltrix Community Edition API",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "prepublishOnly": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/captivatortechnologies/veltrix-community.git",
+    "directory": "packages/sdk-js"
+  },
+  "keywords": [
+    "veltrix",
+    "security-as-code",
+    "devsecops",
+    "sdk",
+    "api",
+    "self-hosted"
+  ],
+  "author": "Veltrix Community contributors",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/captivatortechnologies/veltrix-community/issues"
+  },
+  "homepage": "https://github.com/captivatortechnologies/veltrix-community/tree/main/packages/sdk-js#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "vitest": "^2.0.0"
+  }
+}

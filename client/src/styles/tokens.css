@@ -1,0 +1,136 @@
+/**
+ * Veltrix Design Tokens
+ * ---------------------
+ * Single source of truth for brand + semantic color. Every shared component should
+ * consume these via Tailwind utility classes (`bg-primary`, `text-content-secondary`,
+ * `border-border`, …) — never hardcode a hex/rgb value in a component.
+ *
+ * This file is the extraction seam for `@veltrix/ui`: it is standalone (zero
+ * `@import`s, no build-step dependency) and works dropped into any project — pair it with
+ * `tailwind-preset.cjs` in this same directory, which maps these variables onto Tailwind
+ * color families.
+ *
+ * Brand: primary = blue (matches the /login sign-in button, the shield logo, and the
+ * sidebar's active-state highlight).
+ *
+ * Values are space-separated RGB triples (no `rgb()`/`#`) so Tailwind can apply opacity
+ * modifiers, e.g. `bg-primary-subtle/50`, via `rgb(var(--color-x) / <alpha-value>)`.
+ *
+ * Convention: solid/base shades (DEFAULT, hover, active, foreground) stay constant across
+ * light/dark — they already have enough contrast against both white and dark surfaces, and
+ * this matches how buttons already behaved before this system existed. Only the "soft"
+ * values that depend on the surface behind them — subtle tints, surfaces, borders, text —
+ * flip between light and dark. This means components using these tokens do NOT need
+ * `dark:` prefixes for brand colors; the variable itself changes.
+ *
+ * Dark mode trigger: both `.dark` (Veltrix's own ThemeContext toggles this class on
+ * `<html>`, matching Tailwind's `darkMode: 'class'`) and `[data-theme="dark"]` are
+ * supported, so a consumer that prefers the data-attribute convention doesn't need to
+ * change anything here.
+ */
+
+:root {
+  /* Primary — blue-600/700/800 */
+  --color-primary: 37 99 235;
+  --color-primary-hover: 29 78 216;
+  --color-primary-active: 30 64 175;
+  --color-primary-foreground: 255 255 255;
+  --color-primary-subtle: 239 246 255; /* blue-50 */
+  --color-primary-subtle-foreground: 30 64 175; /* blue-800 */
+
+  /* Success — green-600/700/800 */
+  --color-success: 22 163 74;
+  --color-success-hover: 21 128 61;
+  --color-success-active: 22 101 52;
+  --color-success-foreground: 255 255 255;
+  --color-success-subtle: 220 252 231; /* green-100 */
+  --color-success-subtle-foreground: 22 101 52; /* green-800 */
+
+  /* Warning — yellow-700/800/900 (darker base than yellow-500 so white button text
+     clears 4.5:1 contrast; see docblock note in Button.tsx) */
+  --color-warning: 161 98 7;
+  --color-warning-hover: 133 77 14;
+  --color-warning-active: 113 63 18;
+  --color-warning-foreground: 255 255 255;
+  --color-warning-subtle: 254 249 195; /* yellow-100 */
+  --color-warning-subtle-foreground: 133 77 14; /* yellow-800 */
+
+  /* Danger — red-600/700/800 */
+  --color-danger: 220 38 38;
+  --color-danger-hover: 185 28 28;
+  --color-danger-active: 153 27 27;
+  --color-danger-foreground: 255 255 255;
+  --color-danger-subtle: 254 226 226; /* red-100 */
+  --color-danger-subtle-foreground: 153 27 27; /* red-800 */
+
+  /* Info — cyan-700/800/900 (darker base than cyan-600 for the same contrast reason
+     as warning) */
+  --color-info: 14 116 144;
+  --color-info-hover: 21 94 117;
+  --color-info-active: 22 78 99;
+  --color-info-foreground: 255 255 255;
+  --color-info-subtle: 207 250 254; /* cyan-100 */
+  --color-info-subtle-foreground: 21 94 117; /* cyan-800 */
+
+  /* Surfaces */
+  --color-surface: 249 250 251; /* gray-50 — page background */
+  --color-surface-raised: 255 255 255; /* white — card/panel background */
+  --color-surface-overlay: 255 255 255; /* white — modal/dialog background */
+  --color-surface-hover: 249 250 251; /* gray-50 — hoverable row/ghost background */
+  --color-surface-sunken: 243 244 246; /* gray-100 — inset wells, disabled fields */
+
+  /* Borders */
+  --color-border: 229 231 235; /* gray-200 */
+  --color-border-strong: 209 213 219; /* gray-300 */
+
+  /* Text ("content" to avoid the text-text-* stutter as a Tailwind color family) */
+  --color-content-primary: 17 24 39; /* gray-900 */
+  --color-content-secondary: 75 85 99; /* gray-600 */
+  --color-content-tertiary: 156 163 175; /* gray-400 */
+  --color-content-disabled: 156 163 175; /* gray-400 */
+  --color-content-inverse: 255 255 255;
+
+  /* Tooltip/inverse-surface overlays: deliberately constant across themes (not overridden
+     under .dark below) — a dark bubble reads reliably against both light and dark pages,
+     which is why most tooltip implementations (VS Code, GitHub, Slack) never flip these. */
+  --color-tooltip: 17 24 39; /* gray-900 */
+  --color-tooltip-foreground: 255 255 255;
+
+  /* Modal/dialog backdrop scrim — also constant across themes; apply with an opacity
+     modifier at the call site, e.g. `bg-scrim/50`. */
+  --color-scrim: 15 23 42; /* slate-900 */
+}
+
+.dark,
+[data-theme='dark'] {
+  /* Primary subtle values darken; solid base stays put (still readable on dark surfaces) */
+  --color-primary-subtle: 30 41 71;
+  --color-primary-subtle-foreground: 96 165 250; /* blue-400 */
+
+  --color-success-subtle: 28 54 44;
+  --color-success-subtle-foreground: 74 222 128; /* green-400 */
+
+  --color-warning-subtle: 56 48 45;
+  --color-warning-subtle-foreground: 251 191 36; /* amber-400 */
+
+  --color-danger-subtle: 60 50 54;
+  --color-danger-subtle-foreground: 248 113 113; /* red-400 */
+
+  --color-info-subtle: 28 52 67;
+  --color-info-subtle-foreground: 34 211 238; /* cyan-400 */
+
+  --color-surface: 17 24 39; /* gray-900 */
+  --color-surface-raised: 31 41 55; /* gray-800 */
+  --color-surface-overlay: 31 41 55; /* gray-800 */
+  --color-surface-hover: 55 65 81; /* gray-700 */
+  --color-surface-sunken: 17 24 39; /* gray-900 */
+
+  --color-border: 55 65 81; /* gray-700 */
+  --color-border-strong: 75 85 99; /* gray-600 */
+
+  --color-content-primary: 243 244 246; /* gray-100 */
+  --color-content-secondary: 156 163 175; /* gray-400 */
+  --color-content-tertiary: 107 114 128; /* gray-500 */
+  --color-content-disabled: 75 85 99; /* gray-600 */
+  --color-content-inverse: 255 255 255;
+}

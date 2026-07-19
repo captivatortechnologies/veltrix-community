@@ -1,0 +1,322 @@
+{
+  "dashboard": {
+    "title": "Veltrix Application Overview",
+    "tags": ["veltrix", "application", "overview"],
+    "timezone": "browser",
+    "editable": true,
+    "graphTooltip": 1,
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Request Rate",
+        "type": "graph",
+        "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "rate(http_requests_total[5m])",
+            "legendFormat": "{{method}} {{route}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          { "format": "reqps", "label": "Requests/sec" },
+          { "format": "short" }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Response Time (P95)",
+        "type": "graph",
+        "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "P95 - {{route}}",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "P50 - {{route}}",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          { "format": "s", "label": "Duration" },
+          { "format": "short" }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Error Rate",
+        "type": "graph",
+        "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "rate(http_requests_total{status_code=~\"5..\"}[5m])",
+            "legendFormat": "5xx - {{route}}",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(http_requests_total{status_code=~\"4..\"}[5m])",
+            "legendFormat": "4xx - {{route}}",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          { "format": "reqps", "label": "Errors/sec" },
+          { "format": "short" }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Active Connections",
+        "type": "graph",
+        "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "http_requests_in_flight",
+            "legendFormat": "{{method}} {{route}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          { "format": "short", "label": "Connections" },
+          { "format": "short" }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Database Query Duration",
+        "type": "graph",
+        "gridPos": { "x": 0, "y": 16, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(db_query_duration_seconds_bucket[5m]))",
+            "legendFormat": "P95 - {{operation}} {{table}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          { "format": "s", "label": "Duration" },
+          { "format": "short" }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Database Connections",
+        "type": "graph",
+        "gridPos": { "x": 12, "y": 16, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "db_connections_active",
+            "legendFormat": "Active",
+            "refId": "A"
+          },
+          {
+            "expr": "db_connection_pool_size",
+            "legendFormat": "Pool Size",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          { "format": "short", "label": "Connections" },
+          { "format": "short" }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Authentication Success Rate",
+        "type": "stat",
+        "gridPos": { "x": 0, "y": 24, "w": 6, "h": 4 },
+        "targets": [
+          {
+            "expr": "sum(rate(auth_success_total[5m])) / sum(rate(auth_attempts_total[5m])) * 100",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"]
+          },
+          "text": {
+            "valueSize": 40
+          }
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "color": "red", "value": 0 },
+                { "color": "yellow", "value": 80 },
+                { "color": "green", "value": 95 }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 8,
+        "title": "Active Sessions",
+        "type": "stat",
+        "gridPos": { "x": 6, "y": 24, "w": 6, "h": 4 },
+        "targets": [
+          {
+            "expr": "active_sessions",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"]
+          },
+          "text": {
+            "valueSize": 40
+          }
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 9,
+        "title": "Cache Hit Rate",
+        "type": "stat",
+        "gridPos": { "x": 12, "y": 24, "w": 6, "h": 4 },
+        "targets": [
+          {
+            "expr": "sum(rate(cache_hits_total[5m])) / (sum(rate(cache_hits_total[5m])) + sum(rate(cache_misses_total[5m]))) * 100",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"]
+          },
+          "text": {
+            "valueSize": 40
+          }
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                { "color": "red", "value": 0 },
+                { "color": "yellow", "value": 70 },
+                { "color": "green", "value": 90 }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 10,
+        "title": "Active Deployments",
+        "type": "stat",
+        "gridPos": { "x": 18, "y": 24, "w": 6, "h": 4 },
+        "targets": [
+          {
+            "expr": "active_deployments",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"]
+          },
+          "text": {
+            "valueSize": 40
+          }
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 11,
+        "title": "Security Alerts Created",
+        "type": "graph",
+        "gridPos": { "x": 0, "y": 28, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "rate(alerts_created_total[5m])",
+            "legendFormat": "{{severity}} - {{type}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          { "format": "short", "label": "Alerts/sec" },
+          { "format": "short" }
+        ]
+      },
+      {
+        "id": 12,
+        "title": "Queue Depth",
+        "type": "graph",
+        "gridPos": { "x": 12, "y": 28, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "queue_depth",
+            "legendFormat": "{{queue}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          { "format": "short", "label": "Messages" },
+          { "format": "short" }
+        ]
+      },
+      {
+        "id": 13,
+        "title": "Memory Usage",
+        "type": "graph",
+        "gridPos": { "x": 0, "y": 36, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "system_memory_usage_bytes",
+            "legendFormat": "{{type}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          { "format": "bytes", "label": "Memory" },
+          { "format": "short" }
+        ]
+      },
+      {
+        "id": 14,
+        "title": "CPU Usage",
+        "type": "graph",
+        "gridPos": { "x": 12, "y": 36, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "system_cpu_usage_percent",
+            "legendFormat": "{{type}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          { "format": "percent", "label": "CPU %" },
+          { "format": "short" }
+        ]
+      }
+    ]
+  },
+  "overwrite": true
+}

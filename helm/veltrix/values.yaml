@@ -1,0 +1,161 @@
+# Veltrix Community Edition — Helm Chart default values.
+#
+# Images: the community project does not publish official container images. Build
+# your own from server/Dockerfile and client/Dockerfile and push them to your own
+# registry, then override backend.image.repository / frontend.image.repository
+# below (or via --set / a values override file). The defaults are placeholders.
+#
+# Secrets: every secret here is a placeholder ("changeme"). Override them for any
+# real deployment — see helm/veltrix/README.md.
+
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+
+# --- Backend ---
+backend:
+  replicaCount: 2
+  image:
+    # Placeholder — replace with your own registry/image.
+    repository: ghcr.io/veltrix/veltrix-backend
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 5000
+  resources:
+    limits:
+      cpu: "1"
+      memory: 1Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+  env:
+    NODE_ENV: production
+    PORT: "5000"
+  envFrom: []
+  # Reference secrets for sensitive values
+  secrets:
+    databaseUrl: ""  # Override via --set or an external secret
+    jwtSecret: ""
+    redisUrl: ""
+    cookieSecret: ""
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilization: 70
+    targetMemoryUtilization: 80
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 5000
+    initialDelaySeconds: 30
+    periodSeconds: 30
+  readinessProbe:
+    httpGet:
+      path: /health
+      port: 5000
+    initialDelaySeconds: 10
+    periodSeconds: 10
+
+# --- Frontend ---
+frontend:
+  replicaCount: 2
+  image:
+    # Placeholder — replace with your own registry/image.
+    repository: ghcr.io/veltrix/veltrix-frontend
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 80
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+  env:
+    VITE_API_URL: /api
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilization: 80
+
+# --- Ingress ---
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  hosts:
+    - host: veltrix.example.com
+      paths:
+        - path: /api
+          pathType: Prefix
+          backend: backend
+        - path: /
+          pathType: Prefix
+          backend: frontend
+  tls: []
+
+# --- Feature Flags ---
+# Commercial / optional integrations default OFF. Local email+password auth is
+# the built-in default; the pipeline features below ship free in Community Edition.
+featureFlags:
+  oauth:
+    cognito:
+      enabled: false
+    google:
+      enabled: false
+    microsoft:
+      enabled: false
+  billing:
+    stripe:
+      enabled: false
+    paypal:
+      enabled: false
+  pipeline:
+    driftDetection:
+      enabled: true
+      intervalMinutes: 60
+    canaryDeployments:
+      enabled: true
+    blueGreenDeployments:
+      enabled: true
+
+# --- Dependencies (Bitnami subcharts) ---
+# NOTE: Bitnami has been reorganizing its public catalog. Pin chart + image
+# versions and, if `helm dependency update` fails, point the repositories at
+# oci://registry-1.docker.io/bitnamicharts.
+postgresql:
+  enabled: true
+  auth:
+    postgresPassword: changeme
+    database: veltrix
+  primary:
+    persistence:
+      size: 20Gi
+
+# Redis backs both caching and the BullMQ job queue (no separate broker needed).
+redis:
+  enabled: true
+  architecture: standalone
+  auth:
+    enabled: false
+  master:
+    persistence:
+      size: 2Gi
+
+# --- Platform Config ---
+platform:
+  namespace: veltrix
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+  networkPolicy:
+    enabled: true

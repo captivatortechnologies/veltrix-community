@@ -1,0 +1,28 @@
+{
+  "name": "veltrix-community",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Veltrix Community Edition — open-source Security-as-Code platform",
+  "license": "Apache-2.0",
+  "packageManager": "pnpm@9.12.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "pnpm -r --filter ./server --filter ./client --filter ./shared --filter \"./packages/*\" build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "dev": "docker compose up",
+    "dev:down": "docker compose down",
+    "db:generate": "pnpm --filter ./server prisma:generate",
+    "db:migrate": "pnpm --filter ./server prisma:migrate",
+    "secrets:scan": "gitleaks detect --no-git --redact -c .gitleaks.toml --source ."
+  },
+  "keywords": [
+    "security-as-code",
+    "devsecops",
+    "configuration-management",
+    "pipeline",
+    "self-hosted"
+  ]
+}

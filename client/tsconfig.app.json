@@ -1,0 +1,41 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "useDefineForClassFields": true,
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+
+    /* Bundler mode (Vite builds/bundles; tsc here only type-checks) */
+    "allowImportingTsExtensions": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    /* App-specific linting on top of the shared base */
+    "noImplicitAny": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true,
+
+    /* Import path aliases (must match vite.config.ts's `@` alias) */
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "components/*": ["./src/components/*"],
+      "src/*": ["./src/*"]
+    }
+  },
+  "include": ["src"],
+  "exclude": [
+    "**/__tests__/**",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "**/*.test.tsx",
+    "**/*.spec.tsx",
+    "src/tests/**/*"
+  ]
+}

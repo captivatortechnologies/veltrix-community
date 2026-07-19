@@ -1,0 +1,241 @@
+{
+  "dashboard": {
+    "title": "Veltrix Infrastructure Monitoring",
+    "tags": ["veltrix", "infrastructure", "kubernetes"],
+    "timezone": "browser",
+    "editable": true,
+    "graphTooltip": 1,
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Cluster CPU Usage",
+        "type": "graph",
+        "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"veltrix\"}[5m])) by (pod)",
+            "legendFormat": "{{pod}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          { "format": "percentunit", "label": "CPU Usage" },
+          { "format": "short" }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Cluster Memory Usage",
+        "type": "graph",
+        "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "sum(container_memory_working_set_bytes{namespace=\"veltrix\"}) by (pod)",
+            "legendFormat": "{{pod}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          { "format": "bytes", "label": "Memory" },
+          { "format": "short" }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Pod Count by Status",
+        "type": "graph",
+        "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "count(kube_pod_status_phase{namespace=\"veltrix\"}) by (phase)",
+            "legendFormat": "{{phase}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          { "format": "short", "label": "Pods" },
+          { "format": "short" }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Container Restarts",
+        "type": "graph",
+        "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "rate(kube_pod_container_status_restarts_total{namespace=\"veltrix\"}[5m])",
+            "legendFormat": "{{pod}} - {{container}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          { "format": "short", "label": "Restarts/sec" },
+          { "format": "short" }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Network I/O",
+        "type": "graph",
+        "gridPos": { "x": 0, "y": 16, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "rate(container_network_receive_bytes_total{namespace=\"veltrix\"}[5m])",
+            "legendFormat": "RX - {{pod}}",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(container_network_transmit_bytes_total{namespace=\"veltrix\"}[5m])",
+            "legendFormat": "TX - {{pod}}",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          { "format": "Bps", "label": "Bytes/sec" },
+          { "format": "short" }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Disk I/O",
+        "type": "graph",
+        "gridPos": { "x": 12, "y": 16, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "rate(container_fs_reads_bytes_total{namespace=\"veltrix\"}[5m])",
+            "legendFormat": "Read - {{pod}}",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(container_fs_writes_bytes_total{namespace=\"veltrix\"}[5m])",
+            "legendFormat": "Write - {{pod}}",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          { "format": "Bps", "label": "Bytes/sec" },
+          { "format": "short" }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "Node CPU Usage",
+        "type": "graph",
+        "gridPos": { "x": 0, "y": 24, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "1 - avg(rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) by (instance)",
+            "legendFormat": "{{instance}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          { "format": "percentunit", "label": "CPU Usage" },
+          { "format": "short" }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Node Memory Usage",
+        "type": "graph",
+        "gridPos": { "x": 12, "y": 24, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)",
+            "legendFormat": "{{instance}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          { "format": "percentunit", "label": "Memory Usage" },
+          { "format": "short" }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "Node Disk Usage",
+        "type": "graph",
+        "gridPos": { "x": 0, "y": 32, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)",
+            "legendFormat": "{{instance}} - {{mountpoint}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          { "format": "percentunit", "label": "Disk Usage" },
+          { "format": "short" }
+        ]
+      },
+      {
+        "id": 10,
+        "title": "Node Load Average",
+        "type": "graph",
+        "gridPos": { "x": 12, "y": 32, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "node_load1",
+            "legendFormat": "1m - {{instance}}",
+            "refId": "A"
+          },
+          {
+            "expr": "node_load5",
+            "legendFormat": "5m - {{instance}}",
+            "refId": "B"
+          },
+          {
+            "expr": "node_load15",
+            "legendFormat": "15m - {{instance}}",
+            "refId": "C"
+          }
+        ],
+        "yaxes": [
+          { "format": "short", "label": "Load" },
+          { "format": "short" }
+        ]
+      },
+      {
+        "id": 11,
+        "title": "PVC Usage",
+        "type": "graph",
+        "gridPos": { "x": 0, "y": 40, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "kubelet_volume_stats_used_bytes{namespace=\"veltrix\"} / kubelet_volume_stats_capacity_bytes{namespace=\"veltrix\"} * 100",
+            "legendFormat": "{{persistentvolumeclaim}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          { "format": "percent", "label": "Usage %" },
+          { "format": "short" }
+        ]
+      },
+      {
+        "id": 12,
+        "title": "Ingress Request Rate",
+        "type": "graph",
+        "gridPos": { "x": 12, "y": 40, "w": 12, "h": 8 },
+        "targets": [
+          {
+            "expr": "rate(nginx_ingress_controller_requests{namespace=\"veltrix\"}[5m])",
+            "legendFormat": "{{ingress}} - {{status}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          { "format": "reqps", "label": "Requests/sec" },
+          { "format": "short" }
+        ]
+      }
+    ]
+  },
+  "overwrite": true
+}

@@ -1,0 +1,128 @@
+name: Package Community Apps
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps-and-tools/**'
+      - '!apps-and-tools/_template/**'
+      - '!apps-and-tools/CONTRIBUTING.md'
+  workflow_dispatch:
+    inputs:
+      package_all:
+        description: 'Package all apps (not just changed ones)'
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  detect-and-package:
+    name: Detect Changed Apps & Create Packages
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect changed app directories
+        id: detect
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.package_all }}" = "true" ]; then
+            # Package all apps that have a manifest.yaml
+            CHANGED_DIRS=$(ls -d apps-and-tools/*/manifest.yaml 2>/dev/null \
+              | sed 's|apps-and-tools/||;s|/manifest.yaml||' \
+              | grep -v '^_' \
+              | sort -u || true)
+          else
+            CHANGED_DIRS=$(git diff --name-only HEAD~1 HEAD -- 'apps-and-tools/' \
+              | grep -v '^apps-and-tools/_template/' \
+              | grep -v '^apps-and-tools/CONTRIBUTING.md' \
+              | cut -d'/' -f2 \
+              | sort -u \
+              | grep -v '^$' || true)
+          fi
+
+          if [ -z "$CHANGED_DIRS" ]; then
+            echo "No app directories changed."
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "Changed apps: $CHANGED_DIRS"
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "changed_apps<<EOF" >> $GITHUB_OUTPUT
+            echo "$CHANGED_DIRS" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Validate and package changed apps
+        if: steps.detect.outputs.has_changes == 'true'
+        run: |
+          mkdir -p dist/apps
+          FAILED=0
+
+          while IFS= read -r APP_DIR; do
+            [ -z "$APP_DIR" ] && continue
+
+            MANIFEST="apps-and-tools/$APP_DIR/manifest.yaml"
+
+            if [ ! -f "$MANIFEST" ]; then
+              echo "::warning::Skipping '$APP_DIR' - no manifest.yaml found"
+              continue
+            fi
+
+            echo "Packaging $APP_DIR..."
+            cd "apps-and-tools/$APP_DIR"
+            zip -r "../../dist/apps/${APP_DIR}.zip" . \
+              -x "*.git*" \
+              -x "node_modules/*" \
+              -x ".DS_Store" \
+              -x "__pycache__/*" \
+              -x "*.test.*" \
+              -x "__tests__/*"
+            cd ../..
+
+            SIZE=$(stat -c%s "dist/apps/${APP_DIR}.zip" 2>/dev/null || stat -f%z "dist/apps/${APP_DIR}.zip")
+            MAX_SIZE=$((50 * 1024 * 1024))
+
+            if [ "$SIZE" -gt "$MAX_SIZE" ]; then
+              echo "::error::Package '$APP_DIR' exceeds 50 MB limit ($SIZE bytes)"
+              rm "dist/apps/${APP_DIR}.zip"
+              FAILED=1
+              continue
+            fi
+
+            echo "Created dist/apps/${APP_DIR}.zip ($(numfmt --to=iec $SIZE 2>/dev/null || echo "$SIZE bytes"))"
+          done <<< "${{ steps.detect.outputs.changed_apps }}"
+
+          if [ "$FAILED" -eq 1 ]; then
+            echo "::error::One or more packages failed validation"
+            exit 1
+          fi
+
+      - name: Upload packages as release assets
+        if: steps.detect.outputs.has_changes == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apps-latest
+          name: Community Apps (Latest)
+          body: |
+            Auto-packaged community app packages.
+            Download and install via the Veltrix App Management UI.
+          files: dist/apps/*.zip
+          prerelease: false
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Summary
+        if: steps.detect.outputs.has_changes == 'true'
+        run: |
+          echo "## Packaged Apps" >> $GITHUB_STEP_SUMMARY
+          for f in dist/apps/*.zip; do
+            NAME=$(basename "$f" .zip)
+            SIZE=$(stat -c%s "$f" 2>/dev/null || stat -f%z "$f")
+            echo "- **$NAME** ($(numfmt --to=iec $SIZE 2>/dev/null || echo "$SIZE bytes"))" >> $GITHUB_STEP_SUMMARY
+          done

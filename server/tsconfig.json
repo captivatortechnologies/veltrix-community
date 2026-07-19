@@ -1,0 +1,33 @@
+{
+  "extends": "../tsconfig.base.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": false,
+    "noImplicitAny": false,
+    "strictNullChecks": false,
+    "noUncheckedIndexedAccess": false,
+    "noEmitOnError": false,
+    "declaration": false,
+    "sourceMap": true,
+    "types": ["node", "jest"],
+    "typeRoots": ["./node_modules/@types", "./src/types"],
+    "lib": ["ES2022"]
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/__tests__/**",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "src/lib/metrics.ts",
+    "src/lib/telemetry.ts",
+    "src/lib/telemetryPlugin.ts"
+  ]
+}

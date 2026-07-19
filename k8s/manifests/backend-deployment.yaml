@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: veltrix
+  labels:
+    app: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: backend
+        # Replace with your own built image (see helm/veltrix/README.md), or let
+        # your deploy tooling substitute this placeholder.
+        image: BACKEND_IMAGE
+        ports:
+        - containerPort: 5000
+          name: http
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "5000"
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: backend-secret
+              key: database-url
+        # Background jobs run on BullMQ over Redis — no message broker.
+        - name: REDIS_URL
+          value: "redis://redis-service:6379"
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: backend-secret
+              key: jwt-secret
+        - name: COOKIE_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: backend-secret
+              key: cookie-secret
+        - name: ENCRYPTION_KEY
+          valueFrom:
+            secretKeyRef:
+              name: backend-secret
+              key: encryption-key
+        resources:
+          limits:
+            cpu: "1"
+            memory: "1Gi"
+          requests:
+            cpu: "0.5"
+            memory: "512Mi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 30
+          timeoutSeconds: 5
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 5000
+          initialDelaySeconds: 15
+          timeoutSeconds: 5
+          periodSeconds: 10
+      initContainers:
+      - name: wait-for-db
+        image: busybox:1.36
+        command: ['sh', '-c', 'until nc -z postgres-service 5432; do echo waiting for postgres; sleep 2; done;']
+---
+# Placeholder secret — REPLACE every value before deploying. Prefer an external
+# secret manager (External Secrets, Sealed Secrets) over committing this.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: backend-secret
+  namespace: veltrix
+type: Opaque
+stringData:
+  database-url: "postgresql://veltrix:CHANGE_ME@postgres-service:5432/veltrix?schema=public"
+  jwt-secret: "CHANGE_ME_generate_a_32_byte_hex"
+  cookie-secret: "CHANGE_ME_generate_a_32_byte_hex"
+  encryption-key: "CHANGE_ME_generate_a_32_byte_hex"

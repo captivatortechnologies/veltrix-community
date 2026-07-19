@@ -1,0 +1,19 @@
+# Veltrix Community Edition — e2e/.gitignore
+
+node_modules/
+
+# Auth sessions captured by the `setup` project — these contain live JWT bearer tokens.
+# Regenerated on every run; never commit.
+storageState*.json
+
+# Playwright output
+playwright-report/
+test-results/
+blob-report/
+.last-run.json
+
+# Local env file (copy .env.e2e.example -> .env.e2e and fill in your local seed values).
+# The example itself MUST stay tracked, so re-include it explicitly: the repo-root
+# .gitignore's `.env.*` rule would otherwise ignore it too.
+.env.e2e
+!.env.e2e.example

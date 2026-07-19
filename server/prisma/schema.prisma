@@ -1,0 +1,1256 @@
+// =============================================================================
+// Veltrix Community Edition — Prisma schema
+//
+// This is the pruned, single-tenant OSS schema extracted from the private
+// Veltrix monorepo. It contains the Security-as-Code core only: RBAC,
+// inventory/connectivity, optional SSO, Configuration Canvas authoring, the
+// app engine, the deployment pipeline, and reporting/audit/compliance.
+//
+// Removed entirely (commercial / hosted-only, see
+// _ai_tasks/opensource-extraction/2026-07-18/discovery/05_prisma-db.md for the
+// full disposition table): Subscription, Invoice, PaymentMethod (+ enums),
+// TenantGroup, TenantGroupAdmin, MsspMembershipRequest, PlatformAuditLog,
+// PlatformMetrics, ZtnaEnrollment, CloudAccountConnection,
+// PlatformConnectorApp, ConnectionProvisioning, Network,
+// NetworkCustomerBlock, NetworkSubnetAllocation, CloudProvider,
+// CloudProviderRegion.
+//
+// Refactored: `Customer` (the SaaS tenant) → `Organization` (the single,
+// self-hosted org). Every child model keeps its physical `customerId` FK
+// column AND its `customer` relation field name unchanged — only the
+// relation's TARGET TYPE changes from `Customer` to `Organization` — so
+// application code that reads `row.customerId` / `row.customer.name` is
+// unaffected. The only required code change is direct CRUD against the
+// tenant record itself: `prisma.customer.*` → `prisma.organization.*`, and
+// `import { Customer } from '@prisma/client'` → `import { Organization }`.
+// See the extraction report for the (non-exhaustive) list of call sites.
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// IDENTITY, RBAC & ORGANIZATION
+// ============================================================================
+
+// The single self-hosted organization (formerly the multi-tenant `Customer`).
+// Community Edition is single-tenant: exactly one row is expected to exist,
+// seeded on first run (see prisma/seed/organization.ts). Billing, MSSP,
+// cloud-provisioning, white-label and platform-ops fields from the original
+// multi-tenant model are removed — this is a minimal organization profile.
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  domain    String?  @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Optional, purely descriptive organization-profile fields.
+  address     String?
+  city        String?
+  country     String?
+  description String?
+  email       String?
+  industry    String?
+  logo        String?
+  phone       String?
+  state       String?
+  website     String?
+  zipCode     String?
+  // Human-readable, unique short identifier (e.g. "acme-prod"). Optional;
+  // free for any future per-org slug use. Format validation, if any, lives
+  // server-side.
+  shortName   String? @unique
+
+  apiKeys                   ApiKey[]
+  components                Component[]
+  credentials               Credential[]
+  identityProviders         CustomerIdentityProvider[]
+  customerTools             CustomerTool[]
+  logEntries                LogEntry[]
+  logForwardingDestinations LogForwardingDestination[]
+  roles                     Role[]
+  tags                      Tag[]
+  users                     User[]
+  configurationHistory      ConfigurationHistory[]
+  alerts                    PlatformAlert[]
+  configurationCanvases     ConfigurationCanvas[]
+  appInstallations          AppInstallation[]
+  deployments               Deployment[]
+  environmentPolicies       EnvironmentPolicy[]
+  driftRecords              DriftRecord[]
+  connectivityProviders     ConnectivityProvider[]
+  sandboxes                 Sandbox[]
+  userSessions              UserSession[]
+  auditEvents               AuditEvent[]
+  complianceControlStatuses ComplianceControlStatus[]
+
+  // Explicit (technically redundant) map documents the intentional rename
+  // from the private schema's `Customer` table.
+  @@map("Organization")
+}
+
+model User {
+  id                    String                        @id @default(uuid())
+  email                 String                        @unique
+  name                  String?
+  customerId            String
+  createdAt             DateTime                      @default(now())
+  updatedAt             DateTime                      @updatedAt
+  roleId                String
+  authProvider          String?                       @default("LOCAL")
+  // The SSO provider's stable subject identifier (`sub` claim / IdP user id)
+  // for federated logins; null for local accounts.
+  providerAccountId     String?
+  firstName             String?
+  lastName              String?
+  phoneNumber           String?
+  // Instance owner / superadmin flag (was "platform admin" in the hosted
+  // multi-tenant product). In this single-tenant Community Edition it marks
+  // the instance's superuser rather than a cross-tenant operator.
+  isPlatformAdmin       Boolean                       @default(false)
+  lastLoginAt           DateTime?
+  lastActivityAt        DateTime?
+  // Lifecycle: deactivate/reactivate without deleting the account.
+  isActive              Boolean                       @default(true)
+  customer              Organization                  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  role                  Role                          @relation(fields: [roleId], references: [id])
+  password              UserPassword?
+  profile               UserProfile?
+  settings              UserSettings?
+  configurationHistory  ConfigurationHistory[]
+  platformConfigs       PlatformConfiguration[]
+  resolvedAlerts        PlatformAlert[]
+  // Configuration Canvas relations
+  createdCanvases       ConfigurationCanvas[]         @relation("CreatedCanvases")
+  updatedCanvases       ConfigurationCanvas[]         @relation("UpdatedCanvases")
+  canvasHistory         ConfigurationCanvasHistory[]  @relation("CanvasHistoryUser")
+  canvasApprovals       ConfigurationCanvasApproval[] @relation("CanvasApprovals")
+  canvasComments        ConfigurationCanvasComment[]  @relation("CanvasCommentUser")
+  // Pipeline & Deployment relations
+  triggeredDeployments  Deployment[]                  @relation("DeploymentTriggeredBy")
+  rolledBackDeployments Deployment[]                  @relation("DeploymentRolledBackBy")
+  resolvedDriftRecords  DriftRecord[]                 @relation("DriftResolvedBy")
+  // Sandbox relations
+  createdSandboxes      Sandbox[]                     @relation("SandboxCreatedBy")
+  // Environments (Tags) this user owns
+  ownedEnvironments     Tag[]                         @relation("EnvironmentOwner")
+  // Reporting, audit & compliance relations
+  sessions              UserSession[]
+  auditEvents           AuditEvent[]                  @relation("AuditEventUser")
+  assessedControls      ComplianceControlStatus[]     @relation("ComplianceAssessedBy")
+
+  @@index([customerId])
+  @@index([roleId])
+  @@index([isPlatformAdmin])
+  @@index([isActive])
+  @@index([providerAccountId])
+}
+
+model UserPassword {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserProfile {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  organization String?
+  phone        String?
+  location     String?
+  bio          String?
+  avatarUrl    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserSettings {
+  id                     String   @id @default(uuid())
+  userId                 String   @unique
+  notifications          Json     @default("{\"email\": true, \"mobile\": false, \"browser\": true}")
+  twoFactorEnabled       Boolean  @default(false)
+  // TOTP secrets, encrypted at rest with server/src/utils/encryption.ts.
+  // `twoFactorPendingSecret` holds a setup-in-progress secret until the user
+  // verifies a code; only then is it promoted to `twoFactorSecret` and
+  // `twoFactorEnabled` flipped on (see module/auth/two-factor.service.ts).
+  twoFactorSecret        String?
+  twoFactorPendingSecret String?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  user                   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Role {
+  id          String       @id @default(uuid())
+  name        String
+  description String?
+  customerId  String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  permissions Permission[]
+  customer    Organization @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  users       User[]
+  apiKeys     ApiKey[]
+
+  @@unique([name, customerId])
+  @@index([customerId])
+}
+
+model Permission {
+  id        String   @id @default(uuid())
+  resource  String
+  action    String
+  roleId    String
+  appId     String? // null = platform permission, string = app-scoped permission
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  app       App?     @relation(fields: [appId], references: [id], onDelete: Cascade)
+
+  // appId joins the unique key so the same resource:action can exist BOTH
+  // platform-scoped (appId=null) and app-scoped (appId=<uuid>) for one role.
+  // Postgres unique indexes treat each NULL as distinct, so this does NOT
+  // block multiple platform-scoped (appId=null) duplicate rows for the same
+  // resource/action/role — harmless (permission checks are existence
+  // checks); role.service always deleteMany+createMany.
+  @@unique([resource, action, roleId, appId])
+  @@index([roleId])
+  @@index([appId])
+}
+
+// ============================================================================
+// TOOLS, CREDENTIALS, COMPONENTS & CONNECTIVITY
+// ============================================================================
+
+model Tool {
+  id            String         @id @default(uuid())
+  name          String         @unique
+  description   String
+  vendor        String
+  logoUrl       String?
+  category      String
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  isActive      Boolean        @default(true)
+  components    Component[]
+  credentials   Credential[]
+  customerTools CustomerTool[]
+  integrations  Integration[]
+}
+
+model CustomerTool {
+  customerId String
+  toolId     String
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  customer   Organization @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  tool       Tool         @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@id([customerId, toolId])
+  @@index([customerId])
+  @@index([toolId])
+}
+
+model Integration {
+  id        String    @id @default(uuid())
+  toolId    String
+  apiKey    String?
+  endpoint  String?
+  status    String    @default("PENDING")
+  lastSync  DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  config    Json?
+  tool      Tool      @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@index([toolId])
+}
+
+// This IS the Environment model (dev/staging/prod). Pipeline-critical.
+model Tag {
+  id                         String                                   @id @default(uuid())
+  name                       String
+  createdAt                  DateTime                                 @default(now())
+  updatedAt                  DateTime                                 @updatedAt
+  customerId                 String
+  // Environment ownership (nullable — an environment/tag may have no owner)
+  ownerId                    String?
+  owner                      User?                                    @relation("EnvironmentOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  components                 ComponentTag[]
+  credentials                CredentialTag[]
+  canvasConfigs              ConfigurationCanvasTag[]
+  canvasApprovalEnvironments ConfigurationCanvasApprovalEnvironment[]
+  // Pipeline relations
+  deployments                Deployment[]
+  environmentPolicies        EnvironmentPolicy[]
+  driftRecords               DriftRecord[]
+  customer                   Organization                             @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([name, customerId])
+  @@index([customerId])
+}
+
+model Credential {
+  id          String          @id @default(uuid())
+  name        String
+  username    String
+  password    String
+  apiToken    String?
+  toolId      String
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  customerId  String
+  type        String?
+  certificate String?
+  // App-facing "Connection": the API base URL / endpoint this credential
+  // authenticates to (e.g. https://api.crowdstrike.com). Not a secret.
+  endpoint    String?
+  customer    Organization    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  tool        Tool            @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  tags        CredentialTag[]
+  // Access Servers (components) that use this credential as their Connection.
+  components  Component[]
+
+  @@index([toolId])
+  @@index([customerId])
+}
+
+model CredentialTag {
+  credentialId String
+  tagId        String
+  credential   Credential @relation(fields: [credentialId], references: [id], onDelete: Cascade)
+  tag          Tag        @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([credentialId, tagId])
+  @@index([tagId])
+}
+
+model Component {
+  id                     String                 @id @default(uuid())
+  type                   String[]
+  hostname               String
+  port                   String
+  // Inventory: additional deployment-target addressing beyond a single
+  // hostname/port — DNS names and IP/CIDR ranges a config can be deployed to.
+  domains                String[]               @default([])
+  ipRanges               String[]               @default([])
+  toolId                 String
+  connectivityProviderId String?
+  // Access Server → Connection: the credential selected to reach this target.
+  credentialId           String?
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+  customerId             String
+  customer               Organization           @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  tool                   Tool                   @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  connectivityProvider   ConnectivityProvider?  @relation(fields: [connectivityProviderId], references: [id], onDelete: SetNull)
+  credential             Credential?            @relation(fields: [credentialId], references: [id], onDelete: SetNull)
+  connectivity           ComponentConnectivity?
+  tags                   ComponentTag[]
+
+  @@index([toolId])
+  @@index([customerId])
+  @@index([connectivityProviderId])
+  @@index([credentialId])
+}
+
+model ComponentConnectivity {
+  id                String    @id @default(uuid())
+  componentId       String    @unique
+  status            String    @default("INACTIVE")
+  sshCommand        String?
+  httpsUrl          String?
+  tailscaleKey      String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  tailscaleDeviceId String?
+  tailscaleDeviceIP String?
+  component         Component @relation(fields: [componentId], references: [id], onDelete: Cascade)
+}
+
+// Legacy standalone Tailscale device cache (no FKs). Predates
+// ConnectivityProvider; still read/written by module/tailscale. Not seeded —
+// keep empty unless a self-hosted deployment actively uses the Tailscale
+// device-listing endpoints.
+model TailscaleDevice {
+  id          String   @id @default(uuid())
+  hostname    String
+  ipAddress   String
+  preAuthKey  String
+  description String?
+  tags        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([hostname])
+}
+
+// Legacy global Tailscale singleton (module/tailscale-config). `apiKey` is
+// plaintext in this legacy table — prefer ConnectivityProvider (whose
+// `config` Json is encrypted at rest) for new setups. Never seed a real key
+// here; leave unset by default.
+model TailscaleConfig {
+  id        String   @id @default(uuid())
+  apiUrl    String   @default("https://api.tailscale.com/api/v2")
+  tailnet   String
+  apiKey    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Provider-agnostic remote connectivity configuration. Supports multiple
+// access methods: Tailscale, SSH, WireGuard, Cloudflare Tunnel, etc. This is
+// the self-hostable successor to TailscaleDevice/TailscaleConfig above.
+model ConnectivityProvider {
+  id            String    @id @default(uuid())
+  customerId    String
+  providerType  String // tailscale, ssh, wireguard, cloudflare_tunnel, zerotier, nebula, openvpn, aws_ssm, hashicorp_boundary
+  name          String // User-friendly display name (e.g. "Production Tailscale")
+  isDefault     Boolean   @default(false)
+  isEnabled     Boolean   @default(true)
+  config        Json // Provider-specific config (API keys, certs, endpoints) — sensitive values encrypted
+  status        String    @default("UNCONFIGURED") // UNCONFIGURED, CONFIGURED, CONNECTED, ERROR
+  statusMessage String? // Human-readable status detail or error message
+  lastTestedAt  DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  customer   Organization @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  components Component[]
+
+  @@unique([customerId, providerType, name])
+  @@index([customerId])
+  @@index([customerId, isDefault])
+  @@map("ConnectivityProvider")
+}
+
+model ComponentTag {
+  componentId String
+  tagId       String
+  component   Component @relation(fields: [componentId], references: [id], onDelete: Cascade)
+  tag         Tag       @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([componentId, tagId])
+  @@index([tagId])
+}
+
+model ApiKey {
+  id         String       @id @default(uuid())
+  name       String
+  key        String       @unique
+  type       String
+  customerId String
+  // RBAC role that governs what this key can do. A request authenticated
+  // with this key resolves permissions from this role (see
+  // apiKeyMiddleware). Null for legacy keys (fall back to admin behavior).
+  roleId     String?
+  createdAt  DateTime     @default(now())
+  lastUsed   DateTime?
+  expiresAt  DateTime?
+  revoked    Boolean      @default(false)
+  scopes     String[]     @default([])
+  ownership  String       @default("tenant")
+  customer   Organization @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  role       Role?        @relation(fields: [roleId], references: [id], onDelete: SetNull)
+
+  @@index([customerId])
+  @@index([roleId])
+}
+
+model LogForwardingDestination {
+  id         String       @id @default(uuid())
+  name       String
+  type       String
+  endpoint   String
+  status     String
+  customerId String
+  lastSync   DateTime?
+  error      String?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  customer   Organization @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+}
+
+model LogEntry {
+  id         String       @id @default(uuid())
+  timestamp  DateTime     @default(now())
+  level      String
+  source     String
+  message    String
+  details    String?
+  customerId String
+  customer   Organization @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@index([timestamp])
+}
+
+// ============================================================================
+// OPTIONAL SSO / IDENTITY PROVIDERS
+// ============================================================================
+
+model IdentityProvider {
+  id        String   @id @default(uuid())
+  name      String
+  type      String   @unique
+  enabled   Boolean  @default(false)
+  config    Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CustomerIdentityProvider {
+  id         String       @id @default(uuid())
+  customerId String
+  type       String
+  name       String
+  enabled    Boolean      @default(false)
+  config     Json?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  customer   Organization @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId, type])
+  @@index([customerId])
+}
+
+// ============================================================================
+// CONFIGURATION HISTORY
+// ============================================================================
+
+// Enum for Configuration History Action Types
+enum ConfigActionType {
+  CREATED
+  UPDATED
+  DELETED
+  APPROVED
+  REJECTED
+  DEPLOYED // Added for deployment status changes
+  REVERTED // Added for configuration rollback
+  RESTORED // Added for restoring to previous version
+}
+
+// Model for Configuration History Log
+model ConfigurationHistory {
+  id          String           @id @default(uuid())
+  timestamp   DateTime         @default(now())
+  action      ConfigActionType // Type of action performed
+  deployState String? // Optional: State of the deployment (e.g., 'pending approval', 'approved', 'deployed')
+  entityType  String // e.g., 'INDEX', 'ROLE', 'DEFAULT_INDEX', 'DEFAULT_ROLE', 'UPGRADE'
+  entityId    String // ID of the entity that was changed
+  entityName  String? // Optional: Name of the entity for easier identification
+  details     Json? // JSON blob storing details about the change (e.g., old/new values)
+  userId      String // ID of the user who performed the action
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  customerId  String
+  customer    Organization     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([timestamp])
+}
+
+// ============================================================================
+// INSTANCE SETTINGS & SYSTEM ALERTS
+// (formerly "PLATFORM ADMINISTRATOR MODELS" in the multi-tenant product;
+// repurposed here as single-instance settings/alerts — no cross-tenant scope)
+// ============================================================================
+
+// Instance-wide configuration settings (key/value store).
+model PlatformConfiguration {
+  id             String   @id @default(uuid())
+  key            String   @unique
+  value          Json
+  description    String?
+  category       String // 'system', 'security', 'features'
+  isEncrypted    Boolean  @default(false)
+  lastModifiedBy String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  modifier User @relation(fields: [lastModifiedBy], references: [id])
+
+  @@index([category])
+  @@map("PlatformConfiguration")
+}
+
+// System alerts and notifications for the instance owner/superadmin.
+model PlatformAlert {
+  id         String    @id @default(uuid())
+  severity   String // 'info', 'warning', 'error', 'critical'
+  category   String // 'system', 'security', 'usage'
+  title      String
+  message    String
+  details    Json?
+  customerId String?
+  isResolved Boolean   @default(false)
+  resolvedBy String?
+  resolvedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  customer Organization? @relation(fields: [customerId], references: [id])
+  resolver User?         @relation(fields: [resolvedBy], references: [id])
+
+  @@index([severity])
+  @@index([isResolved])
+  @@index([createdAt(sort: Desc)])
+  @@map("PlatformAlert")
+}
+
+// ============================================================================
+// CONFIGURATION CANVAS (Security-as-Code authoring)
+// ============================================================================
+
+// Status for configuration canvas (Security-as-Code pipeline stages)
+enum ConfigCanvasStatus {
+  DRAFT
+  VALIDATION_PENDING
+  VALIDATION_FAILED
+  PENDING_APPROVAL
+  APPROVED
+  DEPLOYMENT_QUEUED
+  DEPLOYING
+  DEPLOYMENT_PAUSED
+  DEPLOYED
+  DEPLOYMENT_FAILED
+  ROLLED_BACK
+  ARCHIVED
+  CHANGES_REQUESTED // Reviewer requested changes (PR-style "request changes")
+}
+
+// Main Configuration Canvas model
+model ConfigurationCanvas {
+  id          String             @id @default(uuid())
+  name        String
+  description String?
+  toolType    String // e.g., 'SPLUNK_ENTERPRISE', 'CROWDSTRIKE'
+  entityType  String // e.g., 'INDEXES', 'ROLES', 'INPUTS'
+  status      ConfigCanvasStatus @default(DRAFT)
+  version     Int                @default(1)
+  customerId  String
+  createdById String
+  updatedById String?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  // Relations
+  customer    Organization                  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  createdBy   User                          @relation("CreatedCanvases", fields: [createdById], references: [id])
+  updatedBy   User?                         @relation("UpdatedCanvases", fields: [updatedById], references: [id])
+  sections    ConfigurationCanvasSection[]
+  history     ConfigurationCanvasHistory[]
+  tags        ConfigurationCanvasTag[]
+  approvals   ConfigurationCanvasApproval[]
+  comments    ConfigurationCanvasComment[]
+  deployments Deployment[]
+
+  @@index([customerId])
+  @@index([createdById])
+  @@index([toolType, entityType])
+  @@index([status])
+  @@map("ConfigurationCanvas")
+}
+
+// Junction table for ConfigurationCanvas and Tag (environments)
+model ConfigurationCanvasTag {
+  id        String   @id @default(uuid())
+  canvasId  String
+  tagId     String
+  createdAt DateTime @default(now())
+
+  // Relations
+  canvas ConfigurationCanvas @relation(fields: [canvasId], references: [id], onDelete: Cascade)
+  tag    Tag                 @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([canvasId, tagId])
+  @@index([canvasId])
+  @@index([tagId])
+  @@map("ConfigurationCanvasTag")
+}
+
+// Section within a Configuration Canvas
+model ConfigurationCanvasSection {
+  id          String   @id @default(uuid())
+  canvasId    String
+  name        String
+  icon        String?
+  description String?
+  collapsed   Boolean  @default(false)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  canvas ConfigurationCanvas        @relation(fields: [canvasId], references: [id], onDelete: Cascade)
+  fields ConfigurationCanvasField[]
+
+  @@index([canvasId])
+  @@index([order])
+  @@map("ConfigurationCanvasSection")
+}
+
+// Field within a Configuration Canvas Section
+model ConfigurationCanvasField {
+  id           String   @id @default(uuid())
+  sectionId    String
+  key          String
+  label        String
+  fieldType    String // 'text', 'number', 'select', 'checkbox', 'textarea', 'tags', 'password', 'path'
+  value        Json? // Store any value type as JSON
+  defaultValue Json?
+  group        String? // Presentational field group within the item (e.g. 'Sizing'). A section IS one item; groups only lay its fields out.
+  required     Boolean  @default(false)
+  placeholder  String?
+  helpText     String?
+  options      Json? // For select/multiselect fields
+  validation   Json? // Validation rules
+  order        Int      @default(0)
+  disabled     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  section ConfigurationCanvasSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+
+  @@index([sectionId])
+  @@index([order])
+  @@map("ConfigurationCanvasField")
+}
+
+// History/Version tracking for Configuration Canvas
+model ConfigurationCanvasHistory {
+  id        String           @id @default(uuid())
+  canvasId  String
+  version   Int
+  action    ConfigActionType
+  snapshot  Json // Full snapshot of the canvas state at this version
+  userId    String
+  comment   String?
+  createdAt DateTime         @default(now())
+
+  // Relations
+  canvas   ConfigurationCanvas          @relation(fields: [canvasId], references: [id], onDelete: Cascade)
+  user     User                         @relation("CanvasHistoryUser", fields: [userId], references: [id])
+  comments ConfigurationCanvasComment[]
+
+  @@index([canvasId])
+  @@index([version])
+  @@index([createdAt(sort: Desc)])
+  @@map("ConfigurationCanvasHistory")
+}
+
+// Approval status for individual approvers
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// Tracks individual approver assignments and their decisions
+model ConfigurationCanvasApproval {
+  id                String         @id @default(uuid())
+  canvasId          String
+  approverId        String
+  status            ApprovalStatus @default(PENDING)
+  comment           String?
+  submissionComment String? // Comment from the submitter when requesting approval
+  respondedAt       DateTime?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  // Relations
+  canvas       ConfigurationCanvas                      @relation(fields: [canvasId], references: [id], onDelete: Cascade)
+  approver     User                                     @relation("CanvasApprovals", fields: [approverId], references: [id])
+  environments ConfigurationCanvasApprovalEnvironment[]
+
+  @@unique([canvasId, approverId])
+  @@index([canvasId])
+  @@index([approverId])
+  @@index([status])
+  @@map("ConfigurationCanvasApproval")
+}
+
+// Junction table for approval target environments
+model ConfigurationCanvasApprovalEnvironment {
+  id         String   @id @default(uuid())
+  approvalId String
+  tagId      String
+  createdAt  DateTime @default(now())
+
+  // Relations
+  approval ConfigurationCanvasApproval @relation(fields: [approvalId], references: [id], onDelete: Cascade)
+  tag      Tag                         @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([approvalId, tagId])
+  @@index([approvalId])
+  @@index([tagId])
+  @@map("ConfigurationCanvasApprovalEnvironment")
+}
+
+// Threaded review comments on a configuration canvas (GitHub-PR-style review).
+// A comment may optionally anchor to a specific version (historyId) and/or be
+// a reply to another comment (parentId), forming threads.
+model ConfigurationCanvasComment {
+  id        String   @id @default(uuid())
+  canvasId  String
+  historyId String? // Optional anchor to a specific version/history entry
+  parentId  String? // Optional parent for threaded replies
+  userId    String
+  body      String
+  resolved  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  canvas  ConfigurationCanvas          @relation(fields: [canvasId], references: [id], onDelete: Cascade)
+  history ConfigurationCanvasHistory?  @relation(fields: [historyId], references: [id], onDelete: SetNull)
+  user    User                         @relation("CanvasCommentUser", fields: [userId], references: [id])
+  parent  ConfigurationCanvasComment?  @relation("Thread", fields: [parentId], references: [id])
+  replies ConfigurationCanvasComment[] @relation("Thread")
+
+  @@index([canvasId])
+  @@index([historyId])
+  @@map("ConfigurationCanvasComment")
+}
+
+// ============================================================================
+// APP ENGINE / MARKETPLACE
+// ============================================================================
+
+enum AppSource {
+  BUILT_IN
+  MARKETPLACE
+  CUSTOM
+}
+
+enum AppStatus {
+  AVAILABLE
+  DEPRECATED
+  REMOVED
+}
+
+enum AppInstallationStatus {
+  INSTALLING
+  INSTALLED
+  ENABLED
+  DISABLED
+  FAILED
+  UNINSTALLING
+}
+
+// Registered app (from built-in, marketplace, or custom upload)
+model App {
+  id           String    @id @default(uuid())
+  appId        String    @unique // Slug identifier e.g. "splunk-enterprise"
+  name         String
+  version      String
+  vendor       String
+  description  String
+  category     String // "SIEM", "EDR", "SOAR", "IAM", etc.
+  icon         String?
+  logo         String?
+  license      String?
+  homepage     String?
+  repository   String?
+  manifestPath String // Path to manifest.yaml on disk
+  source       AppSource @default(BUILT_IN)
+  isDefault    Boolean   @default(false) // Ships with platform
+  status       AppStatus @default(AVAILABLE)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  installations AppInstallation[]
+  permissions   AppPermissionDefinition[]
+  settings      AppSettingDefinition[]
+  configTypes   AppConfigurationType[]
+  grantedPerms  Permission[] // Permissions granted to roles for this app
+
+  @@index([source])
+  @@index([category])
+  @@map("App")
+}
+
+// Per-organization app installation
+model AppInstallation {
+  id          String                @id @default(uuid())
+  appId       String
+  customerId  String
+  version     String
+  enabled     Boolean               @default(true)
+  installedBy String
+  installedAt DateTime              @default(now())
+  settings    Json                  @default("{}") // Organization-specific app settings
+  status      AppInstallationStatus @default(INSTALLED)
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+
+  app      App          @relation(fields: [appId], references: [id], onDelete: Cascade)
+  customer Organization @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([appId, customerId])
+  @@index([customerId])
+  @@index([status])
+  @@map("AppInstallation")
+}
+
+// Permissions an app declares (what it EXPOSES to the RBAC system)
+model AppPermissionDefinition {
+  id          String  @id @default(uuid())
+  appId       String
+  resource    String // e.g. "splunk:indexes"
+  action      String // e.g. "read", "create", "deploy"
+  description String?
+
+  app App @relation(fields: [appId], references: [id], onDelete: Cascade)
+
+  @@unique([appId, resource, action])
+  @@index([appId])
+  @@map("AppPermissionDefinition")
+}
+
+// Settings schema an app declares (admin-configurable per organization)
+model AppSettingDefinition {
+  id           String  @id @default(uuid())
+  appId        String
+  key          String
+  type         String // "string", "number", "boolean", "select"
+  label        String
+  description  String?
+  defaultValue String?
+  required     Boolean @default(false)
+  options      Json? // For select type: [{label, value}]
+
+  app App @relation(fields: [appId], references: [id], onDelete: Cascade)
+
+  @@unique([appId, key])
+  @@index([appId])
+  @@map("AppSettingDefinition")
+}
+
+// Configuration types an app manages through the pipeline
+model AppConfigurationType {
+  id              String   @id @default(uuid())
+  appId           String
+  configTypeId    String // e.g. "indexes", "roles" (unique within app)
+  name            String // e.g. "Index Configuration"
+  description     String?
+  templatePath    String // Path to canvas template YAML
+  defaultPath     String? // Path to default config YAML
+  componentTypes  String[] // Which component types this targets
+  requiresCred    Boolean  @default(true)
+  requiresConnect Boolean  @default(true)
+
+  app App @relation(fields: [appId], references: [id], onDelete: Cascade)
+
+  @@unique([appId, configTypeId])
+  @@index([appId])
+  @@map("AppConfigurationType")
+}
+
+// ============================================================================
+// SECURITY-AS-CODE PIPELINE
+// ============================================================================
+
+enum DeploymentStrategy {
+  DIRECT // Push immediately (dev/test only)
+  CANARY // Progressive traffic %
+  BLUE_GREEN // Swap after health check
+  ROLLING // Replace instances gradually
+}
+
+enum DeploymentStatus {
+  QUEUED
+  IN_PROGRESS
+  HEALTH_CHECKING
+  PAUSED
+  SUCCEEDED
+  FAILED
+  ROLLING_BACK
+  ROLLED_BACK
+}
+
+// Tracks a deployment of a canvas version to an environment
+model Deployment {
+  id            String @id @default(uuid())
+  canvasId      String
+  historyId     String // Which canvas version (snapshot) was deployed
+  environmentId String // Target environment (Tag)
+  customerId    String
+  appId         String // Which app owns this configuration
+
+  strategy      DeploymentStrategy @default(ROLLING)
+  status        DeploymentStatus   @default(QUEUED)
+  canaryPercent Int? // Current canary traffic %
+  healthScore   Float? // 0-100 from app health checker
+  errorRate     Float? // % errors during deployment
+
+  previousDeploymentId String? // For rollback reference
+  rolledBackAt         DateTime?
+  rolledBackById       String?
+  rollbackData         Json? // App-specific data needed to rollback
+
+  startedAt     DateTime  @default(now())
+  completedAt   DateTime?
+  triggeredById String // User who triggered
+
+  // Relations
+  canvas       ConfigurationCanvas @relation(fields: [canvasId], references: [id], onDelete: Cascade)
+  environment  Tag                 @relation(fields: [environmentId], references: [id])
+  customer     Organization        @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  triggeredBy  User                @relation("DeploymentTriggeredBy", fields: [triggeredById], references: [id])
+  rolledBackBy User?               @relation("DeploymentRolledBackBy", fields: [rolledBackById], references: [id])
+  logs         DeploymentLog[]
+
+  @@index([canvasId, environmentId])
+  @@index([customerId, status])
+  @@index([appId])
+  @@index([status])
+  @@index([startedAt(sort: Desc)])
+  @@map("Deployment")
+}
+
+// Execution logs for a deployment
+model DeploymentLog {
+  id           String   @id @default(uuid())
+  deploymentId String
+  level        String // "info", "warn", "error"
+  message      String
+  metadata     Json?
+  timestamp    DateTime @default(now())
+
+  deployment Deployment @relation(fields: [deploymentId], references: [id], onDelete: Cascade)
+
+  @@index([deploymentId])
+  @@index([timestamp(sort: Desc)])
+  @@map("DeploymentLog")
+}
+
+// Per-environment deployment policies
+model EnvironmentPolicy {
+  id         String  @id @default(uuid())
+  tagId      String // Environment tag (dev, staging, prod)
+  customerId String
+  appId      String? // null = global policy, string = app-specific
+
+  requireApproval       Boolean            @default(true)
+  minApprovers          Int                @default(1)
+  requiredApproverRoles String[] // e.g. ["security-lead", "sre"]
+  deploymentStrategy    DeploymentStrategy @default(ROLLING)
+  canarySteps           Int[]              @default([10, 25, 50, 100]) // % progression
+  healthCheckTimeout    Int                @default(300) // seconds
+  autoRollbackOnError   Boolean            @default(true)
+  errorRateThreshold    Float              @default(5.0) // % to trigger rollback
+  requirePreviousEnv    Boolean            @default(false) // Must pass previous env first
+  previousEnvTagId      String? // Which env must pass first
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  tag      Tag          @relation(fields: [tagId], references: [id])
+  customer Organization @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([tagId, customerId, appId])
+  @@index([customerId])
+  @@map("EnvironmentPolicy")
+}
+
+// Configuration drift detection records
+model DriftRecord {
+  id            String  @id @default(uuid())
+  appId         String
+  configTypeId  String // e.g. "indexes"
+  environmentId String // Which environment
+  customerId    String
+  componentId   String? // Which specific component drifted
+
+  severity       String // "info", "warning", "critical"
+  diffs          Json // Array of {field, expected, actual, severity}
+  detectedAt     DateTime  @default(now())
+  isResolved     Boolean   @default(false)
+  resolvedAt     DateTime?
+  resolvedById   String?
+  resolvedAction String? // "redeployed", "accepted", "dismissed"
+
+  environment Tag          @relation(fields: [environmentId], references: [id])
+  customer    Organization @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  resolvedBy  User?        @relation("DriftResolvedBy", fields: [resolvedById], references: [id])
+
+  @@index([customerId, isResolved])
+  @@index([appId, environmentId])
+  @@index([detectedAt(sort: Desc)])
+  @@map("DriftRecord")
+}
+
+// ============================================================================
+// SANDBOX DEV MODE
+// ============================================================================
+
+enum SandboxStatus {
+  ACTIVE // Healthy, last sync succeeded (or never synced yet)
+  SYNCING // A file sync is currently being ingested
+  ERROR // Last sync failed validation/transpile
+  EXPIRED // TTL elapsed; files removed, record kept for audit/UI
+}
+
+// A tenant-scoped development sandbox. App developers sync a local
+// work-in-progress app into it via the Veltrix CLI (`veltrix dev`). Files
+// live on disk under SANDBOX_DIR/<customerId>/<sandboxId>/.
+model Sandbox {
+  id          String        @id @default(uuid())
+  customerId  String
+  name        String
+  appId       String // Slug of the app under development (e.g. "crowdstrike-edr")
+  status      SandboxStatus @default(ACTIVE)
+  createdById String? // Null when created via an API key (CLI) rather than a portal user
+  lastSyncAt  DateTime?
+  fileCount   Int           @default(0)
+  sizeBytes   Int           @default(0)
+  expiresAt   DateTime // Renewed on every successful sync; cleanup job expires past this
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  customer  Organization @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  createdBy User?        @relation("SandboxCreatedBy", fields: [createdById], references: [id])
+
+  @@unique([customerId, name])
+  @@index([customerId])
+  @@index([status, expiresAt])
+  @@map("Sandbox")
+}
+
+// ============================================================================
+// REPORTING, AUDIT & COMPLIANCE
+// ============================================================================
+
+// A user's authenticated session. One row per successful login (direct or
+// 2FA); lastSeenAt refreshes on activity, revokedAt is set on logout/revoke.
+// Backs the User Activity report's Sessions tab.
+model UserSession {
+  id         String    @id @default(uuid())
+  userId     String
+  customerId String
+  ipAddress  String?
+  userAgent  String?
+  device     String? // parsed from userAgent, e.g. "Chrome on Windows"
+  location   String?
+  createdAt  DateTime  @default(now())
+  lastSeenAt DateTime  @default(now())
+  expiresAt  DateTime?
+  revokedAt  DateTime? // null = active
+
+  user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  customer Organization @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@index([userId])
+  @@index([createdAt(sort: Desc)])
+  @@map("UserSession")
+}
+
+// The unified activity trail behind the Audit Logs report. Written
+// explicitly (login/logout, key mutations) and merged at read time with
+// ConfigurationHistory + Deployment for a complete feed.
+model AuditEvent {
+  id           String   @id @default(uuid())
+  customerId   String
+  userId       String? // null for system / API-key actors
+  actorName    String? // denormalized display name at event time
+  action       String // "login" | "logout" | "create" | "update" | "delete" | "deploy" | ...
+  resourceType String // "user" | "credential" | "component" | "app" | "session" | ...
+  resourceId   String?
+  resourceName String?
+  status       String   @default("success") // "success" | "failure" | "warning"
+  ipAddress    String?
+  userAgent    String?
+  location     String?
+  details      Json?
+  createdAt    DateTime @default(now())
+
+  customer Organization @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  user     User?        @relation("AuditEventUser", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([customerId])
+  @@index([userId])
+  @@index([action])
+  @@index([resourceType])
+  @@index([createdAt(sort: Desc)])
+  @@map("AuditEvent")
+}
+
+// Compliance frameworks + controls are a GLOBAL catalog (like App); per-org
+// posture lives in ComplianceControlStatus.
+enum ComplianceControlState {
+  COMPLIANT
+  NON_COMPLIANT
+  PARTIALLY_COMPLIANT
+  NOT_APPLICABLE
+}
+
+model ComplianceFramework {
+  id          String   @id @default(uuid())
+  key         String   @unique // "soc2" | "iso27001" | "cis" | "pci-dss" | "gdpr"
+  name        String
+  description String
+  version     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  controls ComplianceControl[]
+
+  @@map("ComplianceFramework")
+}
+
+model ComplianceControl {
+  id          String   @id @default(uuid())
+  frameworkId String
+  code        String // e.g. "CC6.1", "A.9.2.1"
+  title       String
+  description String
+  requirement String
+  category    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  framework ComplianceFramework       @relation(fields: [frameworkId], references: [id], onDelete: Cascade)
+  statuses  ComplianceControlStatus[]
+
+  @@unique([frameworkId, code])
+  @@index([frameworkId])
+  @@map("ComplianceControl")
+}
+
+model ComplianceControlStatus {
+  id           String                 @id @default(uuid())
+  customerId   String
+  controlId    String
+  status       ComplianceControlState @default(NOT_APPLICABLE)
+  evidence     String?
+  remediation  String?
+  lastTestedAt DateTime?
+  assessedById String?
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+
+  customer   Organization      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  control    ComplianceControl @relation(fields: [controlId], references: [id], onDelete: Cascade)
+  assessedBy User?             @relation("ComplianceAssessedBy", fields: [assessedById], references: [id], onDelete: SetNull)
+
+  @@unique([customerId, controlId])
+  @@index([customerId])
+  @@index([controlId])
+  @@map("ComplianceControlStatus")
+}

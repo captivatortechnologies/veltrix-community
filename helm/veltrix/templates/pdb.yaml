@@ -1,0 +1,25 @@
+{{- if .Values.platform.podDisruptionBudget.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "veltrix.backend.fullname" . }}
+  labels:
+    {{- include "veltrix.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.platform.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "veltrix.backend.selectorLabels" . | nindent 6 }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "veltrix.frontend.fullname" . }}
+  labels:
+    {{- include "veltrix.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.platform.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "veltrix.frontend.selectorLabels" . | nindent 6 }}
+{{- end }}

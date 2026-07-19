@@ -1,0 +1,72 @@
+# Veltrix Community Edition — secrets gate
+# Runs in CI and (recommended) as a pre-commit hook. Extends gitleaks defaults
+# with deny-rules for the specific secrets/identifiers found in the private
+# source repo, so none can ever slip into this public tree.
+
+title = "Veltrix Community secrets gate"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "veltrix-legacy-service-key"
+description = "Legacy hardcoded service API key (backdoor patch)"
+regex = '''fixedkey12345[A-Za-z0-9_\-]*'''
+tags = ["veltrix", "hardcoded-key"]
+
+[[rules]]
+id = "veltrix-tf-state-bucket"
+description = "Private Terraform state bucket name"
+regex = '''veltrix-platform-terraform-states'''
+tags = ["veltrix", "infra"]
+
+[[rules]]
+id = "veltrix-route53-zone"
+description = "Private Route53 hosted zone id"
+regex = '''Z04994793RNSV10RLVPOS'''
+tags = ["veltrix", "infra"]
+
+[[rules]]
+id = "veltrix-ga-measurement-id"
+description = "Marketing-site Google Analytics measurement id"
+regex = '''G-2DCP0CER3T'''
+tags = ["veltrix", "analytics"]
+
+[[rules]]
+id = "veltrix-private-domain"
+description = "Company-owned domain (should not appear in OSS code)"
+regex = '''veltrixsecops\.com'''
+tags = ["veltrix", "branding"]
+
+[[rules]]
+id = "veltrix-founder-pii-email"
+description = "Founder / internal PII email"
+regex = '''[A-Za-z0-9._%+\-]+@captivatortechnologies\.com'''
+tags = ["veltrix", "pii"]
+
+[[rules]]
+id = "tailscale-api-key"
+description = "Tailscale API key"
+regex = '''tskey-api-[A-Za-z0-9\-]+'''
+tags = ["tailscale", "key"]
+
+[[rules]]
+id = "private-ghcr-image"
+description = "Private container registry image reference"
+regex = '''ghcr\.io/captivatortechnologies/veltrix'''
+tags = ["veltrix", "registry"]
+
+[allowlist]
+description = "Values/paths that are safe by construction"
+paths = [
+  '''\.env\.example$''',
+  '''\.gitleaks\.toml$''',
+  '''(^|/)_ai_tasks/''',
+]
+regexes = [
+  # AWS's own canonical documentation example key — used in an app-vetting
+  # test that asserts the vetter DETECTS hardcoded AWS keys. Not a real secret.
+  '''AKIAIOSFODNN7EXAMPLE''',
+  # The public community repo URL (org that owns this repo) is not a secret.
+  '''github\.com/captivatortechnologies/veltrix-community''',
+]
