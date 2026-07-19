@@ -272,6 +272,49 @@ to weigh in or propose something.
 
 Nothing here is dated; priorities follow real usage and contributions.
 
+## FAQ
+
+**Is it really free? What's the catch?**
+Yes — the platform is [Apache-2.0](./LICENSE), self-hostable, with no seat limits
+and no product telemetry. The premium delivery features (canary, blue-green, drift
+detection, approvals) are included. Only hosted commercial add-ons — billing,
+multi-tenant SaaS, the platform-admin/MSSP portals, and managed cloud provisioning
+— live in the paid edition.
+
+**How does this differ from hosted Veltrix?**
+Same core: the pipeline, app engine, canvas, RBAC, and SDKs are identical. The
+hosted service adds managed infrastructure, multi-tenancy, billing, MSSP operator
+tooling, and SLA-backed support. See the [feature table](#whats-in-the-community-edition).
+
+**Can I use it in production?**
+You can deploy it (see [Deployment](#deployment)), but it's pre-1.0 (`0.1.x`) and the
+public API/SDK surface isn't frozen yet — expect breaking changes between minor
+versions until 1.0. Pin a version and read the release notes before upgrading.
+
+**Is it single-tenant or multi-tenant?**
+Single-tenant — one organization per instance. Multi-tenant SaaS isolation is a
+hosted commercial feature (`FEATURE_MULTI_TENANT` has no effect here).
+
+**Do I need an account or internet access?**
+No. Authentication is local by default, and the platform doesn't phone home or send
+product telemetry — it runs fully self-contained. OAuth/OIDC SSO is optional.
+
+**Can I use it commercially?**
+Yes. Apache-2.0 permits commercial use, modification, and redistribution; the SDKs
+may be MIT — check each package's `LICENSE`.
+
+**Can I rebrand it?**
+Yes — set the `VELTRIX_BRAND_*` variables (see [Configuration](#configuration)); the
+client reads the brand from `GET /api/brand` at runtime, so no rebuild is needed.
+
+**How do I add support for my security tools?**
+Install apps from the [apps catalog](#apps--integrations), or build your own with
+`@veltrixsecops/app-sdk` and the Veltrix CLI.
+
+**How do I report a security vulnerability?**
+Privately, through GitHub's coordinated disclosure — see [Security](#security). Please
+don't open a public issue.
+
 ## Contributing
 
 Issues and pull requests are welcome. Start with [`CONTRIBUTING.md`](./CONTRIBUTING.md)
