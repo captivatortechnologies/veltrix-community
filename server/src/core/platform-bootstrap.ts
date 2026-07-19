@@ -83,9 +83,18 @@ export async function initializePlatform(): Promise<void> {
   // (e.g. APPS_DIR=../../veltrix-apps/apps) for local app development.
   // See VELTRIX_APPS_REPO in marketplace-catalog.ts for the configurable
   // GitHub repo the marketplace catalog pulls installable packages from.
+  // NOTE: resolved from process.cwd() (the server package root in every
+  // entrypoint — `pnpm --filter ./server dev|start`, `node dist/...`, and
+  // the Docker image's WORKDIR all launch with cwd = the server package
+  // dir), not __dirname. __dirname's depth relative to the package root
+  // differs between `ts-node src/server.ts` (unaffected by tsconfig) and
+  // the compiled dist output (whose depth follows tsconfig.json's rootDir,
+  // now the monorepo root — see the TS6059/rootDir cleanup note there), so
+  // an __dirname-relative default would silently point at two different
+  // locations depending on how the process was started.
   const appsDir = process.env.APPS_DIR
     ? path.resolve(process.cwd(), process.env.APPS_DIR)
-    : path.resolve(__dirname, '../apps')
+    : path.resolve(process.cwd(), 'apps')
   loggerService.info(`[Platform] Apps directory: ${appsDir}`)
 
   // 1. Create AppRegistry

@@ -15,7 +15,15 @@ RUN apk add --no-cache python3 make g++
 # Copy package manifests first for better layer caching
 COPY client/package*.json ./
 
-RUN npm ci
+# `npm install` (not `npm ci`) because this is a pnpm workspace — there is no
+# per-package package-lock.json, only the root pnpm-lock.yaml. This package has
+# no `workspace:*` deps, so a self-contained install works.
+RUN npm install --no-audit --no-fund
+
+# The client tsconfig(.app).json `extends: "../tsconfig.base.json"`; WORKDIR is
+# /app so that resolves to /tsconfig.base.json. Copy it in or vite/esbuild fails
+# to resolve the extends chain during the build.
+COPY tsconfig.base.json /tsconfig.base.json
 
 # Copy the rest of the client source
 COPY client/. .

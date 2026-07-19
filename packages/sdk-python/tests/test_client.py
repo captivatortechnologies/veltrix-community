@@ -89,20 +89,34 @@ def test_set_customer_id_updates_header():
 
 EXPECTED_RESOURCES = [
     "auth",
-    "roles",
-    "users",
+    "me",
+    "profile",
     "organization",
+    "users",
+    "roles",
+    "api_keys",
+    "tools",
+    "customer_tools",
     "components",
     "credentials",
     "tags",
-    "api_keys",
-    "connectivity",
     "environments",
+    "connectivity",
+    "connectivity_providers",
+    "tailscale",
+    "tailscale_config",
+    "log_forwarding",
+    "log_entries",
+    "reports",
     "configuration_canvas",
     "configuration_history",
     "pipeline",
     "apps",
-    "reports",
+    "sandboxes",
+    "webhooks",
+    "brand",
+    "feature_flags",
+    "cognito",
 ]
 
 
@@ -114,7 +128,18 @@ def test_resource_accessor_present(name):
 
 def test_billing_resources_removed():
     client = VeltrixClient()
-    for dropped in ("payment", "payment_methods", "customers", "byol"):
+    for dropped in (
+        "payment",
+        "payment_methods",
+        "subscription",
+        "customers",
+        "byol",
+        "cloud_providers",
+        "mssp",
+        "platform_admin",
+        "group_admin",
+        "network",
+    ):
         assert not hasattr(client, dropped)
 
 
@@ -124,6 +149,11 @@ def test_resource_paths():
     assert client.configuration_canvas.RESOURCE_PATH == "configuration-canvas"
     assert client.configuration_history.RESOURCE_PATH == "configuration-history"
     assert client.organization.RESOURCE_PATH == "organization"
+    assert client.tailscale_config.RESOURCE_PATH == "tailscale-config"
+    assert client.log_forwarding.RESOURCE_PATH == "log-forwarding"
+    assert client.log_entries.RESOURCE_PATH == "logs"
+    assert client.connectivity_providers.RESOURCE_PATH == "connectivity-providers"
+    assert client.feature_flags.RESOURCE_PATH == "feature-flags"
 
 
 # --- Exception hierarchy ----------------------------------------------------

@@ -23,13 +23,19 @@ RUN apk add --no-cache python3 make g++
 COPY server/package*.json ./server/
 COPY server/prisma ./server/prisma/
 WORKDIR /app/server
-RUN npm ci
+# This package has no `workspace:*` deps, so a self-contained install works.
+# `npm install` (not `npm ci`) because this is a pnpm workspace — there is no
+# per-package package-lock.json, only the root pnpm-lock.yaml.
+RUN npm install --no-audit --no-fund
 
 # Copy source: server/ itself, plus the shared type-only package it
 # references by relative path.
 WORKDIR /app
 COPY server/ ./server/
 COPY shared/ ./shared/
+# server/tsconfig.json `extends: "../tsconfig.base.json"` -> /app/tsconfig.base.json.
+# Without it tsc silently fails (build script is `tsc || exit 0`) and emits no dist.
+COPY tsconfig.base.json ./
 
 WORKDIR /app/server
 
@@ -63,6 +69,11 @@ COPY --from=builder --chown=nodejs:nodejs /app/server/node_modules ./node_module
 COPY --from=builder --chown=nodejs:nodejs /app/server/prisma ./prisma
 COPY --from=builder --chown=nodejs:nodejs /app/server/package.json ./
 
+# The logger writes structured logs to stdout AND mirrors them to files under
+# /var/log/<service>/<tenant>/. Create that root writable by the non-root user
+# so the file sink doesn't EACCES (stdout logging works regardless).
+RUN mkdir -p /var/log/veltrix-server && chown -R nodejs:nodejs /var/log/veltrix-server
+
 USER nodejs
 
 EXPOSE 5000
@@ -74,4 +85,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
 
 ENTRYPOINT ["dumb-init", "--"]
 
-CMD ["node", "dist/server.js"]
+CMD ["node", "dist/server/src/server.js"]

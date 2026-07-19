@@ -88,12 +88,16 @@ describe('IdentityProviderPage', () => {
     const oidcCard = screen.getByText('OAuth 2.0 / OIDC').closest('div.border') as HTMLElement;
     await user.click(within(oidcCard).getByRole('button', { name: 'Configure' }));
 
-    expect(within(oidcCard).getByPlaceholderText('Enter issuer')).toBeInTheDocument();
-    expect(within(oidcCard).getByPlaceholderText('Enter clientId')).toBeInTheDocument();
-    expect(within(oidcCard).getByPlaceholderText('Enter clientSecret')).toBeInTheDocument();
-    expect(within(oidcCard).getByPlaceholderText('Enter redirectUri')).toBeInTheDocument();
-    expect(within(oidcCard).getByPlaceholderText('Enter scope')).toBeInTheDocument();
-    expect(within(oidcCard).getByText('Test connection')).toBeInTheDocument();
+    // The Configure modal renders through a `document.body` portal (Modal ->
+    // OverlayPortal, see IdentityProviderPage.tsx), so its contents are no
+    // longer a DOM descendant of `oidcCard` once open — query the document
+    // instead of scoping to the card.
+    expect(await screen.findByPlaceholderText('Enter issuer')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Enter clientId')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Enter clientSecret')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Enter redirectUri')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Enter scope')).toBeInTheDocument();
+    expect(screen.getByText('Test connection')).toBeInTheDocument();
   });
 
   it('saving a configured, enabled generic OIDC provider threads issuer/isCustomerSpecific/jitMode to oidcService.saveConfig', async () => {
@@ -138,7 +142,9 @@ describe('IdentityProviderPage', () => {
 
     const oidcCard = screen.getByText('OAuth 2.0 / OIDC').closest('div.border') as HTMLElement;
     await user.click(within(oidcCard).getByRole('button', { name: 'Configure' }));
-    await user.click(within(oidcCard).getByRole('button', { name: 'Test connection' }));
+    // Modal content is portaled to document.body (see Modal -> OverlayPortal),
+    // so it's no longer a descendant of oidcCard once open.
+    await user.click(await screen.findByRole('button', { name: 'Test connection' }));
 
     await screen.findByText('The OIDC provider configuration looks good.');
     expect(screen.getByText(/OIDC discovery succeeded/)).toBeInTheDocument();
@@ -164,15 +170,18 @@ describe('IdentityProviderPage', () => {
     const googleCard = screen.getByText('Google Login').closest('div.border') as HTMLElement;
     await user.click(within(googleCard).getByRole('button', { name: 'Configure' }));
 
-    expect(within(googleCard).getByText('•••• configured')).toBeInTheDocument();
-    expect(within(googleCard).getByRole('button', { name: 'Replace secret' })).toBeInTheDocument();
+    // Modal content is portaled to document.body (see Modal -> OverlayPortal),
+    // so it's no longer a descendant of googleCard once open — query the
+    // document instead of scoping to the card.
+    expect(await screen.findByText('•••• configured')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Replace secret' })).toBeInTheDocument();
     // No password input is rendered until "Replace secret" is clicked.
-    expect(within(googleCard).queryByPlaceholderText('Enter a new value to replace it')).not.toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('Enter a new value to replace it')).not.toBeInTheDocument();
 
-    await user.click(within(googleCard).getByRole('button', { name: 'Replace secret' }));
+    await user.click(screen.getByRole('button', { name: 'Replace secret' }));
 
-    expect(within(googleCard).queryByText('•••• configured')).not.toBeInTheDocument();
-    expect(within(googleCard).getByPlaceholderText('Enter a new value to replace it')).toBeInTheDocument();
+    expect(screen.queryByText('•••• configured')).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Enter a new value to replace it')).toBeInTheDocument();
   });
 
   it('renders an editable, empty secret field directly when no Google secret is stored yet', async () => {
@@ -192,8 +201,10 @@ describe('IdentityProviderPage', () => {
     const googleCard = screen.getByText('Google Login').closest('div.border') as HTMLElement;
     await user.click(within(googleCard).getByRole('button', { name: 'Configure' }));
 
-    expect(within(googleCard).queryByText('•••• configured')).not.toBeInTheDocument();
-    expect(within(googleCard).getByPlaceholderText('Enter clientSecret')).toBeInTheDocument();
+    // Modal content is portaled to document.body (see Modal -> OverlayPortal),
+    // so it's no longer a descendant of googleCard once open.
+    expect(await screen.findByPlaceholderText('Enter clientSecret')).toBeInTheDocument();
+    expect(screen.queryByText('•••• configured')).not.toBeInTheDocument();
   });
 
   it('Test connection button shows a specific success message from the server', async () => {
@@ -209,7 +220,9 @@ describe('IdentityProviderPage', () => {
 
     const googleCard = screen.getByText('Google Login').closest('div.border') as HTMLElement;
     await user.click(within(googleCard).getByRole('button', { name: 'Configure' }));
-    await user.click(within(googleCard).getByRole('button', { name: 'Test connection' }));
+    // Modal content is portaled to document.body (see Modal -> OverlayPortal),
+    // so it's no longer a descendant of googleCard once open.
+    await user.click(await screen.findByRole('button', { name: 'Test connection' }));
 
     await screen.findByText('Google accepted the Client ID / Client Secret pair.');
     expect(screen.getByText('OIDC discovery reachable.')).toBeInTheDocument();
@@ -227,7 +240,9 @@ describe('IdentityProviderPage', () => {
 
     const googleCard = screen.getByText('Google Login').closest('div.border') as HTMLElement;
     await user.click(within(googleCard).getByRole('button', { name: 'Configure' }));
-    await user.click(within(googleCard).getByRole('button', { name: 'Test connection' }));
+    // Modal content is portaled to document.body (see Modal -> OverlayPortal),
+    // so it's no longer a descendant of googleCard once open.
+    await user.click(await screen.findByRole('button', { name: 'Test connection' }));
 
     await screen.findByText(/Google rejected the Client ID/);
   });

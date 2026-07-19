@@ -5,7 +5,21 @@
     "module": "CommonJS",
     "moduleResolution": "node",
     "outDir": "./dist",
-    "rootDir": "./src",
+    // rootDir is intentionally the monorepo root, not "./src". server/src
+    // imports two legitimate categories of files that live outside
+    // server/src: (1) shared/types/{app,pipeline}.ts — cross-package
+    // `import type` contracts (100% type-only, fully erased at compile
+    // time, see server/Dockerfile's note on shared/ being type-only) and
+    // (2) server/prisma/seed/*.ts — real runtime seed functions imported
+    // directly by src/server.ts for first-run bootstrap. Both are
+    // legitimately part of this compilation (see _ai_tasks item on the
+    // TS6059 cleanup), so rootDir must be a common ancestor of server/src,
+    // server/prisma/seed, and ../shared/types rather than an
+    // over-restrictive "./src" that excludes them. This pushes every
+    // compiled output one level deeper (dist/server/src/... instead of
+    // dist/...) — see server/package.json `main`/`start` and
+    // server/Dockerfile `CMD`, which were updated to match.
+    "rootDir": "..",
     // NOTE (_ai_tasks/opensource-extraction §6 tsconfig item): the plan asked
     // to override ONLY noUncheckedIndexedAccess here and keep the rest of
     // tsconfig.base.json's `strict:true` intact. In practice the private

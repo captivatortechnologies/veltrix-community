@@ -2,20 +2,34 @@
 
 from .http_client import HttpClient, DEFAULT_BASE_URL
 from .resources.auth import AuthResource
-from .resources.roles import RolesResource
+from .resources.me import MeResource
+from .resources.profile import ProfileResource
+from .resources.organization import OrganizationResource
 from .resources.users import UsersResource
+from .resources.roles import RolesResource
+from .resources.api_keys import ApiKeysResource
+from .resources.tools import ToolsResource
+from .resources.customer_tools import CustomerToolsResource
 from .resources.components import ComponentsResource
 from .resources.credentials import CredentialsResource
 from .resources.tags import TagsResource
-from .resources.api_keys import ApiKeysResource
-from .resources.connectivity import ConnectivityResource
-from .resources.organization import OrganizationResource
 from .resources.environments import EnvironmentsResource
+from .resources.connectivity import ConnectivityResource
+from .resources.connectivity_providers import ConnectivityProvidersResource
+from .resources.tailscale import TailscaleResource
+from .resources.tailscale_config import TailscaleConfigResource
+from .resources.log_forwarding import LogForwardingResource
+from .resources.log_entries import LogEntriesResource
+from .resources.reports import ReportsResource
 from .resources.configuration_canvas import ConfigurationCanvasResource
 from .resources.configuration_history import ConfigurationHistoryResource
 from .resources.pipeline import PipelineResource
 from .resources.apps import AppsResource
-from .resources.reports import ReportsResource
+from .resources.sandboxes import SandboxesResource
+from .resources.webhooks import WebhooksResource
+from .resources.brand import BrandResource
+from .resources.feature_flags import FeatureFlagsResource
+from .resources.cognito import CognitoResource
 
 
 class VeltrixClient:
@@ -63,20 +77,34 @@ class VeltrixClient:
 
         # Initialize resource handlers
         self._auth = AuthResource(self._http_client)
-        self._roles = RolesResource(self._http_client)
+        self._me = MeResource(self._http_client)
+        self._profile = ProfileResource(self._http_client)
+        self._organization = OrganizationResource(self._http_client)
         self._users = UsersResource(self._http_client)
+        self._roles = RolesResource(self._http_client)
+        self._api_keys = ApiKeysResource(self._http_client)
+        self._tools = ToolsResource(self._http_client)
+        self._customer_tools = CustomerToolsResource(self._http_client)
         self._components = ComponentsResource(self._http_client)
         self._credentials = CredentialsResource(self._http_client)
         self._tags = TagsResource(self._http_client)
-        self._api_keys = ApiKeysResource(self._http_client)
-        self._connectivity = ConnectivityResource(self._http_client)
-        self._organization = OrganizationResource(self._http_client)
         self._environments = EnvironmentsResource(self._http_client)
+        self._connectivity = ConnectivityResource(self._http_client)
+        self._connectivity_providers = ConnectivityProvidersResource(self._http_client)
+        self._tailscale = TailscaleResource(self._http_client)
+        self._tailscale_config = TailscaleConfigResource(self._http_client)
+        self._log_forwarding = LogForwardingResource(self._http_client)
+        self._log_entries = LogEntriesResource(self._http_client)
+        self._reports = ReportsResource(self._http_client)
         self._configuration_canvas = ConfigurationCanvasResource(self._http_client)
         self._configuration_history = ConfigurationHistoryResource(self._http_client)
         self._pipeline = PipelineResource(self._http_client)
         self._apps = AppsResource(self._http_client)
-        self._reports = ReportsResource(self._http_client)
+        self._sandboxes = SandboxesResource(self._http_client)
+        self._webhooks = WebhooksResource(self._http_client)
+        self._brand = BrandResource(self._http_client)
+        self._feature_flags = FeatureFlagsResource(self._http_client)
+        self._cognito = CognitoResource(self._http_client)
 
     # --- Resource Properties ---
     @property
@@ -85,14 +113,44 @@ class VeltrixClient:
         return self._auth
 
     @property
-    def roles(self):
-        """Access the Roles resource (RBAC)."""
-        return self._roles
+    def me(self):
+        """Access the Me resource (current-user permissions)."""
+        return self._me
+
+    @property
+    def profile(self):
+        """Access the Profile resource (current user's profile/settings)."""
+        return self._profile
+
+    @property
+    def organization(self):
+        """Access the Organization resource."""
+        return self._organization
 
     @property
     def users(self):
         """Access the Users resource (admin)."""
         return self._users
+
+    @property
+    def roles(self):
+        """Access the Roles resource (RBAC)."""
+        return self._roles
+
+    @property
+    def api_keys(self):
+        """Access the API Keys resource."""
+        return self._api_keys
+
+    @property
+    def tools(self):
+        """Access the Tools resource (security tool inventory)."""
+        return self._tools
+
+    @property
+    def customer_tools(self):
+        """Access the Customer Tools resource (per-tenant tool enablement)."""
+        return self._customer_tools
 
     @property
     def components(self):
@@ -110,9 +168,9 @@ class VeltrixClient:
         return self._tags
 
     @property
-    def api_keys(self):
-        """Access the API Keys resource."""
-        return self._api_keys
+    def environments(self):
+        """Access the Environments resource."""
+        return self._environments
 
     @property
     def connectivity(self):
@@ -120,14 +178,34 @@ class VeltrixClient:
         return self._connectivity
 
     @property
-    def organization(self):
-        """Access the Organization resource."""
-        return self._organization
+    def connectivity_providers(self):
+        """Access the Connectivity Providers resource (SSH/WireGuard/Tailscale adapters)."""
+        return self._connectivity_providers
 
     @property
-    def environments(self):
-        """Access the Environments resource."""
-        return self._environments
+    def tailscale(self):
+        """Access the Tailscale resource (devices/keys)."""
+        return self._tailscale
+
+    @property
+    def tailscale_config(self):
+        """Access the Tailscale configuration resource."""
+        return self._tailscale_config
+
+    @property
+    def log_forwarding(self):
+        """Access the Log Forwarding resource."""
+        return self._log_forwarding
+
+    @property
+    def log_entries(self):
+        """Access the Log Entries resource."""
+        return self._log_entries
+
+    @property
+    def reports(self):
+        """Access the Reports resource."""
+        return self._reports
 
     @property
     def configuration_canvas(self):
@@ -150,9 +228,29 @@ class VeltrixClient:
         return self._apps
 
     @property
-    def reports(self):
-        """Access the Reports resource."""
-        return self._reports
+    def sandboxes(self):
+        """Access the Sandboxes resource (Veltrix CLI dev mode; flag-gated)."""
+        return self._sandboxes
+
+    @property
+    def webhooks(self):
+        """Access the Webhooks resource (inbound webhook ingress)."""
+        return self._webhooks
+
+    @property
+    def brand(self):
+        """Access the Brand resource (public branding)."""
+        return self._brand
+
+    @property
+    def feature_flags(self):
+        """Access the Feature Flags resource (public feature flags)."""
+        return self._feature_flags
+
+    @property
+    def cognito(self):
+        """Access the Cognito resource (optional AWS Cognito SSO; disabled by default)."""
+        return self._cognito
 
     # --- Auth mutators ---
     def set_customer_id(self, customer_id):

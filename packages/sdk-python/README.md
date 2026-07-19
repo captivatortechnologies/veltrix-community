@@ -104,25 +104,43 @@ except VeltrixError as e:
 | Accessor                        | Description                                             |
 | ------------------------------- | ------------------------------------------------------- |
 | `client.auth`                   | Authentication (login, register, change password, API-key checks) |
-| `client.roles`                  | Roles & permissions (RBAC)                              |
-| `client.users`                  | User management (admin)                                 |
+| `client.me`                     | Current user's resolved permission snapshot            |
+| `client.profile`                | Current user profile and settings                      |
 | `client.organization`           | Organization details (single-tenant)                   |
+| `client.users`                  | User management (admin)                                 |
+| `client.roles`                  | Roles & permissions (RBAC)                             |
+| `client.api_keys`               | API-key management                                      |
+| `client.tools`                  | Security tool inventory                                 |
+| `client.customer_tools`         | Per-tenant tool enablement                              |
 | `client.components`             | Components                                              |
 | `client.credentials`            | Credentials                                             |
 | `client.tags`                   | Tags                                                    |
-| `client.api_keys`               | API-key management                                      |
-| `client.connectivity`           | Component connectivity                                  |
 | `client.environments`           | Deployment environments *(provisional)*                |
+| `client.connectivity`           | Component connectivity                                  |
+| `client.connectivity_providers` | Connectivity provider adapters (SSH / WireGuard / Tailscale) |
+| `client.tailscale`              | Tailscale devices and keys                              |
+| `client.tailscale_config`       | Tailscale tenant configuration                          |
+| `client.log_forwarding`         | Log-forwarding destinations                             |
+| `client.log_entries`            | Platform log entries                                    |
+| `client.reports`                | Tenant reports (audit / activity / resources / security / compliance) *(provisional)* |
 | `client.configuration_canvas`   | Configuration authoring canvas *(provisional)*         |
 | `client.configuration_history`  | Configuration version history *(provisional)*          |
 | `client.pipeline`               | Deployment pipeline *(provisional)*                     |
 | `client.apps`                   | Platform apps / app engine *(provisional)*             |
-| `client.reports`                | Reports *(provisional)*                                 |
+| `client.sandboxes`              | Developer sandboxes — CLI dev mode, flag-gated *(provisional)* |
+| `client.webhooks`               | Inbound webhook ingress (generic / GitHub / health)    |
+| `client.brand`                  | Public branding (name / tagline / logo)                |
+| `client.feature_flags`          | Public feature flags                                    |
+| `client.cognito`                | Optional AWS Cognito SSO integration (disabled by default) |
 
-> **Provisional resources**: `environments`, `configuration_canvas`,
-> `configuration_history`, `pipeline`, `apps`, and `reports` map to confirmed
+> **Provisional resources**: `environments`, `reports`, `configuration_canvas`,
+> `configuration_history`, `pipeline`, `apps`, and `sandboxes` map to confirmed
 > Community Edition server routes, but their method surface follows standard
 > REST conventions and may be refined as the open-source API stabilizes.
+>
+> Optional SSO providers other than Cognito (Google / Microsoft / generic OIDC)
+> are browser-redirect OAuth flows on the server and are not exposed as SDK
+> resources.
 
 ## Development
 

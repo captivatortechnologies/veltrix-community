@@ -40,21 +40,33 @@ describe('VeltrixClient', () => {
     const client = new VeltrixClient();
     for (const name of [
       'auth',
+      'me',
       'profile',
       'organization',
       'users',
       'roles',
       'apiKeys',
       'tools',
+      'customerTools',
       'components',
       'credentials',
       'tags',
+      'environments',
       'connectivity',
+      'connectivityProviders',
       'tailscale',
       'tailscaleConfig',
       'logForwarding',
       'logEntries',
+      'reports',
+      'configurationCanvas',
+      'configurationHistory',
+      'pipeline',
+      'apps',
+      'sandboxes',
       'webhooks',
+      'brand',
+      'featureFlags',
       'cognito',
     ] as const) {
       expect(client[name], `resource ${name} should be defined`).toBeDefined();
@@ -63,7 +75,19 @@ describe('VeltrixClient', () => {
 
   it('does not expose dropped commercial resource handlers', () => {
     const client = new VeltrixClient() as unknown as Record<string, unknown>;
-    for (const name of ['payment', 'paymentMethods', 'byol', 'byolComponent', 'customers']) {
+    for (const name of [
+      'payment',
+      'paymentMethods',
+      'subscription',
+      'byol',
+      'byolComponent',
+      'cloudProviders',
+      'mssp',
+      'platformAdmin',
+      'groupAdmin',
+      'network',
+      'customers',
+    ]) {
       expect(client[name], `resource ${name} should not exist`).toBeUndefined();
     }
   });

@@ -59,8 +59,13 @@ representative at an online or offline event.
 ## Enforcement
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
-reported to the community leaders responsible for enforcement at
-**<CONDUCT_CONTACT>**.
+reported privately to the project maintainers by opening a confidential report
+through the repository's **[private vulnerability reporting](https://github.com/captivatortechnologies/veltrix-community/security/advisories/new)**
+or by contacting a maintainer directly.
+
+<!-- Maintainers: replace the line above with a dedicated conduct contact
+     (e.g. conduct@yourdomain) once an alias is available. -->
+
 
 All complaints will be reviewed and investigated promptly and fairly.
 

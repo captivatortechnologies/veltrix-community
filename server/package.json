@@ -4,13 +4,13 @@
   "description": "Veltrix Community Edition — Security-as-Code platform backend (Fastify + Prisma). Optional SSO plugins (@aws-sdk/client-cognito-identity-provider, aws-jwt-verify, google-auth-library, @azure/msal-node) are only exercised when their feature flag is enabled (config/feature-flags.ts oauth.*) — local email+password auth is the self-host default. @veltrixsecops/app-sdk is a real published dependency of core/pipeline-engine/types.ts (HANDLER_NAMES / HandlerName) — not vendored.",
   "private": true,
   "license": "Apache-2.0",
-  "main": "dist/server.js",
+  "main": "dist/server/src/server.js",
   "engines": {
     "node": ">=20"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json || exit 0",
-    "start": "node dist/server.js",
+    "start": "node dist/server/src/server.js",
     "dev": "ts-node src/server.ts",
     "test": "jest --coverage",
     "test:watch": "jest --watch",

@@ -80,22 +80,43 @@ Each resource is exposed as a property on the client:
 | Property | Description |
 | --- | --- |
 | `auth` | Login, register, change password, API-key auth checks |
+| `me` | Current user's resolved permission snapshot |
 | `profile` | Current user profile and settings |
 | `organization` | Organization details (get / update) |
 | `users` | User administration (RBAC) |
 | `roles` | Roles, permissions, and available resource/actions (RBAC) |
 | `apiKeys` | API key lifecycle (create, rotate, revoke) |
 | `tools` | Security tool inventory |
+| `customerTools` | Per-tenant tool enablement |
 | `components` | Tool components |
 | `credentials` | Encrypted credentials for tools |
 | `tags` | Tags |
+| `environments` | Deployment environments *(provisional)* |
 | `connectivity` | Component connectivity (SSH / HTTPS / Tailscale) |
+| `connectivityProviders` | Connectivity provider adapters (SSH / WireGuard / Tailscale) |
 | `tailscale` | Tailscale devices and keys |
 | `tailscaleConfig` | Tailscale tenant configuration |
 | `logForwarding` | Log-forwarding destinations |
 | `logEntries` | Platform log entries |
+| `reports` | Tenant reports (audit / activity / resources / security / compliance) *(provisional)* |
+| `configurationCanvas` | Configuration authoring canvas *(provisional)* |
+| `configurationHistory` | Configuration version history *(provisional)* |
+| `pipeline` | Deployment pipeline *(provisional)* |
+| `apps` | Platform apps / app engine *(provisional)* |
+| `sandboxes` | Developer sandboxes — CLI dev mode, flag-gated *(provisional)* |
 | `webhooks` | Inbound webhook ingress (generic / GitHub / health) |
+| `brand` | Public branding (name / tagline / logo) |
+| `featureFlags` | Public feature flags |
 | `cognito` | Optional AWS Cognito SSO integration (disabled by default) |
+
+> **Provisional resources** (`environments`, `reports`, `configurationCanvas`,
+> `configurationHistory`, `pipeline`, `apps`, `sandboxes`) map to confirmed
+> Community Edition server routes, but their method surface follows standard
+> REST conventions and may be refined as the open-source API stabilizes.
+>
+> Optional SSO providers other than Cognito (Google / Microsoft / generic OIDC)
+> are browser-redirect OAuth flows on the server and are not exposed as SDK
+> resources.
 
 ## Error handling
 

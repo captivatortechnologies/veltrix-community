@@ -35,23 +35,37 @@ function resolveBaseUrl(baseURL?: string): string {
 export class VeltrixClient {
   private readonly httpClient: HttpClient;
 
-  // Resource handlers exposed to consumers of the SDK.
+  // Resource handlers exposed to consumers of the SDK. The set mirrors the
+  // Community Edition server's registered routes and stays in lock-step with
+  // the Python SDK (`veltrix_sdk`).
   public readonly auth: Resources.AuthResource;
+  public readonly me: Resources.MeResource;
   public readonly profile: Resources.ProfileResource;
   public readonly organization: Resources.OrganizationResource;
   public readonly users: Resources.UsersResource;
   public readonly roles: Resources.RolesResource;
   public readonly apiKeys: Resources.ApiKeysResource;
   public readonly tools: Resources.ToolsResource;
+  public readonly customerTools: Resources.CustomerToolsResource;
   public readonly components: Resources.ComponentsResource;
   public readonly credentials: Resources.CredentialsResource;
   public readonly tags: Resources.TagsResource;
+  public readonly environments: Resources.EnvironmentsResource;
   public readonly connectivity: Resources.ConnectivityResource;
+  public readonly connectivityProviders: Resources.ConnectivityProvidersResource;
   public readonly tailscale: Resources.TailscaleResource;
   public readonly tailscaleConfig: Resources.TailscaleConfigResource;
   public readonly logForwarding: Resources.LogForwardingResource;
   public readonly logEntries: Resources.LogEntriesResource;
+  public readonly reports: Resources.ReportsResource;
+  public readonly configurationCanvas: Resources.ConfigurationCanvasResource;
+  public readonly configurationHistory: Resources.ConfigurationHistoryResource;
+  public readonly pipeline: Resources.PipelineResource;
+  public readonly apps: Resources.AppsResource;
+  public readonly sandboxes: Resources.SandboxesResource;
   public readonly webhooks: Resources.WebhooksResource;
+  public readonly brand: Resources.BrandResource;
+  public readonly featureFlags: Resources.FeatureFlagsResource;
   public readonly cognito: Resources.CognitoResource;
 
   constructor(config: VeltrixClientConfig = {}) {
@@ -68,21 +82,33 @@ export class VeltrixClient {
 
     // Initialize resource handlers
     this.auth = new Resources.AuthResource(this.httpClient);
+    this.me = new Resources.MeResource(this.httpClient);
     this.profile = new Resources.ProfileResource(this.httpClient);
     this.organization = new Resources.OrganizationResource(this.httpClient);
     this.users = new Resources.UsersResource(this.httpClient);
     this.roles = new Resources.RolesResource(this.httpClient);
     this.apiKeys = new Resources.ApiKeysResource(this.httpClient);
     this.tools = new Resources.ToolsResource(this.httpClient);
+    this.customerTools = new Resources.CustomerToolsResource(this.httpClient);
     this.components = new Resources.ComponentsResource(this.httpClient);
     this.credentials = new Resources.CredentialsResource(this.httpClient);
     this.tags = new Resources.TagsResource(this.httpClient);
+    this.environments = new Resources.EnvironmentsResource(this.httpClient);
     this.connectivity = new Resources.ConnectivityResource(this.httpClient);
+    this.connectivityProviders = new Resources.ConnectivityProvidersResource(this.httpClient);
     this.tailscale = new Resources.TailscaleResource(this.httpClient);
     this.tailscaleConfig = new Resources.TailscaleConfigResource(this.httpClient);
     this.logForwarding = new Resources.LogForwardingResource(this.httpClient);
     this.logEntries = new Resources.LogEntriesResource(this.httpClient);
+    this.reports = new Resources.ReportsResource(this.httpClient);
+    this.configurationCanvas = new Resources.ConfigurationCanvasResource(this.httpClient);
+    this.configurationHistory = new Resources.ConfigurationHistoryResource(this.httpClient);
+    this.pipeline = new Resources.PipelineResource(this.httpClient);
+    this.apps = new Resources.AppsResource(this.httpClient);
+    this.sandboxes = new Resources.SandboxesResource(this.httpClient);
     this.webhooks = new Resources.WebhooksResource(this.httpClient);
+    this.brand = new Resources.BrandResource(this.httpClient);
+    this.featureFlags = new Resources.FeatureFlagsResource(this.httpClient);
     this.cognito = new Resources.CognitoResource(this.httpClient);
   }
 
