@@ -27,6 +27,7 @@ import tailscaleConfigRoutes from './module/tailscale-config/tailscale-config.ro
 import { connectivityProviderRoutes } from './module/connectivity-provider/connectivity-provider.route';
 import profileRoutes from './module/profile/profile.route';
 import organizationRoutes from './module/organization/organization.route';
+import emailRoutes from './module/email/email.route';
 import connectivityRoutes from './module/connectivity/connectivity.route';
 import customerToolRoutes from './module/customer-tool/customer-tool.route';
 import cognitoRoutes from './module/cognito/cognito.route';
@@ -135,6 +136,8 @@ const csrfProtection = createCsrfProtection({
     '/api/auth/check-user',
     '/api/auth/2fa', // 2FA setup/verify/disable/login routes use JWT (or a short-lived
                      // challenge token) authentication, matching their sibling auth routes above
+    '/api/auth/forgot-password', // unauthenticated pre-login flow (like /login, /register)
+    '/api/auth/reset-password',  // token-authenticated, unauthenticated session
     '/api/webhooks',
     '/api/health',
     '/api/google',
@@ -298,6 +301,7 @@ server.register(tailscaleConfigRoutes, { prefix: '/api' });
 server.register(connectivityProviderRoutes, { prefix: '/api' });
 server.register(profileRoutes, { prefix: '/api' });
 server.register(organizationRoutes, { prefix: '/api/organization' });
+server.register(emailRoutes, { prefix: '/api' }); // Email/SMTP settings (admin) -> /api/email-settings
 server.register(connectivityRoutes, { prefix: '/api/connectivity' });
 server.register(customerToolRoutes, { prefix: '/api' });
 server.register(userRoleRoutes, { prefix: '/api' });

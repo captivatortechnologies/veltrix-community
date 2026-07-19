@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Shield, Building, Key, FileText, Network, Cloud, Radio, ChevronRight, type LucideIcon } from 'lucide-react';
+import { Shield, Building, Key, FileText, Network, Cloud, Radio, Mail, ChevronRight, type LucideIcon } from 'lucide-react';
 import { Card, CardBody } from '../../components/shared/Card';
 import { useBrand, type BrandConfig } from '../../brand';
 
@@ -34,6 +34,13 @@ function getSettingsLinks(brand: BrandConfig): SettingsLink[] {
       iconClassName: 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400',
       title: 'Keys & Tokens',
       description: 'Generate and manage API keys and CLI access tokens.',
+    },
+    {
+      to: '/settings/email',
+      icon: Mail,
+      iconClassName: 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400',
+      title: 'Email (SMTP / SES)',
+      description: 'Configure outbound email for password resets — via SMTP or Amazon SES.',
     },
     {
       to: '/settings/connectivity',

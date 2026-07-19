@@ -217,6 +217,37 @@ export const authController = {
     }
   },
 
+  // Begin a self-service password reset. ALWAYS returns the same 200 response
+  // regardless of whether the account exists / is eligible — this endpoint must
+  // never reveal which emails are registered.
+  forgotPassword: async (request: FastifyRequest, reply: FastifyReply) => {
+    const { email } = request.body as { email: string };
+    try {
+      await authService.requestPasswordReset(email);
+    } catch (error) {
+      // Log but do not surface — the response is uniform on purpose.
+      loggerService.error('Error handling forgot-password request:', error);
+    }
+    return reply.send({
+      message: 'If an account exists for that email, a password reset link has been sent.',
+    });
+  },
+
+  // Complete a password reset with the token from the emailed link.
+  resetPassword: async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const { token, newPassword } = request.body as { token: string; newPassword: string };
+      const ok = await authService.resetPassword(token, newPassword);
+      if (!ok) {
+        return reply.status(400).send({ error: 'This reset link is invalid or has expired. Please request a new one.' });
+      }
+      return reply.send({ message: 'Your password has been reset. You can now sign in with your new password.' });
+    } catch (error) {
+      loggerService.error('Error resetting password:', error);
+      return reply.status(500).send({ error: 'Error resetting password' });
+    }
+  },
+
   // ===== TOTP 2FA (P6) =====
 
   // Begin 2FA setup (authenticated): returns the secret + otpauth URI,

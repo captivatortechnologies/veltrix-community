@@ -26,6 +26,8 @@ const LoadingFallback = () => (
 // Auth pages (loaded immediately as they're entry points)
 import LoginPage from './pages/access/LoginPage'
 import SignupPage from './pages/access/SignupPage'
+import ForgotPasswordPage from './pages/access/ForgotPasswordPage'
+import ResetPasswordPage from './pages/access/ResetPasswordPage'
 import OAuthCallbackPage from './pages/access/OAuthCallbackPage'
 
 // Core pages (lazy loaded)
@@ -34,6 +36,7 @@ const HomePage = lazy(() => import('./pages/HomePage'));
 // Settings pages
 const SettingsPage = lazy(() => import('./pages/settings'));
 const OrganizationPage = lazy(() => import('./pages/settings/OrganizationPage'));
+const EmailSettingsPage = lazy(() => import('./pages/settings/EmailSettingsPage'));
 const KeysTokenPage = lazy(() => import('./pages/settings/KeysTokenPage'));
 const LogsPage = lazy(() => import('./pages/settings/LogsPage'));
 const ConnectivityPage = lazy(() => import('./pages/settings/ConnectivityPage'));
@@ -116,6 +119,8 @@ function App() {
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
 
             {/* Authenticated routes with sidebar layout */}
@@ -239,6 +244,16 @@ function App() {
               isAuthenticated() ? (
                 <AuthenticatedLayout>
                   <OrganizationPage />
+                </AuthenticatedLayout>
+              ) : (
+                <Navigate to="/login" />
+              )
+            } />
+
+            <Route path="/settings/email" element={
+              isAuthenticated() ? (
+                <AuthenticatedLayout>
+                  <EmailSettingsPage />
                 </AuthenticatedLayout>
               ) : (
                 <Navigate to="/login" />

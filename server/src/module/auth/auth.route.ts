@@ -375,6 +375,58 @@ export async function authRoutes(fastify: FastifyInstance) {
     handler: authController.changePassword
   });
 
+  // Request a password-reset email (unauthenticated). Always 200 — never
+  // reveals whether the email is registered.
+  fastify.post('/auth/forgot-password', {
+    schema: {
+      tags: ['auth'],
+      summary: 'Request a password reset',
+      description: 'Sends a password-reset link to the email if an eligible LOCAL account exists. Always returns 200.',
+      body: {
+        type: 'object',
+        required: ['email'],
+        properties: {
+          email: { type: 'string', format: 'email' }
+        }
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: { message: { type: 'string' } }
+        },
+        400: errorSchema,
+        500: errorSchema
+      }
+    },
+    handler: authController.forgotPassword
+  });
+
+  // Complete a password reset with the token from the emailed link (unauthenticated).
+  fastify.post('/auth/reset-password', {
+    schema: {
+      tags: ['auth'],
+      summary: 'Reset password with a token',
+      description: 'Consumes a single-use reset token and sets a new password.',
+      body: {
+        type: 'object',
+        required: ['token', 'newPassword'],
+        properties: {
+          token: { type: 'string', minLength: 16 },
+          newPassword: { type: 'string', minLength: 8, maxLength: 256 }
+        }
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: { message: { type: 'string' } }
+        },
+        400: errorSchema,
+        500: errorSchema
+      }
+    },
+    handler: authController.resetPassword
+  });
+
   // Note: User listing endpoints are now handled at:
   // - /api/users?authProvider=LOCAL
   // - /api/cognito/cognito-users

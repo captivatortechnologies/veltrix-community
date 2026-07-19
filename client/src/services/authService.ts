@@ -216,6 +216,39 @@ export const register = async (
   }
 };
 
+/**
+ * Request a password-reset email. The server always responds the same way
+ * (whether or not the account exists), so this resolves with a generic message
+ * and never reveals account existence.
+ */
+export const requestPasswordReset = async (email: string): Promise<string> => {
+  try {
+    const response = await axios.post(`${API_URL}/auth/forgot-password`, { email });
+    return response.data?.message || 'If an account exists for that email, a reset link has been sent.';
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      throw new Error(error.response.data.error || 'Failed to request a password reset.');
+    }
+    throw new Error('Network error. Please try again.');
+  }
+};
+
+/**
+ * Complete a password reset using the single-use token from the emailed link.
+ * Throws with the server's message when the token is invalid or expired.
+ */
+export const resetPassword = async (token: string, newPassword: string): Promise<string> => {
+  try {
+    const response = await axios.post(`${API_URL}/auth/reset-password`, { token, newPassword });
+    return response.data?.message || 'Your password has been reset.';
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response) {
+      throw new Error(error.response.data.error || 'Failed to reset password.');
+    }
+    throw new Error('Network error. Please try again.');
+  }
+};
+
 // Get current user
 export const getCurrentUser = async (): Promise<User> => {
   try {

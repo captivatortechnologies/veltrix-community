@@ -74,6 +74,30 @@ name in the UI.
 |---|---|---|
 | `APPS_DIR` | `./apps` | Directory the app engine discovers installed apps from — typically a checkout of the community apps repository. See [APP_AUTHORING.md](./APP_AUTHORING.md). |
 
+## Email / SMTP (password-reset delivery)
+
+Outbound email powers the self-service **password reset** flow. It is optional:
+with no provider configured, a reset link is written to the **server log** so a
+self-hoster can still recover accounts. Configure it two ways — the admin UI
+(**Settings → Email**) stores config in the database (secrets encrypted at rest)
+and **overrides** the environment variables below when enabled.
+
+| Variable | Default | Description |
+|---|---|---|
+| `EMAIL_PROVIDER` | `none` | `smtp`, `ses`, or `none`. |
+| `EMAIL_FROM` | — | From header, e.g. `Veltrix <no-reply@example.com>`. |
+| `SMTP_HOST` | — | SMTP server hostname (SendGrid, Mailgun, Postmark, Gmail, …). |
+| `SMTP_PORT` | `587` | SMTP port. |
+| `SMTP_SECURE` | `false` | `true` = implicit TLS (port 465); `false` = STARTTLS (587). |
+| `SMTP_USER` / `SMTP_PASS` | — | SMTP credentials. |
+| `SES_REGION` | — | AWS region for the Amazon SES transport. |
+| `SES_ACCESS_KEY_ID` / `SES_SECRET_ACCESS_KEY` | — | SES credentials. Leave blank to use the default AWS credential chain (e.g. an IAM instance role). |
+| `PASSWORD_RESET_TTL_MINUTES` | `60` | How long a reset link stays valid. |
+
+> Reset tokens are single-use and stored only as a SHA-256 hash — the raw token
+> exists solely in the emailed link. The forgot-password endpoint always returns
+> the same response, so it can't be used to discover which emails are registered.
+
 ## Optional SSO
 
 Authentication is **local** (bcrypt + JWT) by default. Each SSO provider is off

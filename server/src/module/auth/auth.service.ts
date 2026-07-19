@@ -2,6 +2,7 @@ import prisma from '../../db';
 import * as bcrypt from 'bcrypt';
 import { sign, verify } from 'jsonwebtoken';
 import { config } from '../../config';
+import { env } from '../../config/env';
 import { loggerService } from '../../module/logger/logger.service';
 import { resolvePermissionSnapshotForUser, buildPermissionSnapshot } from '../../lib/permissions';
 import crypto from 'crypto';
@@ -562,6 +563,83 @@ export const authService = {
       data: { password: hashedNewPassword }
     });
 
+    return true;
+  },
+
+  /**
+   * Begin a self-service password reset. Always resolves the same way so the
+   * endpoint can't be used to enumerate accounts: if `email` maps to an active
+   * LOCAL account, a single-use token is stored (only its SHA-256 hash) and a
+   * reset email is sent (or the link is logged when no email provider is
+   * configured). SSO/Cognito accounts, inactive accounts, and unknown emails
+   * are silently ignored.
+   */
+  async requestPasswordReset(email: string): Promise<void> {
+    const user = await prisma.user.findUnique({
+      where: { email },
+      include: { password: true }
+    });
+
+    if (!user || user.authProvider !== 'LOCAL' || !user.password || !user.isActive) {
+      loggerService.info('Password reset requested for an unknown or non-LOCAL account — ignoring');
+      return;
+    }
+
+    const ttlMinutes = env.PASSWORD_RESET_TTL_MINUTES;
+
+    // Invalidate any outstanding (unused) tokens before issuing a fresh one.
+    await prisma.passwordResetToken.deleteMany({ where: { userId: user.id, usedAt: null } });
+
+    // The raw token lives ONLY in the emailed link; the DB stores its hash.
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const expiresAt = new Date(Date.now() + ttlMinutes * 60 * 1000);
+
+    await prisma.passwordResetToken.create({
+      data: { userId: user.id, tokenHash, expiresAt }
+    });
+
+    const resetUrl = `${config.appUrl.replace(/\/$/, '')}/reset-password?token=${rawToken}`;
+
+    // Dynamic import keeps nodemailer/SES out of the boot path (mirrors the
+    // cognito/2FA dynamic-import pattern). Best-effort: never throws here.
+    const { emailService } = await import('../email/email.service');
+    await emailService.sendPasswordResetEmail(user.email, resetUrl, ttlMinutes);
+    loggerService.info(`Password reset token issued for user ${user.id}`);
+  },
+
+  /**
+   * Complete a password reset. Validates the raw token against its stored hash,
+   * enforces single-use + expiry, updates the password, and consumes the token.
+   * Returns false for any invalid / expired / already-used token.
+   */
+  async resetPassword(rawToken: string, newPassword: string): Promise<boolean> {
+    if (!rawToken || !newPassword) return false;
+
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const record = await prisma.passwordResetToken.findUnique({ where: { tokenHash } });
+
+    if (!record || record.usedAt || record.expiresAt.getTime() < Date.now()) {
+      return false;
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update the password, consume THIS token, and invalidate any siblings —
+    // all atomically.
+    await prisma.$transaction([
+      prisma.userPassword.upsert({
+        where: { userId: record.userId },
+        update: { password: hashedPassword },
+        create: { userId: record.userId, password: hashedPassword }
+      }),
+      prisma.passwordResetToken.update({ where: { id: record.id }, data: { usedAt: new Date() } }),
+      prisma.passwordResetToken.deleteMany({
+        where: { userId: record.userId, usedAt: null, id: { not: record.id } }
+      })
+    ]);
+
+    loggerService.info(`Password reset completed for user ${record.userId}`);
     return true;
   },
 

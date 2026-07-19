@@ -123,6 +123,7 @@ model User {
   customer              Organization                  @relation(fields: [customerId], references: [id], onDelete: Cascade)
   role                  Role                          @relation(fields: [roleId], references: [id])
   password              UserPassword?
+  passwordResetTokens   PasswordResetToken[]
   profile               UserProfile?
   settings              UserSettings?
   configurationHistory  ConfigurationHistory[]
@@ -161,6 +162,46 @@ model UserPassword {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Single-use, time-limited token for the self-service password-reset flow.
+// Only the SHA-256 hash of the token is stored — the raw token exists only in
+// the emailed reset link, so a database read can never reveal a usable token.
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// Instance-level email/SMTP configuration managed from the admin UI (single
+// row). When present and enabled it overrides the SMTP_*/SES_* env vars. Secret
+// fields (smtpPassword, sesSecretAccessKey) are encrypted at rest via
+// utils/encryption.ts and are never returned in plaintext by the API.
+model EmailSettings {
+  id                 String   @id @default(uuid())
+  provider           String   @default("smtp") // "smtp" | "ses"
+  enabled            Boolean  @default(false)
+  fromAddress        String?
+  fromName           String?
+  // SMTP transport
+  smtpHost           String?
+  smtpPort           Int?
+  smtpSecure         Boolean  @default(false)
+  smtpUser           String?
+  smtpPassword       String? // encrypted at rest
+  // Amazon SES transport
+  sesRegion          String?
+  sesAccessKeyId     String?
+  sesSecretAccessKey String? // encrypted at rest
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 }
 
 model UserProfile {
