@@ -66,6 +66,26 @@ The premium capabilities (canary, blue‑green, drift detection, approval
 workflows) are **free** in the Community Edition — they are the product, not an
 upsell.
 
+## Apps & integrations
+
+The pipeline is the delivery mechanism; **apps** are what it delivers. Each app
+teaches Veltrix how to manage one security tool's configuration as code — its
+validate / deploy / rollback / health-check / drift-detect / status handlers,
+canvas templates, migrations, and optional UI.
+
+Apps live in their own open-source repository:
+
+**→ [captivatortechnologies/veltrix-apps](https://github.com/captivatortechnologies/veltrix-apps)** — the official app catalog, the app SDK, and the developer CLI.
+
+- **Install apps** from the published marketplace catalog, or point `APPS_DIR` at a
+  local checkout of the repo (see [Configuration](#configuration)).
+- **Build your own** against [`@veltrixsecops/app-sdk`](https://www.npmjs.com/package/@veltrixsecops/app-sdk),
+  scaffold and validate with the Veltrix CLI, then open a PR — CI packages every
+  merge into an immutable, checksummed release.
+
+Apps built there install on both self-hosted Community Edition and the hosted
+platform without changes.
+
 ## Status
 
 🚧 **Bootstrapping.** This repository is being assembled by extracting and
