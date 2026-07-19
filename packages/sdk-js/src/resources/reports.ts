@@ -1,20 +1,36 @@
 import { BaseResource } from './base';
 import { AxiosRequestConfig } from 'axios';
 
-// Tenant-scoped reporting (audit, activity, resources, security, compliance).
+// Tenant-scoped reporting. Each endpoint aggregates real data for the caller's
+// tenant into a fixed, named report — there is no list/get-by-id surface.
 //
-// Provisional: the base route (/api/reports) matches the Community Edition
-// server surface, but the method surface below follows standard REST
-// conventions and may be refined as the OSS API stabilizes.
+// Mounted at /api/reports on the Community Edition server.
 
 export class ReportsResource extends BaseResource {
   protected readonly RESOURCE_PATH = 'reports';
 
-  async list(params?: Record<string, any>, config?: AxiosRequestConfig): Promise<any[]> {
-    return this._list<any[]>(params, config);
+  /** Unified activity feed. GET /api/reports/audit-logs */
+  async getAuditLogs(params?: Record<string, any>, config?: AxiosRequestConfig): Promise<any> {
+    return this.httpClient.get<any>(`${this.RESOURCE_PATH}/audit-logs`, { ...config, params });
   }
 
-  async get(reportId: string, params?: Record<string, any>, config?: AxiosRequestConfig): Promise<any> {
-    return this._get<any>(reportId, params, config);
+  /** User-activity report (stats, sessions, actions). GET /api/reports/user-activity */
+  async getUserActivity(params?: Record<string, any>, config?: AxiosRequestConfig): Promise<any> {
+    return this.httpClient.get<any>(`${this.RESOURCE_PATH}/user-activity`, { ...config, params });
+  }
+
+  /** Resource-usage report (real inventory). GET /api/reports/resource-usage */
+  async getResourceUsage(params?: Record<string, any>, config?: AxiosRequestConfig): Promise<any> {
+    return this.httpClient.get<any>(`${this.RESOURCE_PATH}/resource-usage`, { ...config, params });
+  }
+
+  /** Security-overview report (derived posture). GET /api/reports/security-overview */
+  async getSecurityOverview(params?: Record<string, any>, config?: AxiosRequestConfig): Promise<any> {
+    return this.httpClient.get<any>(`${this.RESOURCE_PATH}/security-overview`, { ...config, params });
+  }
+
+  /** Compliance report (frameworks + controls). GET /api/reports/compliance */
+  async getCompliance(params?: Record<string, any>, config?: AxiosRequestConfig): Promise<any> {
+    return this.httpClient.get<any>(`${this.RESOURCE_PATH}/compliance`, { ...config, params });
   }
 }

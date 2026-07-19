@@ -2,40 +2,42 @@
 
 from .base import BaseResource
 
+
 class EnvironmentsResource(BaseResource):
-    """Handles operations related to environments.
+    """Handles deployment environments (``/api/environments``).
 
     Environments are deployment targets used by the pipeline engine (e.g.
-    ``dev``, ``staging``, ``production``).
-
-    Note:
-        The base route (``/api/environments``) matches the Community Edition
-        server surface. The method surface below follows standard REST
-        conventions; verify method-level shapes against the server as the
-        OSS API stabilizes.
+    ``dev``, ``staging``, ``production``). They are Tag-backed and carry an
+    ownership + a per-environment deployment policy. There is no
+    single-environment GET route; read the full set via :meth:`list`.
     """
     RESOURCE_PATH = "environments"
 
     def list(self, **kwargs):
-        """Retrieves all environments for the authenticated organization."""
+        """Lists environments with ownership, policy and usage counts (GET /)."""
         return self._list(**kwargs)
 
-    def get(self, environment_id, **kwargs):
-        """Retrieves a specific environment by its ID."""
-        return self._get(resource_id=environment_id, **kwargs)
-
-    def create(self, name, description=None, **kwargs):
-        """Creates a new environment."""
-        data = {"name": name, "description": description}
-        data = {k: v for k, v in data.items() if v is not None}
+    def create(self, name, owner_id=None, **kwargs):
+        """Creates an environment (POST / -- body: {name, ownerId?})."""
+        data = {"name": name}
+        if owner_id is not None:
+            data["ownerId"] = owner_id
         return self._create(data=data, **kwargs)
 
-    def update(self, environment_id, name=None, description=None, **kwargs):
-        """Updates an existing environment."""
-        data = {"name": name, "description": description}
+    def update(self, environment_id, name=None, owner_id=None, **kwargs):
+        """Updates an environment's name / owner (PUT /{id})."""
+        data = {"name": name, "ownerId": owner_id}
         data = {k: v for k, v in data.items() if v is not None}
         return self._update(resource_id=environment_id, data=data, **kwargs)
 
     def delete(self, environment_id, **kwargs):
-        """Deletes an environment by its ID."""
+        """Deletes an environment (DELETE /{id})."""
         return self._delete(resource_id=environment_id, **kwargs)
+
+    def get_policy(self, environment_id, **kwargs):
+        """Gets an environment's deployment policy (GET /{id}/policy)."""
+        return self._http_client.get(f"{self.RESOURCE_PATH}/{environment_id}/policy", **kwargs)
+
+    def update_policy(self, environment_id, data, **kwargs):
+        """Creates/updates an environment's deployment policy (PUT /{id}/policy)."""
+        return self._http_client.put(f"{self.RESOURCE_PATH}/{environment_id}/policy", data=data, **kwargs)

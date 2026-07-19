@@ -115,32 +115,37 @@ except VeltrixError as e:
 | `client.components`             | Components                                              |
 | `client.credentials`            | Credentials                                             |
 | `client.tags`                   | Tags                                                    |
-| `client.environments`           | Deployment environments *(provisional)*                |
+| `client.environments`           | Deployment environments (list / create / update / delete + per-environment policy) |
 | `client.connectivity`           | Component connectivity                                  |
 | `client.connectivity_providers` | Connectivity provider adapters (SSH / WireGuard / Tailscale) |
 | `client.tailscale`              | Tailscale devices and keys                              |
 | `client.tailscale_config`       | Tailscale tenant configuration                          |
 | `client.log_forwarding`         | Log-forwarding destinations                             |
 | `client.log_entries`            | Platform log entries                                    |
-| `client.reports`                | Tenant reports (audit / activity / resources / security / compliance) *(provisional)* |
-| `client.configuration_canvas`   | Configuration authoring canvas *(provisional)*         |
-| `client.configuration_history`  | Configuration version history *(provisional)*          |
-| `client.pipeline`               | Deployment pipeline *(provisional)*                     |
-| `client.apps`                   | Platform apps / app engine *(provisional)*             |
-| `client.sandboxes`              | Developer sandboxes — CLI dev mode, flag-gated *(provisional)* |
+| `client.reports`                | Tenant reports (audit-logs / user-activity / resource-usage / security-overview / compliance) |
+| `client.configuration_canvas`   | Configuration authoring canvas (CRUD, versions, approvals, review comments) |
+| `client.configuration_history`  | Configuration audit history (filters, pending approvals, approve / reject / revert) |
+| `client.pipeline`               | Deployment pipeline (validate / deploy canvases, deployment lifecycle, drift) |
+| `client.apps`                   | Platform apps / app engine (marketplace, install, enable, settings, operations) |
+| `client.sandboxes`              | Developer sandboxes — CLI dev mode (flag-gated, off by default) |
 | `client.webhooks`               | Inbound webhook ingress (generic / GitHub / health)    |
 | `client.brand`                  | Public branding (name / tagline / logo)                |
 | `client.feature_flags`          | Public feature flags                                    |
 | `client.cognito`                | Optional AWS Cognito SSO integration (disabled by default) |
 
-> **Provisional resources**: `environments`, `reports`, `configuration_canvas`,
-> `configuration_history`, `pipeline`, `apps`, and `sandboxes` map to confirmed
-> Community Edition server routes, but their method surface follows standard
-> REST conventions and may be refined as the open-source API stabilizes.
+> Each resource's methods are wired to the Community Edition server's actual
+> routes (verb, path, params and body). A few operational notes:
 >
-> Optional SSO providers other than Cognito (Google / Microsoft / generic OIDC)
-> are browser-redirect OAuth flows on the server and are not exposed as SDK
-> resources.
+> - `sandboxes` is gated behind the `platform.sandbox` feature flag, which is
+>   **off by default** — every sandbox route returns `404` until an operator
+>   enables it. Its two binary-transport routes (the client bundle and the
+>   `tar.gz` file-sync upload) are intentionally not wrapped.
+> - `connectivity_providers` routes require server-side admin privileges.
+> - `apps` binary multipart upload (`POST /api/apps/upload`) is not wrapped;
+>   use `install_from_url` or `install` instead.
+> - Optional SSO providers other than Cognito (Google / Microsoft / generic
+>   OIDC) are browser-redirect OAuth flows on the server and are not exposed as
+>   SDK resources.
 
 ## Development
 

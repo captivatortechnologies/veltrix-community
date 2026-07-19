@@ -91,32 +91,37 @@ Each resource is exposed as a property on the client:
 | `components` | Tool components |
 | `credentials` | Encrypted credentials for tools |
 | `tags` | Tags |
-| `environments` | Deployment environments *(provisional)* |
+| `environments` | Deployment environments (list / create / update / delete + per-environment policy) |
 | `connectivity` | Component connectivity (SSH / HTTPS / Tailscale) |
 | `connectivityProviders` | Connectivity provider adapters (SSH / WireGuard / Tailscale) |
 | `tailscale` | Tailscale devices and keys |
 | `tailscaleConfig` | Tailscale tenant configuration |
 | `logForwarding` | Log-forwarding destinations |
 | `logEntries` | Platform log entries |
-| `reports` | Tenant reports (audit / activity / resources / security / compliance) *(provisional)* |
-| `configurationCanvas` | Configuration authoring canvas *(provisional)* |
-| `configurationHistory` | Configuration version history *(provisional)* |
-| `pipeline` | Deployment pipeline *(provisional)* |
-| `apps` | Platform apps / app engine *(provisional)* |
-| `sandboxes` | Developer sandboxes — CLI dev mode, flag-gated *(provisional)* |
+| `reports` | Tenant reports (audit-logs / user-activity / resource-usage / security-overview / compliance) |
+| `configurationCanvas` | Configuration authoring canvas (CRUD, versions, approvals, review comments) |
+| `configurationHistory` | Configuration audit history (filters, pending approvals, approve / reject / revert) |
+| `pipeline` | Deployment pipeline (validate / deploy canvases, deployment lifecycle, drift) |
+| `apps` | Platform apps / app engine (marketplace, install, enable, settings, operations) |
+| `sandboxes` | Developer sandboxes — CLI dev mode (flag-gated, off by default) |
 | `webhooks` | Inbound webhook ingress (generic / GitHub / health) |
 | `brand` | Public branding (name / tagline / logo) |
 | `featureFlags` | Public feature flags |
 | `cognito` | Optional AWS Cognito SSO integration (disabled by default) |
 
-> **Provisional resources** (`environments`, `reports`, `configurationCanvas`,
-> `configurationHistory`, `pipeline`, `apps`, `sandboxes`) map to confirmed
-> Community Edition server routes, but their method surface follows standard
-> REST conventions and may be refined as the open-source API stabilizes.
+> Each resource's methods are wired to the Community Edition server's actual
+> routes (verb, path, params and body). A few operational notes:
 >
-> Optional SSO providers other than Cognito (Google / Microsoft / generic OIDC)
-> are browser-redirect OAuth flows on the server and are not exposed as SDK
-> resources.
+> - `sandboxes` is gated behind the `platform.sandbox` feature flag, which is
+>   **off by default** — every sandbox route returns `404` until an operator
+>   enables it. Its two binary-transport routes (the client bundle and the
+>   `tar.gz` file-sync upload) are intentionally not wrapped.
+> - `connectivityProviders` routes require server-side admin privileges.
+> - `apps` binary multipart upload (`POST /api/apps/upload`) is not wrapped;
+>   use `installFromUrl` or `install` instead.
+> - Optional SSO providers other than Cognito (Google / Microsoft / generic
+>   OIDC) are browser-redirect OAuth flows on the server and are not exposed as
+>   SDK resources.
 
 ## Error handling
 

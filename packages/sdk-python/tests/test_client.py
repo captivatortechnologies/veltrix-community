@@ -158,6 +158,143 @@ def test_resource_paths():
 
 # --- Exception hierarchy ----------------------------------------------------
 
+# --- Refined resource routes ------------------------------------------------
+
+
+class _RecordingHttp:
+    """Stub http client that records (method, path, params, data) without I/O."""
+
+    def __init__(self):
+        self.calls = []
+
+    def _rec(self, method, path, params=None, data=None):
+        self.calls.append((method, path, params, data))
+        return {}
+
+    def get(self, path, params=None, headers=None):
+        return self._rec("GET", path, params=params)
+
+    def post(self, path, data=None, params=None, headers=None):
+        return self._rec("POST", path, params=params, data=data)
+
+    def put(self, path, data=None, params=None, headers=None):
+        return self._rec("PUT", path, params=params, data=data)
+
+    def patch(self, path, data=None, params=None, headers=None):
+        return self._rec("PATCH", path, params=params, data=data)
+
+    def delete(self, path, params=None, headers=None):
+        return self._rec("DELETE", path, params=params)
+
+    def request(self, method, path, params=None, data=None, headers=None):
+        return self._rec(method, path, params=params, data=data)
+
+
+def _stubbed_client():
+    client = VeltrixClient()
+    http = _RecordingHttp()
+    for name in (
+        "pipeline",
+        "configuration_canvas",
+        "configuration_history",
+        "reports",
+        "environments",
+        "apps",
+        "sandboxes",
+    ):
+        getattr(client, name)._http_client = http
+    return client, http
+
+
+def test_pipeline_routes():
+    client, http = _stubbed_client()
+    client.pipeline.validate_canvas("C")
+    client.pipeline.deploy_canvas("C", {"environmentId": "E"})
+    client.pipeline.rollback_deployment("D", {"reason": "x"})
+    client.pipeline.resolve_drift("DR", {"action": "ignore"})
+    assert [(m, p) for (m, p, _, _) in http.calls] == [
+        ("POST", "pipeline/canvas/C/validate"),
+        ("POST", "pipeline/canvas/C/deploy"),
+        ("POST", "pipeline/deployments/D/rollback"),
+        ("POST", "pipeline/drift/DR/resolve"),
+    ]
+
+
+def test_configuration_canvas_routes():
+    client, http = _stubbed_client()
+    client.configuration_canvas.update_status("C", {"status": "APPROVED"})
+    client.configuration_canvas.get_version("C", "H")
+    client.configuration_canvas.add_comment("C", {"body": "hi"})
+    assert [(m, p) for (m, p, _, _) in http.calls] == [
+        ("PATCH", "configuration-canvas/C/status"),
+        ("GET", "configuration-canvas/C/versions/H"),
+        ("POST", "configuration-canvas/C/comments"),
+    ]
+
+
+def test_configuration_history_routes():
+    client, http = _stubbed_client()
+    client.configuration_history.approve("X")
+    client.configuration_history.reject("Y", {"reason": "no"})
+    client.configuration_history.revert("V1")
+    assert http.calls == [
+        ("POST", "configuration-history/approve/X", None, None),
+        ("POST", "configuration-history/reject/Y", None, {"reason": "no"}),
+        ("POST", "configuration-history/revert", None, {"versionId": "V1"}),
+    ]
+
+
+def test_reports_routes():
+    client, http = _stubbed_client()
+    client.reports.get_audit_logs()
+    client.reports.get_user_activity()
+    client.reports.get_resource_usage()
+    client.reports.get_security_overview()
+    client.reports.get_compliance()
+    assert [p for (_, p, _, _) in http.calls] == [
+        "reports/audit-logs",
+        "reports/user-activity",
+        "reports/resource-usage",
+        "reports/security-overview",
+        "reports/compliance",
+    ]
+
+
+def test_environments_routes_have_no_single_get():
+    client, http = _stubbed_client()
+    assert not hasattr(client.environments, "get")
+    client.environments.get_policy("ENV")
+    client.environments.update_policy("ENV", {"requireApproval": True})
+    assert http.calls == [
+        ("GET", "environments/ENV/policy", None, None),
+        ("PUT", "environments/ENV/policy", None, {"requireApproval": True}),
+    ]
+
+
+def test_apps_routes():
+    client, http = _stubbed_client()
+    client.apps.enable("slug")
+    client.apps.install_from_url("http://x/y.zip")
+    client.apps.get_config_template("slug", "ct")
+    client.apps.run_operation("slug", "op", {"params": {}})
+    assert [(m, p) for (m, p, _, _) in http.calls] == [
+        ("POST", "apps/slug/enable"),
+        ("POST", "apps/install-from-url"),
+        ("GET", "apps/slug/config-types/ct/canvas"),
+        ("POST", "apps/slug/operations/op"),
+    ]
+
+
+def test_sandboxes_routes():
+    client, http = _stubbed_client()
+    client.sandboxes.get_file("SB", "a/b.ts")
+    client.sandboxes.run("SB", {"configTypeId": "ct", "handler": "validate"})
+    assert http.calls == [
+        ("GET", "sandboxes/SB/file", {"path": "a/b.ts"}, None),
+        ("POST", "sandboxes/SB/run", None, {"configTypeId": "ct", "handler": "validate"}),
+    ]
+
+
 def test_exception_hierarchy():
     assert issubclass(AuthenticationError, VeltrixError)
     assert issubclass(NotFoundError, VeltrixError)
