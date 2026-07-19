@@ -73,4 +73,13 @@ export const config = {
       process.env.MICROSOFT_AUTHORITY ||
       `https://login.microsoftonline.com/${process.env.MICROSOFT_TENANT_ID || 'common'}`,
   },
+
+  // White-label branding — env-driven so a self-hosted deployment (or a
+  // hosted fork) can rebrand without a code change. See module/brand for the
+  // public GET /api/brand endpoint the client fetches this from.
+  brand: {
+    name: process.env.VELTRIX_BRAND_NAME || 'Veltrix',
+    tagline: process.env.VELTRIX_BRAND_TAGLINE || 'Security-as-Code',
+    logoUrl: process.env.VELTRIX_BRAND_LOGO_URL || null,
+  },
 };

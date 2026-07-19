@@ -37,7 +37,7 @@ export interface DeploymentLog {
   timestamp: number;
 }
 
-interface DeploymentState {
+export interface DeploymentState {
   // State
   deployments: Record<string, Deployment>;
   logs: Record<string, DeploymentLog[]>;

@@ -6,7 +6,8 @@ import {
   connectivityCreateSchema,
   connectivityUpdateSchema,
   errorSchema,
-  successMessageSchema
+  successMessageSchema,
+  ComponentIdParamsType
 } from './connectivity.schema';
 
 export async function connectivityRoutes(fastify: FastifyInstance) {
@@ -14,7 +15,7 @@ export async function connectivityRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', verifyToken);
 
   // Get connectivity for a component
-  fastify.get('/component/:componentId', {
+  fastify.get<{ Params: ComponentIdParamsType }>('/component/:componentId', {
     preHandler: [hasPermission('connectivity', 'read')],
     schema: {
       tags: ['connectivity'],
@@ -59,7 +60,7 @@ export async function connectivityRoutes(fastify: FastifyInstance) {
   });
 
   // Update connectivity
-  fastify.put('/component/:componentId', {
+  fastify.put<{ Params: ComponentIdParamsType }>('/component/:componentId', {
     preHandler: [hasPermission('connectivity', 'write')],
     schema: {
       tags: ['connectivity'],
@@ -86,7 +87,7 @@ export async function connectivityRoutes(fastify: FastifyInstance) {
   });
 
   // Delete connectivity
-  fastify.delete('/component/:componentId', {
+  fastify.delete<{ Params: ComponentIdParamsType }>('/component/:componentId', {
     preHandler: [hasPermission('connectivity', 'write')],
     schema: {
       tags: ['connectivity'],
@@ -111,7 +112,7 @@ export async function connectivityRoutes(fastify: FastifyInstance) {
   });
 
   // Regenerate TailScale key
-  fastify.post('/component/:componentId/regenerate-key', {
+  fastify.post<{ Params: ComponentIdParamsType }>('/component/:componentId/regenerate-key', {
     preHandler: [hasPermission('connectivity', 'write')],
     schema: {
       tags: ['connectivity'],

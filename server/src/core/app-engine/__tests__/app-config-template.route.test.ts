@@ -61,7 +61,6 @@ jest.mock('../../../module/logger/logger.service', () => ({
 import { getAppRegistry } from '../../platform-bootstrap'
 import { registerAppConfigTemplateRoutes, APP_ID_PATTERN } from '../app-config-template.route'
 import prisma from '../../../db'
-import { PLATFORM_ADMIN_ROLE } from '../../../lib/platform-authz'
 
 const mockGetAppRegistry = getAppRegistry as jest.Mock
 const mockRoleFindUnique = prisma.role.findUnique as jest.Mock
@@ -157,8 +156,18 @@ afterAll(() => {
 
 beforeEach(() => {
   jest.clearAllMocks()
-  setTestUser(undefined) // falls back to the default platform-admin user
-  mockRoleFindUnique.mockResolvedValue({ id: 'role-admin', name: PLATFORM_ADMIN_ROLE })
+  setTestUser(undefined) // falls back to the default admin user
+  mockRoleFindUnique.mockResolvedValue({ id: 'role-admin', name: 'Administrator' })
+  // R2/R3 (RBAC/IdP hardening): there is no platform-admin ROLE NAME bypass in
+  // single-tenant OSS (see lib/permissions.ts) — hasAppPermission grants
+  // purely off an actual `all:all` Permission row, same as every other
+  // tenant-admin gate in the codebase. Give the default test user one so
+  // every PRE-EXISTING test below keeps exercising "admin bypasses every
+  // check" the same way it always did; the R3 describe block further down
+  // overrides this per-test with narrower rows for the non-admin cases.
+  ;(prisma.$queryRaw as jest.Mock).mockResolvedValue([
+    { id: 'p-admin-all', resource: 'all', action: 'all', roleId: 'role-admin', appId: null },
+  ])
   // ensureConfigTypeReadPermission resolves the URL's app SLUG to App.id (a UUID) before
   // checking — Permission.appId is a foreign key to that id, never the slug.
   mockAppFindUnique.mockResolvedValue({ id: DEMO_APP_UUID })

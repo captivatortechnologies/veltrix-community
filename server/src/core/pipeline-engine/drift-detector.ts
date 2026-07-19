@@ -14,7 +14,7 @@ import { canvasItemsOf } from './canvasSnapshot'
 import { decryptCredentialSecrets } from '../../module/credential/credential.service'
 import { resolvePermissionSnapshotForUser, type PermissionSnapshot } from '../../lib/permissions'
 
-/** Empty, non-privileged snapshot for the 'system' pseudo-user (no platform admin found for the tenant). */
+/** Empty, non-privileged snapshot for the 'system' pseudo-user (no instance owner found for the tenant). */
 const SYSTEM_PERMISSION_SNAPSHOT: PermissionSnapshot = {
   permissions: [],
   wildcards: { allAll: false, resources: [] },

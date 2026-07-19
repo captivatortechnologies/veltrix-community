@@ -104,8 +104,11 @@ async function performDownload(url: string): Promise<DownloadResult> {
     throw new Error(`Download failed: ${error.message}`)
   }
 
-  // Validate Content-Type (lenient — allow missing or octet-stream)
-  const contentType = response.headers['content-type']?.split(';')[0]?.trim()?.toLowerCase()
+  // Validate Content-Type (lenient — allow missing or octet-stream). Cast to
+  // string first — axios types `headers[...]` as `AxiosHeaderValue`
+  // (string | number | boolean | string[] | undefined), which has no
+  // `.split`.
+  const contentType = String(response.headers['content-type'] ?? '').split(';')[0]?.trim()?.toLowerCase() || undefined
   if (contentType && !ACCEPTED_CONTENT_TYPES.has(contentType)) {
     response.data.destroy()
     throw new Error(

@@ -107,13 +107,13 @@ interface ErrorBoundaryProps {
 }
 
 class AppPageErrorBoundary extends React.Component<ErrorBoundaryProps, { error: Error | null }> {
-  state: { error: Error | null } = { error: null }
+  override state: { error: Error | null } = { error: null }
 
   static getDerivedStateFromError(error: Error) {
     return { error }
   }
 
-  render() {
+  override render() {
     if (this.state.error) {
       return (
         <Panel title="This app page crashed">

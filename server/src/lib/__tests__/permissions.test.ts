@@ -246,6 +246,28 @@ describe('resolvePermissionSnapshotForUser', () => {
   it('returns an empty snapshot for an unknown user rather than throwing', async () => {
     mockUserFindUnique.mockResolvedValue(null)
     const snapshot = await resolvePermissionSnapshotForUser('ghost')
-    expect(snapshot).toEqual({ permissions: [], wildcards: { allAll: false, resources: [] } })
+    expect(snapshot).toEqual({
+      permissions: [],
+      wildcards: { allAll: false, resources: [] },
+      isPlatformAdmin: false,
+    })
+  })
+
+  it('short-circuits to an unrestricted snapshot for the instance owner (isPlatformAdmin) without a Permission-rows lookup', async () => {
+    mockUserFindUnique.mockResolvedValue({
+      id: 'u3',
+      roleId: 'role-3',
+      isPlatformAdmin: true,
+      role: { name: 'Administrator' },
+    })
+
+    const snapshot = await resolvePermissionSnapshotForUser('u3')
+
+    expect(snapshot).toEqual({
+      permissions: [],
+      wildcards: { allAll: true, resources: [] },
+      isPlatformAdmin: true,
+    })
+    expect(mockQueryRaw).not.toHaveBeenCalled()
   })
 })

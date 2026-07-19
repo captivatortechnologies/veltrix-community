@@ -7,17 +7,16 @@
 // x-user-id / x-customer-id / x-role-id headers (many handlers still read
 // the headers).
 //
-// Admin semantics: a user is admin when their role is the platform
-// operator role (via platform-authz) OR their role holds the `all:all`
-// permission — the codebase's tenant-admin convention (seeds create
-// 'Administrator' with all:all).
+// Admin semantics: single-tenant OSS has no cross-tenant "platform operator"
+// concept (that only exists in the hosted multi-tenant product — see
+// lib/permissions.ts). A user is admin when their role holds the `all:all`
+// permission — the seeded 'Administrator' role's convention.
 // ========================================================================
 
 import { FastifyRequest, FastifyReply } from 'fastify';
 import prisma from '../db';
 import { authService } from '../module/auth/auth.service';
 import { loggerService } from '../module/logger/logger.service';
-import { isPlatformAdminRoleName } from '../lib/platform-authz';
 import {
   getRolePermissions,
   hasAllAllPermission,
@@ -156,13 +155,6 @@ export const hasPermission = (resource: string, action: string, opts: Permission
         return reply.status(403).send({ error: 'Role not found' });
       }
 
-      // Platform operators have every permission (they don't carry tenant
-      // permission rows).
-      if (isPlatformAdminRoleName(role.name)) {
-        loggerService.debug('User has platform-admin role, granting access');
-        return;
-      }
-
       const permissions = await getRolePermissions(roleId);
 
       loggerService.debug(`Found role: ${role.name} with ${permissions.length} permissions`, {
@@ -205,20 +197,12 @@ export const ensureCustomerMatch = async (request: FastifyRequest<{ Params: { cu
 
     // Check if customer ID in URL matches authenticated customer
     if (authenticatedCustomerId !== urlCustomerId) {
-      // Check if user has admin role (can access other customers)
+      // Single-tenant OSS has no cross-tenant "platform operator" concept —
+      // a tenant's own `all:all` Administrator is the only role that may act
+      // on a customerId other than its own token-verified one (matching
+      // ensureAdmin below).
       const roleId = request.user?.roleId || (request.headers['x-role-id'] as string);
-
-      // Get role
-      const role = await prisma.role.findUnique({
-        where: { id: roleId }
-      });
-
-      // Check if role is the platform-admin role
-      const isSystemAdmin = isPlatformAdminRoleName(role?.name);
-
-      // Check if role has admin permissions
-      const isAdmin =
-        isSystemAdmin || hasAllAllPermission(await getRolePermissions(roleId));
+      const isAdmin = hasAllAllPermission(await getRolePermissions(roleId));
 
       if (!isAdmin) {
         return reply.status(403).send({
@@ -252,12 +236,8 @@ export const ensureAdmin = async (request: FastifyRequest, reply: FastifyReply) 
       return reply.status(403).send({ error: 'Role not found' });
     }
 
-    // Platform operator role has access to everything
-    if (isPlatformAdminRoleName(role.name)) {
-      return;
-    }
-
-    // Tenant admin: role holds the all:all permission
+    // Tenant admin: role holds the all:all permission (single-tenant OSS has
+    // no separate platform-operator role — see lib/permissions.ts).
     if (!hasAllAllPermission(await getRolePermissions(roleId))) {
       return reply.status(403).send({ error: 'Admin access required' });
     }

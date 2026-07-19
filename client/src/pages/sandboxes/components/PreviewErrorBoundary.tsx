@@ -21,13 +21,13 @@ interface PreviewErrorBoundaryState {
  * "Reload" action since sandbox pages change on every save).
  */
 export class PreviewErrorBoundary extends React.Component<PreviewErrorBoundaryProps, PreviewErrorBoundaryState> {
-  state: PreviewErrorBoundaryState = { error: null }
+  override state: PreviewErrorBoundaryState = { error: null }
 
   static getDerivedStateFromError(error: Error): PreviewErrorBoundaryState {
     return { error }
   }
 
-  render() {
+  override render() {
     const { error } = this.state
     if (error) {
       return (

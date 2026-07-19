@@ -50,7 +50,7 @@ export interface ToastNotification {
   };
 }
 
-interface NotificationState {
+export interface NotificationState {
   // State
   notifications: Notification[];
   toasts: ToastNotification[];

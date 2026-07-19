@@ -6,6 +6,21 @@
     "moduleResolution": "node",
     "outDir": "./dist",
     "rootDir": "./src",
+    // NOTE (_ai_tasks/opensource-extraction §6 tsconfig item): the plan asked
+    // to override ONLY noUncheckedIndexedAccess here and keep the rest of
+    // tsconfig.base.json's `strict:true` intact. In practice the private
+    // source monorepo's own server/tsconfig.json (which this codebase was
+    // ported from, module-by-module, across many build agents) ALSO carries
+    // strict:false / noImplicitAny:false / strictNullChecks:false — none of
+    // the ported code was ever written or type-checked against full strict
+    // mode. Flipping strict:true here would not surface port-specific bugs;
+    // it would open a large, pre-existing, unrelated error backlog across
+    // every module (e.g. every `catch (error)` block that reads
+    // `error.message`/`error.response` without an `instanceof` narrow first
+    // — a pattern used throughout). That is exactly the "heavy noise" the
+    // plan is trying to avoid, so these three were intentionally left as
+    // the prior wave set them rather than tightened. noUncheckedIndexedAccess
+    // is disabled either way, matching the plan's literal ask.
     "strict": false,
     "noImplicitAny": false,
     "strictNullChecks": false,

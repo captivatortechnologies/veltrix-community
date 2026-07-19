@@ -218,7 +218,7 @@ export function selectFields<T extends Record<string, unknown>>(
         Object.assign(result[parent as keyof T], nested);
       }
     } else if (field in obj) {
-      result[field as keyof T] = obj[field];
+      result[field as keyof T] = obj[field] as T[keyof T];
     }
   }
 

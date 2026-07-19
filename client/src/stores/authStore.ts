@@ -18,7 +18,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { devtools } from 'zustand/middleware';
 
-interface User {
+export interface User {
   id: string;
   email: string;
   role: string;
@@ -26,7 +26,7 @@ interface User {
   permissions: string[];
 }
 
-interface AuthState {
+export interface AuthState {
   // State
   user: User | null;
   accessToken: string | null;

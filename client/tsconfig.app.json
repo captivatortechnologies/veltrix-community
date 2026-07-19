@@ -21,6 +21,16 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
 
+    /*
+     * Override: the shared base (tsconfig.base.json) sets
+     * noUncheckedIndexedAccess:true, which produces heavy noise across the
+     * ported feature/page code (every array/record index access needs a
+     * defensive undefined check). All OTHER strict flags stay on for the
+     * client (see above) — this is the one specific override called for by
+     * the extraction plan (_ai_tasks/opensource-extraction §6 tsconfig item).
+     */
+    "noUncheckedIndexedAccess": false,
+
     /* Import path aliases (must match vite.config.ts's `@` alias) */
     "baseUrl": ".",
     "paths": {

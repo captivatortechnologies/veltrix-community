@@ -31,7 +31,7 @@ export interface Activity {
   read: boolean;
 }
 
-interface ActivityState {
+export interface ActivityState {
   // State
   activities: Activity[];
   unreadCount: number;

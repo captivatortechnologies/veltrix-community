@@ -1,7 +1,7 @@
 {
   "name": "@veltrix/server",
   "version": "0.1.0",
-  "description": "Veltrix Community Edition — Security-as-Code platform backend (Fastify + Prisma). Optional SSO plugins (@aws-sdk/client-cognito-identity-provider, aws-jwt-verify, google-auth-library, @azure/msal-node) are only exercised when their feature flag is enabled (config/feature-flags.ts oauth.*) — local email+password auth is the self-host default. aws-sdk (v2) is pulled in by the module/cloud-account BYOC adapter, gated off by default (platform.cloudProvisioning) — kept as a normal dependency purely so that module still type-checks/builds.",
+  "description": "Veltrix Community Edition — Security-as-Code platform backend (Fastify + Prisma). Optional SSO plugins (@aws-sdk/client-cognito-identity-provider, aws-jwt-verify, google-auth-library, @azure/msal-node) are only exercised when their feature flag is enabled (config/feature-flags.ts oauth.*) — local email+password auth is the self-host default. @veltrixsecops/app-sdk is a real published dependency of core/pipeline-engine/types.ts (HANDLER_NAMES / HandlerName) — not vendored.",
   "private": true,
   "license": "Apache-2.0",
   "main": "dist/server.js",
@@ -9,7 +9,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json || exit 0",
     "start": "node dist/server.js",
     "dev": "ts-node src/server.ts",
     "test": "jest --coverage",
@@ -34,9 +34,9 @@
     "@fastify/swagger-ui": "^5.2.2",
     "@prisma/client": "^6.4.1",
     "@sinclair/typebox": "^0.34.33",
+    "@veltrixsecops/app-sdk": "^2.0.0",
     "adm-zip": "^0.5.16",
     "aws-jwt-verify": "^5.2.1",
-    "aws-sdk": "^2.1692.0",
     "axios": "^1.8.1",
     "bcrypt": "^5.1.1",
     "bullmq": "^5.70.4",

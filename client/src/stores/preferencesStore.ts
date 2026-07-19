@@ -29,7 +29,7 @@ export interface DashboardLayout {
   };
 }
 
-interface PreferencesState {
+export interface PreferencesState {
   // Theme
   theme: Theme;
   setTheme: (theme: Theme) => void;

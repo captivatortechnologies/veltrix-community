@@ -15,6 +15,7 @@
  */
 
 import prisma from '../../db';
+import { Prisma } from '@prisma/client';
 import { loggerService } from '../logger/logger.service';
 import { v4 as uuidv4 } from 'uuid';
 import crypto from 'crypto';
@@ -161,6 +162,12 @@ export const apiKeyRotationService = {
         whereClause.customerId = customerId;
       }
       
+      // Conditional fragment composed via Prisma.sql (NOT $queryRawUnsafe,
+      // which takes a plain string and cannot be used as a tagged template —
+      // interpolating it here was a type error and, if it had compiled,
+      // would have dropped parameterization on the customerId filter).
+      const customerFilter = customerId ? Prisma.sql`AND "customerId" = ${customerId}` : Prisma.empty;
+
       const credentials = await prisma.$queryRaw<Array<{
         id: string;
         name: string;
@@ -173,7 +180,7 @@ export const apiKeyRotationService = {
         SELECT id, name, "toolId", "customerId", "createdAt", expiry, "autoRotate"
         FROM "Credential"
         WHERE type = 'API_KEY'
-        ${customerId ? prisma.$queryRawUnsafe`AND "customerId" = ${customerId}` : prisma.$queryRawUnsafe``}
+        ${customerFilter}
         ORDER BY expiry ASC NULLS LAST
       `;
       

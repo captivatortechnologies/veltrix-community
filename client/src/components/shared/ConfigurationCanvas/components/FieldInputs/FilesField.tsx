@@ -85,7 +85,6 @@ const CatalogCombobox: React.FC<CatalogComboboxProps> = ({ value, entries, disab
     });
   }, []);
 
-  const selectedEntry = entries.find((e) => e.value === value);
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return entries;

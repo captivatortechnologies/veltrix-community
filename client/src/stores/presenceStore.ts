@@ -24,7 +24,7 @@ export interface UserPresence {
   metadata?: Record<string, unknown>;
 }
 
-interface PresenceState {
+export interface PresenceState {
   // State
   presence: Map<string, UserPresence>;
   myStatus: PresenceStatus;

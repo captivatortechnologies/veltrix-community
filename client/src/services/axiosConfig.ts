@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { apiUrl } from './config';
+import { API_URL } from '../config';
 
 // Helper function to get cookie value by name
 function getCookie(name: string): string | null {
@@ -14,7 +14,7 @@ function getCookie(name: string): string | null {
 
 // Create an axios instance with default configuration
 const axiosInstance = axios.create({
-  baseURL: apiUrl,
+  baseURL: API_URL,
   withCredentials: true, // Enable sending cookies with cross-origin requests
 });
 

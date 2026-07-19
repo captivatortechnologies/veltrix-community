@@ -21,9 +21,20 @@
  *
  * Single-tenant note: this build has no separate "platform operator" /
  * cross-tenant admin concept (that only exists in the hosted multi-tenant
- * product). The seeded Administrator role IS the unrestricted admin for its
- * organization, expressed purely through the `all:all` wildcard grant below
- * — there is no secondary role-name bypass.
+ * product) — there is no ROLE-NAME bypass anywhere in this module or its
+ * callers (`authMiddleware.hasPermission`/`ensureAdmin`, `hasAppPermission`).
+ * The seeded Administrator role is the unrestricted admin for its
+ * organization purely through the `all:all` wildcard grant below.
+ *
+ * Separately, `User.isPlatformAdmin` (see schema.prisma) is a genuine
+ * single-tenant concept: an "instance owner" flag on the user record itself,
+ * not a role name. It does NOT participate in HTTP-route permission
+ * checks (`hasPermission`/`hasAppPermission` only ever look at Permission
+ * rows for the caller's role) — it exists so `resolvePermissionSnapshotForUser`
+ * can hand pipeline/app-engine internals (drift detection, deployment
+ * rollback, app page filtering — callers with only a userId, no live
+ * request) an unrestricted snapshot for the instance owner without needing
+ * an explicit `all:all` Permission row on file for them.
  */
 
 import prisma from '../db';
@@ -61,11 +72,13 @@ export interface PermissionSnapshotEntry {
 export interface PermissionSnapshot {
   permissions: PermissionSnapshotEntry[];
   wildcards: {
-    /** Role holds `all:all`. */
+    /** Role holds `all:all` OR the user is the instance owner (isPlatformAdmin). */
     allAll: boolean;
     /** Resource names the role holds a `resource:all` grant for. */
     resources: string[];
   };
+  /** The snapshot's subject is the instance owner (`User.isPlatformAdmin`). */
+  isPlatformAdmin: boolean;
 }
 
 /**
@@ -147,9 +160,19 @@ export async function isEffectivelyUnrestrictedAdmin(roleId: string): Promise<bo
   return hasAllAllPermission(permissions);
 }
 
-/** Build the client-facing permission snapshot from resolved rows. */
-export function buildPermissionSnapshot(permissions: PermissionRow[]): PermissionSnapshot {
-  const allAll = hasAllAllPermission(permissions);
+/**
+ * Build the client-facing permission snapshot from resolved rows.
+ *
+ * `isPlatformAdmin` (default false) marks the subject as the instance owner
+ * (`User.isPlatformAdmin`) — when true, `wildcards.allAll` is forced true
+ * regardless of the actual permission rows, so `snapshotGrants`/
+ * `filterPagesByPermission` treat the instance owner as unrestricted.
+ */
+export function buildPermissionSnapshot(
+  permissions: PermissionRow[],
+  isPlatformAdmin: boolean = false,
+): PermissionSnapshot {
+  const allAll = isPlatformAdmin || hasAllAllPermission(permissions);
   const resources = Array.from(
     new Set(
       permissions
@@ -165,6 +188,7 @@ export function buildPermissionSnapshot(permissions: PermissionRow[]): Permissio
       appId: p.appId ?? null,
     })),
     wildcards: { allAll, resources },
+    isPlatformAdmin,
   };
 }
 
@@ -187,6 +211,11 @@ export function snapshotGrants(
  * Resolve the full permission snapshot for a user by id. Used wherever only
  * identity (not an already-loaded user+role record) is on hand — e.g. the
  * PipelineContext builders, which only carry `triggeredById`/`userId`.
+ *
+ * The instance owner (`User.isPlatformAdmin`) short-circuits to an
+ * unrestricted snapshot without a Permission-rows round-trip — this is the
+ * one place that flag is consulted for permission RESOLUTION (HTTP-route
+ * gating never reads it; see the module header comment).
  */
 export async function resolvePermissionSnapshotForUser(userId: string): Promise<PermissionSnapshot> {
   const user = await prisma.user.findUnique({
@@ -195,9 +224,13 @@ export async function resolvePermissionSnapshotForUser(userId: string): Promise<
   });
 
   if (!user) {
-    return { permissions: [], wildcards: { allAll: false, resources: [] } };
+    return { permissions: [], wildcards: { allAll: false, resources: [] }, isPlatformAdmin: false };
+  }
+
+  if (user.isPlatformAdmin) {
+    return { permissions: [], wildcards: { allAll: true, resources: [] }, isPlatformAdmin: true };
   }
 
   const permissions = await getRolePermissions(user.roleId);
-  return buildPermissionSnapshot(permissions);
+  return buildPermissionSnapshot(permissions, false);
 }

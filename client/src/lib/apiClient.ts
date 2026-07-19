@@ -63,28 +63,6 @@ const logoutToLogin = () => {
 };
 
 /**
- * If the 401 came from an EXPIRED IMPERSONATION token, restore the stashed
- * admin session and send the operator back to the portal instead of logging
- * them out (or refreshing — a cookie refresh would silently swap an admin
- * token into a session the UI still presents as impersonated). Returns true
- * when the 401 was handled as an impersonation expiry.
- * Dynamic import avoids a module cycle (impersonationService -> authService
- * -> this module).
- */
-const handleImpersonationExpiry = async (): Promise<boolean> => {
-  if (!localStorage.getItem('veltrix_impersonation')) {
-    return false;
-  }
-
-  const { endImpersonation, IMPERSONATION_RETURN_PATH } = await import(
-    '../services/impersonationService'
-  );
-  endImpersonation();
-  window.location.href = `${IMPERSONATION_RETURN_PATH}?impersonation=expired`;
-  return true;
-};
-
-/**
  * Attach the shared auth interceptors (request: token + customer header;
  * response: refresh-and-retry with queueing) to an axios instance.
  */
@@ -135,12 +113,6 @@ export function attachAuthInterceptors(
       const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
 
       if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
-        // Expired impersonation sessions restore the stashed admin session
-        // instead of entering the refresh/logout flow.
-        if (await handleImpersonationExpiry()) {
-          return Promise.reject(error);
-        }
-
         if (isRefreshing) {
           // A refresh is already in flight (possibly triggered by another
           // instance) — queue this request until it resolves.

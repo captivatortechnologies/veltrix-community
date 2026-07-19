@@ -29,7 +29,6 @@ import profileRoutes from './module/profile/profile.route';
 import organizationRoutes from './module/organization/organization.route';
 import connectivityRoutes from './module/connectivity/connectivity.route';
 import customerToolRoutes from './module/customer-tool/customer-tool.route';
-import { cloudProviderRoutes } from './module/cloud-provider/cloud-provider.route';
 import cognitoRoutes from './module/cognito/cognito.route';
 import googleRoutes from './module/google/google.route';
 import microsoftRoutes from './module/microsoft/microsoft.route';
@@ -41,12 +40,31 @@ import configurationHistoryController from './module/configuration-history/confi
 import configurationCanvasRoutes from './module/configuration-canvas/configuration-canvas.route';
 import pipelineRoutes from './core/pipeline-engine/pipeline.route';
 import appManagementRoutes from './core/app-engine/app-management.route';
-import connectionOnboardingRoutes from './core/app-engine/connection-onboarding.route';
 import sandboxRoutes from './module/sandbox/sandbox.route';
+import brandRoutes from './module/brand/brand.route';
 
-// ---- Self-host-inapplicable slices, OFF by default (see feature-flags.ts `platform.*`) ----
-import ztnaRoutes from './module/ztna/ztna.route';
-import { cloudAccountRoutes } from './module/cloud-account/cloud-account.route';
+// ---- NOT present in Community Edition (see _ai_tasks/opensource-extraction
+// master plan §2.4): `ztna` (Veltrix-managed hosted Tailscale enrollment)
+// and `cloud-account` (BYOC registration feeding hosted AWS provisioning)
+// are both backed by Prisma models that were dropped from the pruned
+// single-tenant schema (ZtnaEnrollment, CloudAccountConnection) — they are
+// hosted-commercial-only concepts with no OSS equivalent, so per the HYBRID
+// decision (commercial physically removed) their modules were never
+// extracted and their route registrations below were removed rather than
+// flag-gated. The `platform.hostedConnectivity` / `platform.cloudProvisioning`
+// feature flags remain defined (client-visible via GET /api/feature-flags)
+// so a hosted fork can reuse the same flag surface, but nothing in this
+// server backs them. The generic connectivity-provider adapters
+// (SSH/WireGuard/self-managed Tailscale) registered above are unaffected.
+//
+// `core/app-engine/connection-onboarding.route` + `module/connection-onboarding`
+// (one-click Entra ID admin-consent + ARM role-assignment brokering for
+// Azure BYOC) are ALSO not present, for the same reason: the token broker's
+// only data source (`connector-app.repo.ts`) reads the centrally-owned
+// `PlatformConnectorApp` table — explicitly in the dropped-model list
+// (§2.4) — so this is Azure BYOC cloud-provisioning infrastructure, not a
+// generic app-engine feature, despite being mounted under /api/apps in the
+// source. Removed rather than flag-gated.
 
 // ---- Wiring / infra ----
 import { errorHandler, handleUnhandledRejection, handleUncaughtException } from './middlewares/errorHandler';
@@ -57,8 +75,6 @@ import { timeoutMiddleware, decorateTimeout, logSlowRequests } from './middlewar
 import seedAdminAccount from '../prisma/seed/admin-account';
 import seedOAuthProviders from '../prisma/seed/oauth-providers';
 import seedComplianceCatalog from '../prisma/seed/compliance-catalog';
-import { seedCloudProviders } from './module/cloud-provider/cloud-provider.seed';
-import { verifyProviderCatalogIntegrity } from './module/cloud-provider/cloud-provider.integrity';
 import { initializePlatform, shutdownPlatform, registerAppRoutesWithServer } from './core/platform-bootstrap';
 import { initializeRealtime } from './lib/realtime-bootstrap';
 
@@ -69,6 +85,15 @@ import { initializeRealtime } from './lib/realtime-bootstrap';
 //   /api/platform-admin, /api/group-admin, /api/mssp, /api/network (BYOL IPAM),
 //   /api/customers (superseded by /api/organization — single-tenant, no
 //   multi-customer admin listing needed).
+//   /api/cloud-providers — the source module is a BYOL provider/region
+//   *catalog* backed entirely by the CloudProvider/CloudProviderRegion tables
+//   (raw SQL against those tables) and the cloud-account BYOC adapter
+//   registry; both were dropped from the pruned schema (see §2.4), so this
+//   is not a static/model-free list that could be kept — the whole module is
+//   commercial cloud-provisioning infrastructure. Removed rather than
+//   flag-gated (HYBRID decision).
+//   /api/ztna, /api/cloud-accounts — see the larger note further down,
+//   next to where their imports used to be.
 // The RabbitMQ-based deployment-status consumer is also gone: deployment
 // status now flows through the in-process app-events bus / BullMQ
 // job-runner (core/) instead of an external broker.
@@ -200,11 +225,12 @@ server.register(swagger, {
       { name: 'tailscale-config', description: 'Tailscale configuration endpoints' },
       { name: 'profile', description: 'User profile related endpoints' },
       { name: 'customer-tools', description: 'Per-tenant tool enablement endpoints' },
-      { name: 'cloud-providers', description: 'Cloud provider and region catalog endpoints' },
+      { name: 'reports', description: 'Tenant reporting endpoints (audit, activity, resources, security, compliance)' },
       { name: 'webhooks', description: 'Webhook notification endpoints for external service integration (flagged)' },
       { name: 'pipeline', description: 'Security-as-Code pipeline endpoints' },
       { name: 'apps', description: 'App marketplace and management endpoints' },
       { name: 'sandboxes', description: 'Developer sandbox endpoints (Veltrix CLI dev mode, flagged)' },
+      { name: 'brand', description: 'Public branding endpoint (name/tagline/logo)' },
     ],
     securityDefinitions: {
       apiKey: {
@@ -254,6 +280,7 @@ server.get('/api/feature-flags', async (_, reply) => {
 });
 
 // ---- Register routes ----
+server.register(brandRoutes, { prefix: '/api' }); // Public branding (no auth) — GET /api/brand
 server.register(authRoutes, { prefix: '/api' });
 server.register(meRoutes, { prefix: '/api' });
 server.register(toolRoutes, { prefix: '/api' });
@@ -273,14 +300,12 @@ server.register(profileRoutes, { prefix: '/api' });
 server.register(organizationRoutes, { prefix: '/api/organization' });
 server.register(connectivityRoutes, { prefix: '/api/connectivity' });
 server.register(customerToolRoutes, { prefix: '/api' });
-server.register(cloudProviderRoutes, { prefix: '/api' }); // Read-only provider/region catalog
 server.register(userRoleRoutes, { prefix: '/api' });
 server.register(userRoutes, { prefix: '/api' }); // Tenant-scoped user management (GET/POST /users, PUT/DELETE /users/:id)
 server.register(configurationHistoryController, { prefix: '/api/configuration-history' });
 server.register(configurationCanvasRoutes, { prefix: '/api/configuration-canvas' });
 server.register(pipelineRoutes, { prefix: '/api/pipeline' }); // Security-as-Code pipeline routes
 server.register(appManagementRoutes, { prefix: '/api/apps' }); // App management routes
-server.register(connectionOnboardingRoutes, { prefix: '/api/apps' }); // One-click connection onboarding (consent + token broker)
 server.register(sandboxRoutes, { prefix: '/api/sandboxes' }); // Developer sandbox routes (self-gates on platform.sandbox; off by default)
 
 // Optional SSO providers — route plugins are only registered when their
@@ -304,17 +329,11 @@ if (isFeatureEnabled('platform.webhooks')) {
   server.register(webhookRoutes, { prefix: '/api' });
 }
 
-// Self-host-inapplicable slices — OFF by default. `ztna` is Veltrix-managed
-// hosted Tailscale (requires a Veltrix-operated tailnet); `cloud-account` is
-// BYOC registration feeding hosted AWS provisioning. The generic
-// connectivity-provider adapters (SSH/WireGuard/self-managed Tailscale)
-// registered above are unaffected by these flags.
-if (isFeatureEnabled('platform.hostedConnectivity')) {
-  server.register(ztnaRoutes, { prefix: '/api' });
-}
-if (isFeatureEnabled('platform.cloudProvisioning')) {
-  server.register(cloudAccountRoutes, { prefix: '/api' });
-}
+// `ztna` (Veltrix-managed hosted Tailscale) and `cloud-account` (BYOC
+// registration feeding hosted AWS provisioning) are NOT registered — see the
+// note next to the removed imports above. The generic connectivity-provider
+// adapters (SSH/WireGuard/self-managed Tailscale) registered above are
+// unaffected.
 
 // Start server
 const start = async () => {
@@ -328,20 +347,6 @@ const start = async () => {
             loggerService.info('✅ Database seeding completed');
         } catch (seedError) {
             loggerService.warn('⚠️  Database seeding failed (this is normal if data already exists):', seedError);
-        }
-
-        // Seed the cloud-provider catalog (idempotent). Kept in its own guard so
-        // a failure in the seed block above can't skip it.
-        try {
-            const seeded = await seedCloudProviders();
-            loggerService.info(
-                `✅ Cloud provider catalog ready (${seeded.providers} providers, ${seeded.regions} regions)`,
-            );
-            // Warn on any drift between the offered catalog and the adapter/module
-            // set (an active provider with no way to actually provision it).
-            await verifyProviderCatalogIntegrity();
-        } catch (cloudSeedError) {
-            loggerService.warn('⚠️  Cloud provider catalog seeding failed:', cloudSeedError);
         }
 
         // Initialize platform core services (AppRegistry, JobRunner, PipelineService)

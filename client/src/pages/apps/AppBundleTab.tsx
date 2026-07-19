@@ -36,13 +36,13 @@ interface ErrorBoundaryProps {
 }
 
 class TabErrorBoundary extends React.Component<ErrorBoundaryProps, { error: Error | null }> {
-  state: { error: Error | null } = { error: null }
+  override state: { error: Error | null } = { error: null }
 
   static getDerivedStateFromError(error: Error) {
     return { error }
   }
 
-  render() {
+  override render() {
     if (this.state.error) {
       return (
         <Panel title="This tab crashed">
