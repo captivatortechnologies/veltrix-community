@@ -1,0 +1,56 @@
+# ---------------------------------------------------------------------------
+# Veltrix Community Edition — .gitignore
+# NOTE: internal planning notes and local agent tooling are intentionally
+# excluded from the public history. Do NOT remove the _ai_tasks / .claude rules.
+# ---------------------------------------------------------------------------
+
+# Internal planning, discovery reports, and agent scratch (NEVER publish)
+_ai_tasks/
+.claude/
+
+# Secrets & environment — never commit real values
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+**/terraform.tfvars
+*.tfstate
+*.tfstate.*
+
+# Dependencies
+node_modules/
+.pnpm-store/
+.yarn/
+
+# Build output
+dist/
+build/
+out/
+*.tsbuildinfo
+
+# Prisma generated client
+**/generated/
+**/prisma/client/
+
+# Test / coverage
+coverage/
+playwright-report/
+test-results/
+.nyc_output/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+
+# Editor / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.swp
