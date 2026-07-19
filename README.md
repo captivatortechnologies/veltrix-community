@@ -107,9 +107,27 @@ The verified end‑to‑end boot (build → migrate → seed → login) runs in 
 
 ## Contributing
 
-Contribution guidelines, a code of conduct, and a security policy are on the way
-(`CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `SECURITY.md`). In the meantime, issues
-and discussion are welcome.
+Issues and pull requests are welcome. Start with [`CONTRIBUTING.md`](./CONTRIBUTING.md)
+for the workflow and review criteria, and please follow the
+[Code of Conduct](./CODE_OF_CONDUCT.md).
+
+## Security
+
+Veltrix is security tooling, so the security of the project itself is a priority.
+See [`SECURITY.md`](./SECURITY.md) for the full policy — the essentials:
+
+- **Reporting a vulnerability.** Please do **not** open a public issue. Use GitHub's
+  private reporting (the repository's **Security** tab → **Report a vulnerability**);
+  we practice coordinated disclosure and aim to acknowledge within 3 business days.
+- **Secrets gate.** Every push and pull request runs a gitleaks `secrets-scan` job
+  (`.gitleaks.toml`) that fails the build on any finding. Run it locally with
+  `pnpm secrets:scan` before you commit.
+- **Secure by default.** The server fails fast if the required secrets (`JWT_SECRET`,
+  `JWT_REFRESH_SECRET`, `ENCRYPTION_KEY`, `COOKIE_SECRET`) are unset — there are no
+  fallback values. Integration credentials are encrypted at rest (AES-256), API keys
+  are stored hashed (SHA-256), CSRF protection guards state-changing routes, auth is
+  local-by-default (bcrypt + JWT) with OAuth/OIDC opt-in, and `.env` is never
+  committed.
 
 ## License
 
