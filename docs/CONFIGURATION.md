@@ -16,6 +16,11 @@ template.
 > is unset. There are no built-in fallback values, by design — an unconfigured
 > instance never runs with a known/default secret.
 
+> **Where secrets live.** This page covers the environment variables set *before*
+> boot. Some secrets (email/SMTP, SSO, integration credentials) are instead
+> configured in the admin UI *after* install and stored encrypted at rest — see
+> [`SECRETS.md`](./SECRETS.md) for how the two layers fit together.
+
 ---
 
 ## Core

@@ -357,6 +357,9 @@ See [`SECURITY.md`](./SECURITY.md) for the full policy — the essentials:
   local-by-default (bcrypt + JWT) with OAuth/OIDC opt-in, and `.env` is never
   committed.
 
+For how secrets are set up during installation — boot-time environment secrets
+vs. UI-managed secrets encrypted at rest — see [`docs/SECRETS.md`](./docs/SECRETS.md).
+
 ## License
 
 [Apache License 2.0](./LICENSE). SDKs may be published under MIT — see each

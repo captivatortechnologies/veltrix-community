@@ -69,6 +69,10 @@ The pipeline features (`FEATURE_PIPELINE_*`) are already enabled by default and
 are free. The commercial flags (`FEATURE_BILLING`, `FEATURE_MULTI_TENANT`) are
 off and are not part of the Community Edition — leave them `false`.
 
+> These are the *install-time* secrets. Others — email/SMTP, SSO, integration
+> credentials — are configured later in the admin UI and stored encrypted. See
+> [`SECRETS.md`](./SECRETS.md) for the full picture.
+
 ## 4. Start the stack
 
 ```bash

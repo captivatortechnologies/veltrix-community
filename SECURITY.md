@@ -100,4 +100,6 @@ A few defaults exist specifically to reduce the chance of an insecure deployment
   files; only `.env.example` (placeholders only) is tracked.
 
 See [docs/CONFIGURATION.md](./docs/CONFIGURATION.md) for the full list of
-environment variables and their security implications.
+environment variables and their security implications, and
+[docs/SECRETS.md](./docs/SECRETS.md) for how the two secret layers (boot-time
+environment secrets vs. UI-managed secrets encrypted at rest) fit together.
