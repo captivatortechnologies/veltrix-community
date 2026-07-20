@@ -231,6 +231,14 @@ export interface AppConfigurationTypeManifest {
   id: string
   name: string
   description?: string
+  /**
+   * Optional sub-section label used to cluster this configuration type under a
+   * collapsible group in the app sidebar's "Configurations" section (e.g.
+   * "Access Policies"). Purely presentational; the platform renders whatever
+   * groups an app declares and leaves ungrouped types in a flat list. Apps with
+   * long configuration lists use this to stay navigable.
+   */
+  group?: string
   canvasTemplate: string // Path to canvas template YAML
   defaultConfig?: string // Path to default config YAML
 

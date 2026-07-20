@@ -44,7 +44,12 @@ export interface EnabledApp {
   /** App homepage/repository URL, used for the navbar "Source" link. */
   homepage?: string
   pages: AppPageDeclaration[]
-  configurationTypes: Array<{ id: string; name: string }>
+  /**
+   * The app's configuration types as sidebar entries. `group` is an optional
+   * sub-section label the app declares to cluster its config types under a
+   * collapsible group in the "Configurations" nav section (absent → flat list).
+   */
+  configurationTypes: Array<{ id: string; name: string; group?: string }>
   /** Omitted by the server when the app declares no usable branding. */
   branding?: EnabledAppBranding
   /**

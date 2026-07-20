@@ -338,6 +338,7 @@ export async function appManagementRoutes(fastify: FastifyInstance) {
             configurationTypes: manifest.pipeline.configurationTypes.map((ct) => ({
               id: ct.id,
               name: ct.name,
+              group: ct.group,
             })),
             branding: buildEnabledBranding(appId, appDir, manifest.branding),
             // Per-app nav layout. `client.navLayout` is added to the manifest

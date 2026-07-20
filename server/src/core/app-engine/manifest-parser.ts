@@ -108,6 +108,7 @@ function validateManifest(data: Record<string, any>, filePath: string): AppManif
         id: ct.id,
         name: ct.name,
         description: ct.description,
+        group: ct.group,
         canvasTemplate: ct.canvasTemplate,
         defaultConfig: ct.defaultConfig,
         handlers: {
