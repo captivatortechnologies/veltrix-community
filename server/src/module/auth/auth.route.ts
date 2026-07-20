@@ -301,12 +301,30 @@ export async function authRoutes(fastify: FastifyInstance) {
         }
       },
       response: {
+        // Registration returns the SAME auth object as login (tokens + user +
+        // permission snapshot) so the client can sign the user straight in. The
+        // old schema declared only { id, email, name }, none of which are
+        // top-level on the actual result, so Fastify serialized the body to `{}`.
         201: {
           type: 'object',
           properties: {
-            id: { type: 'string' },
-            email: { type: 'string' },
-            name: { type: 'string' }
+            token: { type: 'string' },
+            refresh_token: { type: 'string' },
+            token_type: { type: 'string' },
+            expires_in: { type: 'number' },
+            refresh_expires_in: { type: 'number' },
+            user: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                email: { type: 'string' },
+                name: { type: 'string' },
+                role: { type: 'string' },
+                customerId: { type: 'string' },
+                isPlatformAdmin: { type: 'boolean' }
+              }
+            },
+            permissions: permissionSnapshotSchema
           }
         },
         400: errorSchema,

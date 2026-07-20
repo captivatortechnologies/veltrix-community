@@ -165,8 +165,9 @@ const LoginPage: React.FC = () => {
       // Try local login
       const response = await login(email, password);
 
-      // Check if we need to redirect to Cognito
-      if ('redirectToCognito' in response) {
+      // Check if we need to redirect to Cognito. Guard the `in` operator against
+      // a non-object response (login() now throws on those, but stay defensive).
+      if (response && typeof response === 'object' && 'redirectToCognito' in response) {
         // User exists in Cognito, redirect to Cognito login
         setCurrentStep(LoginStep.COGNITO_REDIRECT);
         return;

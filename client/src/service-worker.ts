@@ -11,7 +11,11 @@
 
 declare const self: ServiceWorkerGlobalScope;
 
-const CACHE_VERSION = 'v2';
+// Bump this on any deploy that must invalidate stale client caches. The activate
+// handler deletes every cache whose name != CACHE_NAME, so bumping the version
+// purges old precached assets (e.g. a stale JS bundle pointing at an old API URL)
+// for all clients on their next visit.
+const CACHE_VERSION = 'v3';
 const CACHE_NAME = `veltrix-cache-${CACHE_VERSION}`;
 
 // Assets to cache immediately on install
@@ -47,7 +51,11 @@ const ROUTE_STRATEGIES: Record<string, string> = {
   '/api/': CACHE_STRATEGIES.NETWORK_ONLY,
   
   // HTML pages - stale while revalidate
-  '\\.html$': CACHE_STRATEGIES.STALE_WHILE_REVALIDATE
+  // HTML pages - NETWORK FIRST (fall back to cache only when offline). The app
+  // shell must always reflect the latest deploy so it references the current
+  // hashed JS bundle; serving a stale index.html (stale-while-revalidate) pinned
+  // users to an outdated bundle after every deploy.
+  '\\.html$': CACHE_STRATEGIES.NETWORK_FIRST
 };
 
 // Cache expiration times (in milliseconds)

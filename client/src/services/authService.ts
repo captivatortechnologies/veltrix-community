@@ -166,12 +166,21 @@ export const checkUserExists = async (email: string): Promise<{ exists: boolean;
 export const login = async (email: string, password: string): Promise<AuthResponse | { redirectToCognito: true }> => {
   try {
     const response = await axios.post(`${API_URL}/auth/login`, { email, password });
-    
+
+    // Guard against a non-object 200 body — e.g. an empty response, or an SPA /
+    // reverse-proxy HTML fallback served when `/api` isn't actually reaching the
+    // backend. Returning that would make the caller's
+    // `'redirectToCognito' in response` check throw a confusing TypeError; a
+    // clear error is far more useful.
+    if (!response.data || typeof response.data !== 'object') {
+      throw new Error('Unexpected response from the server. Please try again in a moment.');
+    }
+
     // Check if this is a special response indicating the user should use Cognito
     if (response.data.token === 'REDIRECT_TO_COGNITO') {
       return { redirectToCognito: true };
     }
-    
+
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response) {
