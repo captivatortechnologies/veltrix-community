@@ -15,7 +15,7 @@
 
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronDown, ExternalLink, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { ChevronDown, ChevronRight, ExternalLink, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import type { EnabledApp, EnabledAppBranding } from '../../services/appService'
 import type { AppPageDeclaration } from '../../../../shared/types/app'
 import { Badge } from '../../components/shared/Badge'
@@ -120,6 +120,12 @@ export interface AppNavItem {
   label: string
   group?: 'page' | 'config' | 'settings'
   /**
+   * Optional sub-section label WITHIN a group (today only configuration types
+   * use it, via the manifest `group` field). When a group's items carry this,
+   * the sidebar clusters them under collapsible sub-groups; absent → flat list.
+   */
+  subgroup?: string
+  /**
    * Manifest page icon identifier (a Lucide name, e.g. "database"), used to
    * render an icon for this item in the collapsed rail. Absent for configuration
    * types (which declare none) — those fall back to a distinguishable initials
@@ -191,6 +197,9 @@ export function buildAppNavItems(app: EnabledApp, hasPermission?: AppNavPermissi
     path: `/config/${ct.id}`,
     label: ct.name,
     group: 'config',
+    // Manifest-declared sub-section label; drives collapsible groups in the
+    // sidebar for config-heavy apps (undefined → the type stays in a flat list).
+    subgroup: ct.group,
   }))
   // Platform-provided page: every app gets a Pipeline surface (the CI/CD
   // pipeline for every configuration across every configuration type),
@@ -393,11 +402,155 @@ const AppNavbar: React.FC<{
 }
 
 /**
+ * Split a group's items into sub-groups by their `subgroup` label, preserving
+ * first-appearance (manifest) order. Items with no `subgroup` collapse into a
+ * single leading bucket labelled `null` (rendered flat, no accordion). When no
+ * item declares a subgroup the result is one `null` bucket — the caller then
+ * keeps the original flat rendering.
+ */
+export function splitSubGroups(
+  items: AppNavItem[],
+): Array<{ label: string | null; items: AppNavItem[] }> {
+  const order: Array<string | null> = []
+  const byKey = new Map<string | null, AppNavItem[]>()
+  for (const item of items) {
+    const key = item.subgroup ?? null
+    if (!byKey.has(key)) {
+      byKey.set(key, [])
+      order.push(key)
+    }
+    byKey.get(key)!.push(item)
+  }
+  return order.map((key) => ({ label: key, items: byKey.get(key)! }))
+}
+
+/** localStorage key for one sidebar sub-group's open/closed preference. */
+const navGroupKey = (appId: string, subgroup: string): string =>
+  `veltrix:appNavGroup:${appId}:${subgroup}`
+
+/** Read a sub-group's persisted open preference (default closed; SSR-safe). */
+function readNavGroupOpen(key: string): boolean {
+  if (typeof window === 'undefined') return false
+  try {
+    return window.localStorage.getItem(key) === '1'
+  } catch {
+    return false
+  }
+}
+
+/** Persist a sub-group's open/closed preference (best-effort). */
+function writeNavGroupOpen(key: string, open: boolean): void {
+  try {
+    window.localStorage.setItem(key, open ? '1' : '0')
+  } catch {
+    /* storage unavailable — the in-memory toggle still works this session */
+  }
+}
+
+/**
+ * One sidebar link. `indented` shifts it right so it reads as a child of a
+ * sub-group heading; otherwise it sits flush under a section heading. The active
+ * link takes the brand accent as a left border + subtle tint.
+ */
+const SidebarNavLink: React.FC<{
+  app: EnabledApp
+  item: AppNavItem
+  active: boolean
+  indented?: boolean
+}> = ({ app, item, active, indented }) => (
+  <li>
+    <Link
+      to={navItemHref(app, item)}
+      aria-current={active ? 'page' : undefined}
+      className={`flex items-center rounded-md border-l-2 py-1.5 text-sm font-medium ${
+        indented ? 'pl-6 pr-3' : 'px-3'
+      } ${
+        active
+          ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-gray-100'
+          : 'border-transparent text-gray-500 hover:bg-gray-50 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700/40 dark:hover:text-gray-300'
+      }`}
+      style={active ? { borderLeftColor: 'var(--veltrix-app-primary)' } : undefined}
+    >
+      {item.label}
+    </Link>
+  </li>
+)
+
+/**
+ * A collapsible sub-group of sidebar links (e.g. "Access Policies" under
+ * "Configurations"). Starts closed unless it holds the active item or the user
+ * previously opened it (persisted per app+group). The active group is always
+ * forced open so the current page is never hidden behind a collapsed header.
+ */
+const SidebarSubGroup: React.FC<{
+  app: EnabledApp
+  label: string
+  items: AppNavItem[]
+  activePath: string | null
+  containsActive: boolean
+}> = ({ app, label, items, activePath, containsActive }) => {
+  const storageKey = navGroupKey(app.appId, label)
+  const [open, setOpen] = React.useState<boolean>(
+    () => containsActive || readNavGroupOpen(storageKey),
+  )
+  // Navigating into this group (via a route change elsewhere) forces it open so
+  // the active item is visible; it does not overwrite the stored preference.
+  React.useEffect(() => {
+    if (containsActive) setOpen(true)
+  }, [containsActive])
+
+  const slug = label.toLowerCase().replace(/\s+/g, '-')
+  const buttonId = `app-nav-${app.appId}-group-${slug}`
+  const panelId = `${buttonId}-panel`
+  const toggle = () =>
+    setOpen((prev) => {
+      const next = !prev
+      writeNavGroupOpen(storageKey, next)
+      return next
+    })
+
+  return (
+    <div>
+      <button
+        id={buttonId}
+        type="button"
+        onClick={toggle}
+        aria-expanded={open}
+        aria-controls={panelId}
+        className="flex w-full items-center gap-1.5 rounded-md px-3 py-1.5 text-left text-xs font-semibold text-gray-500 hover:bg-gray-50 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:text-gray-400 dark:hover:bg-gray-700/40 dark:hover:text-gray-300"
+      >
+        <ChevronRight
+          className={`h-3.5 w-3.5 shrink-0 transition-transform motion-reduce:transition-none ${
+            open ? 'rotate-90' : ''
+          }`}
+          aria-hidden="true"
+        />
+        <span className="truncate">{label}</span>
+      </button>
+      {open && (
+        <ul id={panelId} aria-labelledby={buttonId} className="mt-0.5 flex flex-col gap-0.5">
+          {items.map((item) => (
+            <SidebarNavLink
+              key={navItemKey(item)}
+              app={app}
+              item={item}
+              active={isNavItemActive(item, activePath)}
+              indented
+            />
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
+/**
  * One labelled group of sidebar links (e.g. "Pages" or "Configurations"). The
  * uppercase heading names the list (via aria-labelledby) for screen readers.
- * The active link takes the brand accent as a left border + subtle tint — the
- * vertical analogue of the tab strip's brand underline. Renders nothing when
- * the group has no items, so empty groups leave no stray heading.
+ * When the items declare `subgroup` labels (config-heavy apps), they render as
+ * collapsible sub-groups beneath the heading; otherwise a flat list. The active
+ * link takes the brand accent as a left border + subtle tint. Renders nothing
+ * when the group has no items, so empty groups leave no stray heading.
  */
 const SidebarSection: React.FC<{
   app: EnabledApp
@@ -407,6 +560,8 @@ const SidebarSection: React.FC<{
 }> = ({ app, label, items, activePath }) => {
   if (items.length === 0) return null
   const headingId = `app-nav-${app.appId}-${label.toLowerCase().replace(/\s+/g, '-')}`
+  const subGroups = splitSubGroups(items)
+  const hasSubGroups = subGroups.some((group) => group.label !== null)
   return (
     <div className="px-2 py-2">
       <p
@@ -415,27 +570,45 @@ const SidebarSection: React.FC<{
       >
         {label}
       </p>
-      <ul aria-labelledby={headingId} className="mt-1 flex flex-col gap-0.5">
-        {items.map((item) => {
-          const active = isNavItemActive(item, activePath)
-          return (
-            <li key={navItemKey(item)}>
-              <Link
-                to={navItemHref(app, item)}
-                aria-current={active ? 'page' : undefined}
-                className={`flex items-center rounded-md border-l-2 px-3 py-1.5 text-sm font-medium ${
-                  active
-                    ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-gray-100'
-                    : 'border-transparent text-gray-500 hover:bg-gray-50 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700/40 dark:hover:text-gray-300'
-                }`}
-                style={active ? { borderLeftColor: 'var(--veltrix-app-primary)' } : undefined}
-              >
-                {item.label}
-              </Link>
-            </li>
-          )
-        })}
-      </ul>
+      {hasSubGroups ? (
+        <div aria-labelledby={headingId} className="mt-1 flex flex-col gap-0.5">
+          {subGroups.map((group) =>
+            group.label === null ? (
+              // Ungrouped items sit flush under the heading, above the accordions.
+              <ul key="__ungrouped" className="flex flex-col gap-0.5">
+                {group.items.map((item) => (
+                  <SidebarNavLink
+                    key={navItemKey(item)}
+                    app={app}
+                    item={item}
+                    active={isNavItemActive(item, activePath)}
+                  />
+                ))}
+              </ul>
+            ) : (
+              <SidebarSubGroup
+                key={group.label}
+                app={app}
+                label={group.label}
+                items={group.items}
+                activePath={activePath}
+                containsActive={group.items.some((item) => isNavItemActive(item, activePath))}
+              />
+            ),
+          )}
+        </div>
+      ) : (
+        <ul aria-labelledby={headingId} className="mt-1 flex flex-col gap-0.5">
+          {items.map((item) => (
+            <SidebarNavLink
+              key={navItemKey(item)}
+              app={app}
+              item={item}
+              active={isNavItemActive(item, activePath)}
+            />
+          ))}
+        </ul>
+      )}
     </div>
   )
 }
@@ -682,7 +855,10 @@ const TabsSubNavSidebar: React.FC<{
     return (
       <CollapsedNavRail
         app={app}
-        groups={[{ key: group.label, items: group.items }]}
+        groups={splitSubGroups(group.items).map((sub) => ({
+          key: sub.label ?? group.label,
+          items: sub.items,
+        }))}
         activePath={activePath}
         ariaLabel={`${group.label} sub-navigation`}
         topSlot={
@@ -762,7 +938,12 @@ export const AppShell: React.FC<AppShellProps> = ({ app, navItems, activePath, c
   const { pageItems, configItems, settingsItems } = splitNavGroups(navItems)
   const collapsedSidebarGroups: CollapsedNavGroup[] = [
     { key: 'page', items: pageItems },
-    { key: 'config', items: configItems },
+    // Config sub-groups become their own icon clusters so the divider that
+    // separates them stands in for the labels dropped in the collapsed rail.
+    ...splitSubGroups(configItems).map((group) => ({
+      key: group.label ? `config:${group.label}` : 'config',
+      items: group.items,
+    })),
     { key: 'settings', items: settingsItems },
   ]
   return (

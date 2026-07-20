@@ -7,7 +7,7 @@ import React from 'react'
 import { render, screen, within, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, it, expect, beforeEach } from 'vitest'
-import { AppShell, buildAppNavItems, brandTokenStyle, parseHexColor, SIDEBAR_COLLAPSED_KEY, groupNavForTabs} from '../AppShell'
+import { AppShell, buildAppNavItems, brandTokenStyle, parseHexColor, SIDEBAR_COLLAPSED_KEY, groupNavForTabs, splitSubGroups } from '../AppShell'
 import { useToast } from '../../../components/shared/Toast'
 import { useConfirmDialog } from '../../../components/shared/ConfirmationDialog'
 import type { EnabledApp } from '../../../services/appService'
@@ -46,6 +46,30 @@ function renderSidebarShell(activePath: string) {
   return render(
     <MemoryRouter>
       <AppShell app={sidebarApp} navItems={buildAppNavItems(sidebarApp)} activePath={activePath}>
+        <div>body content</div>
+      </AppShell>
+    </MemoryRouter>,
+  )
+}
+
+// A config-heavy app whose configuration types declare `group` labels, so the
+// "Configurations" section renders as collapsible sub-groups.
+const groupedApp: EnabledApp = {
+  ...app,
+  navLayout: 'sidebar',
+  branding: { primaryColor: '#00297a' },
+  configurationTypes: [
+    { id: 'policies', name: 'Policies', group: 'Access' },
+    { id: 'rules', name: 'Rules', group: 'Access' },
+    { id: 'brands', name: 'Brands', group: 'Branding' },
+    { id: 'domains', name: 'Domains', group: 'Branding' },
+  ],
+}
+
+function renderGroupedShell(activePath: string) {
+  return render(
+    <MemoryRouter>
+      <AppShell app={groupedApp} navItems={buildAppNavItems(groupedApp)} activePath={activePath}>
         <div>body content</div>
       </AppShell>
     </MemoryRouter>,
@@ -279,6 +303,91 @@ describe('AppShell sidebar collapse', () => {
     // Same DOM node — React never remounted the body — so its value is intact.
     expect(screen.getByTestId('live-input')).toBe(input)
     expect((screen.getByTestId('live-input') as HTMLInputElement).value).toBe('unsaved edit')
+  })
+})
+
+describe('splitSubGroups', () => {
+  it('clusters items by their subgroup label, preserving first-appearance order', () => {
+    const groups = splitSubGroups([
+      { path: '/config/a', label: 'A', group: 'config', subgroup: 'One' },
+      { path: '/config/b', label: 'B', group: 'config', subgroup: 'Two' },
+      { path: '/config/c', label: 'C', group: 'config', subgroup: 'One' },
+    ])
+    expect(groups.map((g) => g.label)).toEqual(['One', 'Two'])
+    expect(groups[0].items.map((i) => i.label)).toEqual(['A', 'C'])
+    expect(groups[1].items.map((i) => i.label)).toEqual(['B'])
+  })
+
+  it('puts items with no subgroup into a single leading null bucket', () => {
+    const groups = splitSubGroups([
+      { path: '/config/a', label: 'A', group: 'config' },
+      { path: '/config/b', label: 'B', group: 'config', subgroup: 'One' },
+      { path: '/config/c', label: 'C', group: 'config' },
+    ])
+    expect(groups.map((g) => g.label)).toEqual([null, 'One'])
+    expect(groups[0].items.map((i) => i.label)).toEqual(['A', 'C'])
+  })
+})
+
+describe('AppShell sidebar sub-groups', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+  })
+
+  it('renders each declared config group as a collapsible sub-section under Configurations', () => {
+    renderGroupedShell('/overview')
+    const nav = screen.getByRole('navigation', { name: 'EDR navigation' })
+    // The section heading stays; each declared group is its own disclosure button.
+    expect(within(nav).getByText('Configurations')).toBeInTheDocument()
+    expect(within(nav).getByRole('button', { name: 'Access' })).toBeInTheDocument()
+    expect(within(nav).getByRole('button', { name: 'Branding' })).toBeInTheDocument()
+  })
+
+  it('opens only the group holding the active item; others start collapsed', () => {
+    renderGroupedShell('/config/policies')
+    const access = screen.getByRole('button', { name: 'Access' })
+    const branding = screen.getByRole('button', { name: 'Branding' })
+    expect(access).toHaveAttribute('aria-expanded', 'true')
+    expect(branding).toHaveAttribute('aria-expanded', 'false')
+    // The active group's items are visible and the active one is marked...
+    expect(screen.getByRole('link', { name: 'Policies' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('link', { name: 'Rules' })).toBeInTheDocument()
+    // ...while the collapsed group's items are absent from the DOM.
+    expect(screen.queryByRole('link', { name: 'Brands' })).not.toBeInTheDocument()
+  })
+
+  it('expands a collapsed group on click and persists the preference', () => {
+    renderGroupedShell('/config/policies')
+    const branding = screen.getByRole('button', { name: 'Branding' })
+    expect(screen.queryByRole('link', { name: 'Brands' })).not.toBeInTheDocument()
+
+    fireEvent.click(branding)
+
+    expect(branding).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('link', { name: 'Brands' })).toHaveAttribute(
+      'href',
+      '/apps/edr/config/brands',
+    )
+    expect(window.localStorage.getItem('veltrix:appNavGroup:edr:Branding')).toBe('1')
+  })
+
+  it('restores a persisted-open group on mount even when it is not active', () => {
+    window.localStorage.setItem('veltrix:appNavGroup:edr:Branding', '1')
+    renderGroupedShell('/config/policies')
+    expect(screen.getByRole('button', { name: 'Branding' })).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('link', { name: 'Brands' })).toBeInTheDocument()
+  })
+
+  it('keeps every config item reachable as an icon when collapsed, regardless of group', () => {
+    window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, '1')
+    renderGroupedShell('/config/policies')
+    const rail = screen.getByRole('navigation', { name: 'EDR navigation' })
+    // Icon-only rail: no disclosure buttons, but every item across both sub-groups
+    // is present as an icon link (the collapsed rail is not gated by open state).
+    expect(within(rail).queryByRole('button', { name: 'Access' })).not.toBeInTheDocument()
+    for (const name of ['Policies', 'Rules', 'Brands', 'Domains']) {
+      expect(within(rail).getByRole('link', { name })).toBeInTheDocument()
+    }
   })
 })
 
