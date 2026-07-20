@@ -9,6 +9,7 @@ import {
   ValidationError,
   ValidationResult,
 } from '../types';
+import { isFieldVisible, fieldValueMap } from './visibility';
 
 /**
  * Validate a single field against its validation rules
@@ -84,8 +85,13 @@ export const validateField = (field: ConfigField): string | null => {
  */
 export const validateSection = (section: ConfigSection): ValidationError[] => {
   const errors: ValidationError[] = [];
+  // A field hidden by its `visibleWhen` condition is not validated — otherwise a
+  // hidden-but-required field (e.g. the JSON input while "guided" mode is active)
+  // would block the whole item.
+  const values = fieldValueMap(section.fields);
 
   for (const field of section.fields) {
+    if (!isFieldVisible(field, values)) continue;
     const error = validateField(field);
     if (error) {
       errors.push({

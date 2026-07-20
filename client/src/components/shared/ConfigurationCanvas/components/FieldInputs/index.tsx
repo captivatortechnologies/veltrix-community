@@ -70,6 +70,7 @@ export const FieldInput: React.FC<FieldInputProps> = (props) => {
     FieldInputProps & {
       inputType?: 'text' | 'password' | 'email' | 'url';
       isMulti?: boolean;
+      lockKeys?: boolean;
     }
   >;
 
@@ -81,6 +82,12 @@ export const FieldInput: React.FC<FieldInputProps> = (props) => {
   // Handle multiselect specially (registry maps it to SelectField)
   if (field.type === 'multiselect') {
     return <Component {...props} isMulti />;
+  }
+
+  // A keyvalue field may lock its keys (read-only labels, edit values only) when
+  // the template declares `lockKeys` — the keys are seeded from its defaultValue.
+  if (field.type === 'keyvalue') {
+    return <Component {...props} lockKeys={field.lockKeys} />;
   }
 
   return <Component {...props} />;

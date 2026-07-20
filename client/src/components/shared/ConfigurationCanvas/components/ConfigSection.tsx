@@ -19,6 +19,7 @@ import {
 import { ConfigSectionProps, ConfigField } from '../types';
 import { ConfigFieldRow } from './ConfigFieldRow';
 import { countSectionErrors, getFieldError } from '../utils/validationUtils';
+import { isFieldVisible, fieldValueMap } from '../utils/visibility';
 import { generateId } from '../utils/canvasUtils';
 
 // Icon mapping for section icons
@@ -99,12 +100,17 @@ export const ConfigSectionComponent: React.FC<ConfigSectionProps> = ({
   // today's look), then each named group (ConfigField.group) gets its own subheading,
   // in the order its first field appears. This is presentation only — section.fields
   // stays a single flat, ordered list.
-  const { ungroupedFields, fieldGroups } = useMemo(() => {
+  const { ungroupedFields, fieldGroups, visibleFieldIds } = useMemo(() => {
     const sorted = [...section.fields].sort((a, b) => a.order - b.order);
+    // A field's `visibleWhen` is evaluated against its siblings' LIVE values, so
+    // toggling a gate field (e.g. an input-mode select) re-renders the item and
+    // shows/hides dependent fields. Fields with no condition are always visible.
+    const values = fieldValueMap(sorted);
+    const visible = sorted.filter((field) => isFieldVisible(field, values));
     const ungrouped: ConfigField[] = [];
     const order: string[] = [];
     const byGroup = new Map<string, ConfigField[]>();
-    for (const field of sorted) {
+    for (const field of visible) {
       if (!field.group) {
         ungrouped.push(field);
         continue;
@@ -118,6 +124,7 @@ export const ConfigSectionComponent: React.FC<ConfigSectionProps> = ({
     return {
       ungroupedFields: ungrouped,
       fieldGroups: order.map((name) => ({ name, fields: byGroup.get(name)! })),
+      visibleFieldIds: visible.map((f) => f.id),
     };
   }, [section.fields]);
 
@@ -288,7 +295,7 @@ export const ConfigSectionComponent: React.FC<ConfigSectionProps> = ({
                named group under its own lightweight subheading. All fields share one
                SortableContext, so reordering still spans the whole item. */
             <SortableContext
-              items={sortedFields.map((f) => f.id)}
+              items={visibleFieldIds}
               strategy={verticalListSortingStrategy}
             >
               <div className="space-y-2">

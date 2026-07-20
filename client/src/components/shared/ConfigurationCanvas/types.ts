@@ -93,6 +93,21 @@ export interface FieldValidation {
 }
 
 /**
+ * Conditional visibility for a field: it renders only when a SIBLING field's
+ * current value matches. Used to build "pick your input mode" forms (e.g. show
+ * the JSON textarea only when an `inputMode` select is set to "json"). A field
+ * with no `visibleWhen` is always visible.
+ */
+export interface FieldVisibilityCondition {
+  /** Key of a sibling field in the same item whose value gates this field. */
+  field: string;
+  /** Visible when the sibling value equals this scalar. */
+  equals?: string | number | boolean;
+  /** Visible when the sibling value is one of these scalars. */
+  in?: Array<string | number | boolean>;
+}
+
+/**
  * A single configuration field within a section
  */
 export interface ConfigField {
@@ -118,6 +133,17 @@ export interface ConfigField {
   disabled?: boolean;
   /** Default value for the field */
   defaultValue?: unknown;
+  /**
+   * Conditional visibility — this field renders only when the referenced sibling
+   * field's value matches. Absent → always visible.
+   */
+  visibleWhen?: FieldVisibilityCondition;
+  /**
+   * For a `keyvalue` field: render its keys as read-only labels and hide the
+   * "Add attribute" action, so the author only edits VALUES of a fixed set of
+   * keys (seed the keys via `defaultValue`).
+   */
+  lockKeys?: boolean;
 }
 
 // ============================================

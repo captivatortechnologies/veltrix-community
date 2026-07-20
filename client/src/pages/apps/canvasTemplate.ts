@@ -56,6 +56,10 @@ export interface CanvasTemplateField {
   placeholder?: string
   /** Known-file catalog for a `files` field (drives the filename combobox). */
   fileCatalog?: CanvasTemplateFileCatalogEntry[]
+  /** Conditional visibility keyed on a sibling field's value (see ConfigField). */
+  visibleWhen?: { field: string; equals?: string | number | boolean; in?: Array<string | number | boolean> }
+  /** For a `keyvalue` field: lock keys to read-only labels (edit values only). */
+  lockKeys?: boolean
 }
 
 export interface CanvasTemplateSection {
@@ -237,6 +241,8 @@ function buildItem(
         options: field.options as ConfigField['options'],
         validation: field.validation as ConfigField['validation'],
         fileCatalog: field.fileCatalog as ConfigField['fileCatalog'],
+        visibleWhen: field.visibleWhen as ConfigField['visibleWhen'],
+        lockKeys: field.lockKeys,
         group: options.tagGroups ? group.name : undefined,
         order: fields.length,
       })

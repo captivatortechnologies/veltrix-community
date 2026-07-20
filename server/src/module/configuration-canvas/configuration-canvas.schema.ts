@@ -27,6 +27,17 @@ export const ConfigurationCanvasFieldSchema = z.object({
     patternMessage: z.string().optional(),
   }).optional(),
   group: z.string().optional(),
+  // Conditional visibility keyed on a sibling field's value (see the canvas
+  // ConfigField). Persisted so a saved canvas keeps its show/hide behaviour.
+  visibleWhen: z
+    .object({
+      field: z.string().min(1),
+      equals: z.union([z.string(), z.number(), z.boolean()]).optional(),
+      in: z.array(z.union([z.string(), z.number(), z.boolean()])).optional(),
+    })
+    .optional(),
+  // For a `keyvalue` field: keys are read-only labels, only values are edited.
+  lockKeys: z.boolean().optional(),
   order: z.number().int().min(0).optional().default(0),
   disabled: z.boolean().optional().default(false),
 });
