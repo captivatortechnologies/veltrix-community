@@ -111,6 +111,58 @@ export async function validateDownloadUrl(rawUrl: string): Promise<ValidatedUrl>
 }
 
 /**
+ * SSRF guard for server-initiated fetches to a REMOTE, tenant-influenced URL that
+ * is NOT a package download (e.g. OIDC issuer discovery + JWKS). Enforces HTTPS
+ * (HTTP only for localhost in dev) and rejects any URL whose hostname resolves to
+ * a private/internal/link-local IP — blocking cloud-metadata (169.254.169.254)
+ * and internal-service SSRF (CWE-918). Returns the normalized URL; throws on
+ * violation.
+ *
+ * NOTE: resolves-then-checks; it does not pin the resolved IP for the subsequent
+ * fetch, so an attacker controlling an authoritative resolver (DNS rebinding) is
+ * only partially mitigated. It closes the common "point the issuer at an internal
+ * IP / metadata endpoint" case.
+ */
+export async function assertPublicHttpUrl(rawUrl: string): Promise<string> {
+  let parsed: URL
+  try {
+    parsed = new URL(String(rawUrl).trim())
+  } catch {
+    throw new Error('Invalid URL format')
+  }
+
+  const isDev = process.env.NODE_ENV === 'development'
+  const isLocalhost = parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1'
+
+  if (parsed.protocol === 'http:') {
+    if (!(isDev && isLocalhost)) {
+      throw new Error('Only HTTPS URLs are allowed (HTTP permitted for localhost in development only).')
+    }
+  } else if (parsed.protocol !== 'https:') {
+    throw new Error(`Unsupported URL scheme "${parsed.protocol}". Only HTTPS is allowed.`)
+  }
+
+  // If the host is an IP literal, check it directly — no DNS needed. This also
+  // catches metadata IPs (169.254.169.254) and works under NODE_ENV=test.
+  if (net.isIP(parsed.hostname) !== 0) {
+    if (isPrivateIp(parsed.hostname)) {
+      throw new Error(`URL points at a private/internal IP (${parsed.hostname}); refused for security reasons.`)
+    }
+  } else if (process.env.NODE_ENV !== 'test' && !(isDev && isLocalhost)) {
+    // Resolve the hostname and reject private targets. Skipped under NODE_ENV=test,
+    // where synthetic test hostnames don't resolve and the network is mocked.
+    const resolvedIps = await resolveHostname(parsed.hostname)
+    for (const ip of resolvedIps) {
+      if (isPrivateIp(ip)) {
+        throw new Error(`URL resolves to a private/internal IP (${ip}); refused for security reasons.`)
+      }
+    }
+  }
+
+  return parsed.toString()
+}
+
+/**
  * Check if an IP address falls within a private or reserved range.
  * Exported for testing.
  */

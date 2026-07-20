@@ -3,6 +3,7 @@ import { createLocalJWKSet, jwtVerify, errors as joseErrors, type JWTPayload } f
 import prisma from '../../db';
 import { loggerService } from '../logger/logger.service';
 import { encryptFields, decryptFields } from '../../utils/encryption';
+import { assertPublicHttpUrl } from '../../core/app-engine/url-validator';
 import {
   OAuthFlowError,
   OAuthUserInfo,
@@ -96,7 +97,10 @@ async function getJwks(jwksUri: string, forceRefresh = false): Promise<ReturnTyp
     return cached.jwks;
   }
 
-  const response = await axios.get(jwksUri, { timeout: 8000 });
+  // SSRF guard (CWE-918): jwks_uri comes from tenant-configured discovery —
+  // reject internal/metadata IPs and don't follow redirects into one.
+  await assertPublicHttpUrl(jwksUri);
+  const response = await axios.get(jwksUri, { timeout: 8000, maxRedirects: 0 });
   const jwks = createLocalJWKSet(response.data);
   jwksCache.set(jwksUri, { jwks, expiresAt: Date.now() + JWKS_CACHE_TTL_MS });
   return jwks;

@@ -5,6 +5,7 @@ import { config } from '../../config';
 import { loggerService } from '../logger/logger.service';
 import prisma from '../../db';
 import { encryptFields, decryptFields } from '../../utils/encryption';
+import { assertPublicHttpUrl } from '../../core/app-engine/url-validator';
 import { consumeOAuthNonce } from './oauth-state.store';
 
 // `generateState`/`validateState` now live in oauth-state.store.ts (their
@@ -817,7 +818,10 @@ export async function probeOAuthClientCredentials(
 /** Lightweight reachability check for an OIDC discovery document. Returns the parsed document, or null on failure. */
 export async function fetchOidcDiscoveryDocument(discoveryUrl: string): Promise<Record<string, unknown> | null> {
   try {
-    const response = await axios.get(discoveryUrl, { timeout: 8000 });
+    // SSRF guard (CWE-918): the issuer is tenant-configured, so reject discovery
+    // URLs that resolve to internal/metadata IPs, and don't follow redirects into one.
+    await assertPublicHttpUrl(discoveryUrl);
+    const response = await axios.get(discoveryUrl, { timeout: 8000, maxRedirects: 0 });
     return response.data;
   } catch (error) {
     loggerService.warn(`OIDC discovery fetch failed for ${discoveryUrl}:`, error);

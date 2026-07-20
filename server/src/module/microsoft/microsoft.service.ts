@@ -360,6 +360,21 @@ export const microsoftService = {
    */
   async exchangeMicrosoftTokens(data: MicrosoftTokenExchangeRequest, customerId?: string) {
     try {
+      // SECURITY (A-HIGH / CWE-345): unlike the OIDC and Google flows, this path
+      // resolves identity from a Microsoft Graph ACCESS token (Graph /me) and does
+      // NOT verify a signed ID token. Its only proof that this login was brokered
+      // by *our* server is the one-time, server-issued nonce — so it MUST be
+      // present (exchangeTokensForJWT only checks a nonce when one is supplied).
+      // Without this, anyone holding a Graph access token for ANY Azure app could
+      // mint a Veltrix session (token substitution).
+      if (!data.nonce) {
+        throw new OAuthFlowError(
+          'nonce_required',
+          'This sign-in could not be verified. Please sign in again.',
+          400
+        );
+      }
+
       // Get user information using the access token
       const userInfo = await this.getUserInfo(data.accessToken);
 

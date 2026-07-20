@@ -72,7 +72,8 @@ describe('oidcService — config CRUD', () => {
       const created = (prisma.identityProvider.create as jest.Mock).mock.calls[0][0];
       const savedConfig = JSON.parse(created.data.config);
       expect(savedConfig.clientSecret).not.toBe('super-secret');
-      expect(savedConfig.clientSecret).toMatch(/^[0-9a-f]{32}:[0-9a-f]+$/); // `<iv_hex>:<ciphertext_hex>`
+      // AES-256-GCM (authenticated) format: v2:<salt>:<iv>:<tag>:<cipher>
+      expect(savedConfig.clientSecret).toMatch(/^v2:[0-9a-f]+:[0-9a-f]+:[0-9a-f]+:[0-9a-f]+$/);
       expect(savedConfig.issuer).toBe('https://issuer.example.com');
     });
 

@@ -1,7 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import rateLimit from '@fastify/rate-limit';
 import helmet from '@fastify/helmet';
-import compress from '@fastify/compress';
 import Redis from 'ioredis';
 import { config } from '../config';
 
@@ -22,11 +21,14 @@ export async function registerSecurityPlugins(server: FastifyInstance) {
     crossOriginEmbedderPolicy: false,
   });
 
-  // Response compression
-  await server.register(compress, {
-    global: true,
-    threshold: 1024, // Only compress responses larger than 1KB
-  });
+  // NOTE: @fastify/compress was removed here. Once these security plugins are
+  // applied globally to /api (via fastify-plugin), it emits a
+  // `content-encoding: br` header with an EMPTY body on responses >1KB — every
+  // large /api success (e.g. login's token+user+permissions) comes back 200 with
+  // a 0-byte body, which the client surfaces as "Network error". Compression is
+  // not a security control and a reverse proxy (nginx) already gzips at the edge,
+  // so it is dropped. If reintroduced, do it in its own plugin, gzip-only, and
+  // load-test large JSON responses.
 
   // Global rate limiting. Backed by the same Redis instance used for BullMQ,
   // so limits are shared/consistent across horizontally-scaled replicas

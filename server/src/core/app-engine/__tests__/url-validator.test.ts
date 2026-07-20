@@ -15,7 +15,7 @@
 // ========================================================================
 
 import * as dns from 'dns'
-import { validateDownloadUrl, isPrivateIp, MAX_DOWNLOAD_REDIRECTS } from '../url-validator'
+import { validateDownloadUrl, isPrivateIp, MAX_DOWNLOAD_REDIRECTS, assertPublicHttpUrl } from '../url-validator'
 
 // ---------------------------------------------------------------------------
 // Mock dns module
@@ -768,5 +768,35 @@ describe('MAX_DOWNLOAD_REDIRECTS', () => {
 
   it('is a number', () => {
     expect(typeof MAX_DOWNLOAD_REDIRECTS).toBe('number')
+  })
+})
+
+describe('assertPublicHttpUrl (SSRF guard for OIDC discovery/JWKS)', () => {
+  it('rejects non-HTTPS schemes for remote hosts', async () => {
+    await expect(assertPublicHttpUrl('http://example.com/x')).rejects.toThrow(/HTTPS/i)
+    await expect(assertPublicHttpUrl('ftp://example.com/x')).rejects.toThrow(/scheme/i)
+  })
+
+  it('rejects the cloud-metadata IP literal', async () => {
+    await expect(assertPublicHttpUrl('https://169.254.169.254/latest/meta-data')).rejects.toThrow(/private\/internal/i)
+  })
+
+  it('rejects private IPv4 literals', async () => {
+    await expect(assertPublicHttpUrl('https://10.0.0.5/.well-known/openid-configuration')).rejects.toThrow(/private\/internal/i)
+    await expect(assertPublicHttpUrl('https://192.168.1.1/')).rejects.toThrow(/private\/internal/i)
+    await expect(assertPublicHttpUrl('https://127.0.0.1/')).rejects.toThrow(/private\/internal/i)
+  })
+
+  it('rejects a malformed URL', async () => {
+    await expect(assertPublicHttpUrl('not-a-url')).rejects.toThrow(/Invalid URL/i)
+  })
+
+  it('accepts a public IP literal', async () => {
+    await expect(assertPublicHttpUrl('https://8.8.8.8/x')).resolves.toContain('8.8.8.8')
+  })
+
+  it('accepts a public HTTPS hostname (DNS resolution skipped under test env)', async () => {
+    await expect(assertPublicHttpUrl('https://accounts.google.com/.well-known/openid-configuration'))
+      .resolves.toContain('accounts.google.com')
   })
 })

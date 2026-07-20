@@ -70,6 +70,7 @@ import brandRoutes from './module/brand/brand.route';
 // ---- Wiring / infra ----
 import { errorHandler, handleUnhandledRejection, handleUncaughtException } from './middlewares/errorHandler';
 import { registerSecurityPlugins } from './config/security';
+import fp from 'fastify-plugin';
 import { correlationMiddleware, correlationLoggerHook } from './middlewares/correlation.middleware';
 import { createCsrfProtection } from './middlewares/csrf.middleware';
 import { timeoutMiddleware, decorateTimeout, logSlowRequests } from './middlewares/timeout.middleware';
@@ -101,6 +102,11 @@ import { initializeRealtime } from './lib/realtime-bootstrap';
 // ============================================================================
 
 const server = fastify({
+  // SECURITY: the app sits behind a reverse proxy (nginx). Without trustProxy,
+  // request.ip is always 127.0.0.1, so the rate limiter's loopback allow-list
+  // exempts EVERY request. Trusting the edge proxy resolves the real client IP
+  // for rate limiting and audit logs.
+  trustProxy: true,
   ajv: {
     customOptions: {
       allowUnionTypes: true
@@ -163,10 +169,15 @@ const csrfProtection = createCsrfProtection({
 });
 server.addHook('onRequest', csrfProtection);
 
-// Register security plugins first
-server.register(async (fastify) => {
+// Register security plugins first.
+// SECURITY (F-HIGH): register via fastify-plugin so the Helmet and rate-limit
+// hooks apply to the ROOT context — and therefore to every /api route. A plain
+// `server.register(async (fastify) => …)` wrapper creates an encapsulated child
+// context that NO sibling route inherits, so app-layer rate limiting and
+// security headers would effectively apply to nothing.
+server.register(fp(async (fastify) => {
   await registerSecurityPlugins(fastify);
-});
+}));
 
 // Register cookie support for CSRF. No public fallback literal — config.ts
 // fails fast at startup if COOKIE_SECRET is unset.
@@ -192,6 +203,9 @@ server.register(cors, {
   exposedHeaders: ['Content-Range', 'X-Content-Range', 'X-Correlation-ID', 'X-Page', 'X-Limit', 'X-Total', 'X-Total-Pages', 'X-Has-Next', 'X-Has-Prev', 'X-Cache', 'X-CSRF-Token', 'X-XSRF-TOKEN']
 });
 
+// SECURITY (F-MEDIUM): the Swagger UI + spec at /documentation disclose the
+// entire API surface to anonymous callers. Register them only outside production.
+if (process.env.NODE_ENV !== 'production') {
 // Register Swagger
 server.register(swagger, {
   swagger: {
@@ -271,6 +285,7 @@ server.register(swaggerUi, {
   transformSpecification: (swaggerObject: any, request: FastifyRequest, reply: FastifyReply) => { return swaggerObject },
   transformSpecificationClone: true
 });
+} // end: API docs registered only outside production
 
 // Health check route
 server.get('/', async (_, reply) => {

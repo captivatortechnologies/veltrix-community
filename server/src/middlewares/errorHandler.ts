@@ -113,11 +113,18 @@ export const errorHandler = (
     });
   }
 
+  // SECURITY (CWE-209): never leak internal error text on 5xx. Raw
+  // Prisma/driver/TypeError messages disclose schema and internals; return a
+  // generic message for server errors. Client (4xx) messages are intentional and
+  // safe to surface (e.g. validation details).
+  const clientMessage =
+    statusCode >= 500 ? 'An internal server error occurred' : (error.message || 'An error occurred');
+
   // Send error response
   reply.status(statusCode).send({
     success: false,
     error: appError.code || 'ERROR',
-    message: error.message || 'An error occurred',
+    message: clientMessage,
     statusCode,
     timestamp: new Date().toISOString(),
     path: request.url,
