@@ -49,12 +49,17 @@ describe('isUpgradeAvailable', () => {
   })
 })
 
+// A downloadUrl marks a catalog entry as a genuinely installable release (vs a
+// "coming soon" placeholder). Only installable entries drive the latest version.
+const DL = 'https://example.com/releases/app.zip'
+
 describe('resolveLatestRelease', () => {
-  it('uses the catalog version + notes when the catalog is newer than on-disk', () => {
+  it('uses the catalog version + notes when the (installable) catalog is newer than on-disk', () => {
     const release = resolveLatestRelease('1.0.0', {
       version: '1.16.2',
       releaseNotes: '## Notes',
       releasedAt: '2026-07-15T00:00:00.000Z',
+      downloadUrl: DL,
     })
     expect(release).toEqual({
       version: '1.16.2',
@@ -63,14 +68,14 @@ describe('resolveLatestRelease', () => {
     })
   })
 
-  it('uses the catalog notes when the catalog equals on-disk', () => {
-    const release = resolveLatestRelease('1.16.2', { version: '1.16.2', releaseNotes: 'N' })
+  it('uses the catalog notes when the (installable) catalog equals on-disk', () => {
+    const release = resolveLatestRelease('1.16.2', { version: '1.16.2', releaseNotes: 'N', downloadUrl: DL })
     expect(release.version).toBe('1.16.2')
     expect(release.releaseNotes).toBe('N')
   })
 
   it('falls back to the on-disk version (no notes) when on-disk is ahead of the catalog', () => {
-    const release = resolveLatestRelease('2.0.0', { version: '1.16.2', releaseNotes: 'N' })
+    const release = resolveLatestRelease('2.0.0', { version: '1.16.2', releaseNotes: 'N', downloadUrl: DL })
     expect(release).toEqual({ version: '2.0.0' })
   })
 
@@ -78,15 +83,23 @@ describe('resolveLatestRelease', () => {
     expect(resolveLatestRelease('1.16.2', null)).toEqual({ version: '1.16.2' })
     expect(resolveLatestRelease('1.16.2', undefined)).toEqual({ version: '1.16.2' })
   })
+
+  it('IGNORES a placeholder catalog entry with no downloadUrl (no phantom upgrade)', () => {
+    // A marketplace placeholder declares the vendor product version 4.0.0 but
+    // ships no package — it must not masquerade as an upgrade over the real
+    // on-disk app version.
+    const release = resolveLatestRelease('1.7.0', { version: '4.0.0', releaseNotes: 'vendor notes' })
+    expect(release).toEqual({ version: '1.7.0' })
+  })
 })
 
 describe('buildAppVersionInfo', () => {
-  it('flags an available upgrade for a tenant behind the latest', () => {
+  it('flags an available upgrade for a tenant behind the latest installable release', () => {
     const info = buildAppVersionInfo({
       appId: 'splunk-enterprise',
       appVersion: '1.16.2',
       installedVersion: '1.0.0',
-      catalogEntry: { version: '1.16.2', releaseNotes: 'notes here' },
+      catalogEntry: { version: '1.16.2', releaseNotes: 'notes here', downloadUrl: DL },
     })
     expect(info).toEqual({
       appId: 'splunk-enterprise',
@@ -103,7 +116,7 @@ describe('buildAppVersionInfo', () => {
       appId: 'splunk-enterprise',
       appVersion: '1.16.2',
       installedVersion: '1.16.2',
-      catalogEntry: { version: '1.16.2' },
+      catalogEntry: { version: '1.16.2', downloadUrl: DL },
     })
     expect(info.upgradeAvailable).toBe(false)
     expect(info.latestVersion).toBe('1.16.2')
@@ -118,5 +131,28 @@ describe('buildAppVersionInfo', () => {
     })
     expect(info.installedVersion).toBeNull()
     expect(info.upgradeAvailable).toBe(false)
+  })
+
+  it('does not advertise a phantom upgrade from a placeholder catalog version', () => {
+    // on-disk 1.7.0, tenant on 1.2.0, placeholder catalog says 4.0.0 (no
+    // downloadUrl). The real upgrade target is 1.7.0 — never 4.0.0.
+    const info = buildAppVersionInfo({
+      appId: 'okta-identity',
+      appVersion: '1.7.0',
+      installedVersion: '1.2.0',
+      catalogEntry: { version: '4.0.0' },
+    })
+    expect(info.latestVersion).toBe('1.7.0')
+    expect(info.upgradeAvailable).toBe(true)
+
+    // And once the tenant is on the on-disk version, the banner clears entirely.
+    const current = buildAppVersionInfo({
+      appId: 'okta-identity',
+      appVersion: '1.7.0',
+      installedVersion: '1.7.0',
+      catalogEntry: { version: '4.0.0' },
+    })
+    expect(current.latestVersion).toBe('1.7.0')
+    expect(current.upgradeAvailable).toBe(false)
   })
 })

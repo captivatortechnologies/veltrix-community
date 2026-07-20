@@ -127,9 +127,16 @@ export function isUpgradeAvailable(installed: string | null | undefined, latest:
  */
 export function resolveLatestRelease(
   appVersion: string,
-  catalogEntry?: Pick<MarketplaceEntry, 'version' | 'releaseNotes' | 'releasedAt'> | null,
+  catalogEntry?: Pick<MarketplaceEntry, 'version' | 'releaseNotes' | 'releasedAt' | 'downloadUrl'> | null,
 ): ResolvedRelease {
-  if (!catalogEntry?.version) {
+  // A catalog entry only represents a real upgrade target when it is actually
+  // installable — i.e. it carries a downloadUrl. "Coming soon" marketplace
+  // placeholders (available: false, no downloadUrl) still declare a display
+  // version — often the VENDOR's product version (e.g. Okta 4.0.0), unrelated to
+  // the Veltrix app version — and advertising that as an upgrade produces a
+  // phantom banner the tenant can never action. Ignore such entries and fall
+  // back to the registered on-disk version.
+  if (!catalogEntry?.version || !catalogEntry.downloadUrl) {
     return { version: appVersion }
   }
   const catalogIsNewerOrEqual = compareVersions(catalogEntry.version, appVersion) >= 0
@@ -151,7 +158,7 @@ export function buildAppVersionInfo(input: {
   appId: string
   appVersion: string
   installedVersion: string | null
-  catalogEntry?: Pick<MarketplaceEntry, 'version' | 'releaseNotes' | 'releasedAt'> | null
+  catalogEntry?: Pick<MarketplaceEntry, 'version' | 'releaseNotes' | 'releasedAt' | 'downloadUrl'> | null
 }): AppVersionInfo {
   const latest = resolveLatestRelease(input.appVersion, input.catalogEntry)
   return {

@@ -4,7 +4,6 @@ import {
   Search,
   XCircle,
   Clock,
-  CheckCircle,
   Rocket,
   Pause,
   CheckCheck,
@@ -27,8 +26,10 @@ interface StageDefinition {
 const PIPELINE_STAGES: StageDefinition[] = [
   { key: 'DRAFT', label: 'Draft', icon: FileEdit },
   { key: 'VALIDATION_PENDING', label: 'Validate', icon: Search },
+  // One "Approve" stage represents the whole approval gate: in-progress while
+  // PENDING_APPROVAL, and complete (green) once APPROVED — separate "Approve"
+  // and "Approved" steps read as duplicated.
   { key: 'PENDING_APPROVAL', label: 'Approve', icon: Clock },
-  { key: 'APPROVED', label: 'Approved', icon: CheckCircle },
   { key: 'DEPLOYING', label: 'Deploy', icon: Rocket },
   { key: 'DEPLOYED', label: 'Live', icon: CheckCheck },
 ]
@@ -41,14 +42,16 @@ const STATUS_STAGE_MAP: Record<ConfigCanvasStatus, number> = {
   PENDING_APPROVAL: 2,
   // A reviewer sent it back — the pipeline is blocked at the approval stage.
   CHANGES_REQUESTED: 2,
-  APPROVED: 3,
-  DEPLOYMENT_QUEUED: 4,
-  DEPLOYING: 4,
-  DEPLOYMENT_PAUSED: 4,
-  DEPLOYED: 5,
-  DEPLOYMENT_FAILED: 4,
-  ROLLED_BACK: 4,
-  ARCHIVED: 5,
+  // Approved: the Approve stage is complete (rendered green via
+  // `approveStageComplete`); the pipeline waits at the deploy gate.
+  APPROVED: 2,
+  DEPLOYMENT_QUEUED: 3,
+  DEPLOYING: 3,
+  DEPLOYMENT_PAUSED: 3,
+  DEPLOYED: 4,
+  DEPLOYMENT_FAILED: 3,
+  ROLLED_BACK: 3,
+  ARCHIVED: 4,
 }
 
 const ERROR_STATUSES: ConfigCanvasStatus[] = [
@@ -66,12 +69,16 @@ const PipelineTimeline: React.FC<PipelineTimelineProps> = ({
   const currentStageIndex = STATUS_STAGE_MAP[currentStatus]
   const isError = ERROR_STATUSES.includes(currentStatus)
   const isActive = ACTIVE_STATUSES.includes(currentStatus)
+  // APPROVED completes the Approve stage (green ✓) without advancing into Deploy,
+  // so no stage shows as in-progress until a deployment actually starts.
+  const approveStageComplete = currentStatus === 'APPROVED'
 
   return (
     <div className="flex items-center w-full">
       {PIPELINE_STAGES.map((stage, index) => {
-        const isCompleted = index < currentStageIndex
-        const isCurrent = index === currentStageIndex
+        const isCompleted =
+          index < currentStageIndex || (approveStageComplete && index === currentStageIndex)
+        const isCurrent = index === currentStageIndex && !approveStageComplete
         const isErrorStage = isCurrent && isError
         const isActiveStage = isCurrent && isActive
 

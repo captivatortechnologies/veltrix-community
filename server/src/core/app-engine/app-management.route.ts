@@ -254,6 +254,10 @@ export async function appManagementRoutes(fastify: FastifyInstance) {
                   properties: {
                     id: { type: 'string' },
                     name: { type: 'string' },
+                    // Optional sidebar sub-group label — must be listed or
+                    // Fastify's response serialization strips it (same pitfall
+                    // as `pages` above), and the client would render a flat list.
+                    group: { type: 'string' },
                   },
                 },
               },

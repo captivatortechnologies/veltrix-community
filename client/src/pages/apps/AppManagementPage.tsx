@@ -335,6 +335,10 @@ const AppManagementPage: React.FC = () => {
   const [tools, setTools] = useState<Tool[]>([])
   const [toolsLoading, setToolsLoading] = useState(true)
   const [toolsError, setToolsError] = useState<string | null>(null)
+  // Surfaces enable/disable/install/uninstall FAILURES (e.g. a permission 403).
+  // These were previously only console.error'd, so a blocked "Enable" click
+  // looked like nothing happened at all.
+  const [actionError, setActionError] = useState<string | null>(null)
 
   // Marketplace catalog state
   const [catalogEntries, setCatalogEntries] = useState<MarketplaceEntry[]>([])
@@ -445,6 +449,8 @@ const AppManagementPage: React.FC = () => {
 
   const handleToggle = async (app: AppListItem) => {
     setTogglingApp(app.appId)
+    setActionError(null)
+    const action = app.enabled ? 'disable' : 'enable'
     try {
       if (app.enabled) {
         await appService.disableApp(app.appId)
@@ -454,7 +460,10 @@ const AppManagementPage: React.FC = () => {
       await fetchApps()
       await refreshApps()
     } catch (err) {
-      console.error('Failed to toggle app:', err)
+      console.error(`Failed to ${action} app:`, err)
+      // Surface the server's reason (permission 403, or any failure) instead of
+      // silently swallowing it — the click otherwise appears to do nothing.
+      setActionError(err instanceof Error ? err.message : `Failed to ${action} "${app.name}".`)
     } finally {
       setTogglingApp(null)
     }
@@ -471,12 +480,14 @@ const AppManagementPage: React.FC = () => {
     if (!confirmed) return
 
     setUninstallingApp(app.appId)
+    setActionError(null)
     try {
       await appService.uninstallApp(app.appId)
       await fetchApps()
       await refreshApps()
     } catch (err) {
       console.error('Failed to uninstall app:', err)
+      setActionError(err instanceof Error ? err.message : `Failed to uninstall "${app.name}".`)
     } finally {
       setUninstallingApp(null)
     }
@@ -486,6 +497,7 @@ const AppManagementPage: React.FC = () => {
 
   const handleInstallMarketplace = async (entry: MarketplaceEntry) => {
     setInstallingMarketplace(entry.appId)
+    setActionError(null)
     try {
       await appService.installApp(entry.appId)
       await fetchApps()
@@ -493,6 +505,7 @@ const AppManagementPage: React.FC = () => {
       await refreshApps()
     } catch (err) {
       console.error('Failed to install marketplace app:', err)
+      setActionError(err instanceof Error ? err.message : `Failed to install "${entry.name}".`)
     } finally {
       setInstallingMarketplace(null)
     }
@@ -626,7 +639,7 @@ const AppManagementPage: React.FC = () => {
   const marketplaceAvailableCount = catalogEntries.filter(
     (e) => e.available && !installedAppIds.has(e.appId),
   ).length
-  const error = appsError || toolsError
+  const error = actionError || appsError || toolsError
   const pluralize = (count: number) => (count !== 1 ? 's' : '')
 
   // ---- Render ----

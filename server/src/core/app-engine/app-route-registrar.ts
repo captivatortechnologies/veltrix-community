@@ -12,6 +12,7 @@ import prisma from '../../db'
 import { verifyToken, hasPermission } from '../../middlewares/authMiddleware'
 import { loggerService } from '../../module/logger/logger.service'
 import { createAppEventPublisher } from '../app-events/app-event-publisher'
+import { decryptCredentialSecrets } from '../../module/credential/credential.service'
 import type { AppManifest } from '../../../../shared/types/app'
 
 /**
@@ -194,6 +195,28 @@ export async function registerAppRoutes(
             events: createAppEventPublisher(manifest.id),
             hasPermission: (resource: string, action: string) =>
               hasAppPermission(permissionAppId, resource, action),
+            // First-class credential seam (replaces apps re-implementing the
+            // platform's AES-GCM decrypt + raw Credential reads). Resolves a
+            // tenant Connection (a Credential row) by id to its DECRYPTED secret
+            // + endpoint, scoped to the tenant. The secret stays server-side;
+            // apps must never return it to the client.
+            resolveConnection: async (customerId: string, credentialId: string) => {
+              if (!customerId || !credentialId) return null
+              const raw = await prisma.credential.findFirst({
+                where: { id: credentialId, customerId },
+              })
+              if (!raw) return null
+              const dec = decryptCredentialSecrets(raw)
+              return {
+                id: dec.id,
+                name: dec.name,
+                endpoint: raw.endpoint ?? null,
+                username: dec.username ?? '',
+                password: dec.password ?? '',
+                apiToken: dec.apiToken ?? null,
+                certificate: (dec as { certificate?: string | null }).certificate ?? null,
+              }
+            },
           })
         },
         { prefix },
