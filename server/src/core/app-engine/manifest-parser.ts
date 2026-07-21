@@ -118,6 +118,7 @@ function validateManifest(data: Record<string, any>, filePath: string): AppManif
           healthCheck: ct.handlers.healthCheck,
           driftDetect: ct.handlers.driftDetect || null,
           getStatus: ct.handlers.getStatus,
+          options: ct.handlers.options || null,
         },
         targets: {
           componentTypes: ct.targets?.componentTypes || [],

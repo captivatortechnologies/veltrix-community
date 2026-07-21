@@ -6,7 +6,7 @@ export const ConfigurationCanvasFieldSchema = z.object({
   id: z.string().uuid().optional(),
   key: z.string().min(1, 'Key is required'),
   label: z.string().min(1, 'Label is required'),
-  fieldType: z.enum(['text', 'number', 'select', 'multiselect', 'checkbox', 'textarea', 'tags', 'password', 'path']),
+  fieldType: z.enum(['text', 'number', 'select', 'multiselect', 'checkbox', 'textarea', 'tags', 'password', 'path', 'files', 'keyvalue', 'remote-multiselect']),
   value: z.unknown().optional(),
   defaultValue: z.unknown().optional(),
   required: z.boolean().optional().default(false),
@@ -38,6 +38,10 @@ export const ConfigurationCanvasFieldSchema = z.object({
     .optional(),
   // For a `keyvalue` field: keys are read-only labels, only values are edited.
   lockKeys: z.boolean().optional(),
+  // For a `remote-multiselect` field: the options source key passed to the app's
+  // options provider (?source=), and whether multiple values may be selected.
+  optionsSource: z.string().optional(),
+  optionsMulti: z.boolean().optional(),
   order: z.number().int().min(0).optional().default(0),
   disabled: z.boolean().optional().default(false),
 });

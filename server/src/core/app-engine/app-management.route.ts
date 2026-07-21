@@ -25,6 +25,7 @@ import { buildAppVersionInfo, compareVersions } from './app-version'
 import { recordAuditEvent } from '../../lib/audit-event'
 import { resolvePermissionSnapshotForUser, snapshotGrants } from '../../lib/permissions'
 import { decryptCredentialSecrets } from '../../module/credential/credential.service'
+import { resolveConnectionForConfigType } from '../pipeline-engine/connection-resolver'
 import type { AppPageDeclaration } from '../../../../shared/types/app'
 
 const errorSchema = {
@@ -923,6 +924,70 @@ export async function appManagementRoutes(fastify: FastifyInstance) {
         return reply.send({
           ok: false,
           message: err instanceof Error ? err.message : 'Connection test failed.',
+        })
+      }
+    },
+  })
+
+  // ------------------------------------------------------------------
+  // GET /:appId/config-options — live options for `remote-multiselect` config
+  // fields. Resolves the same connection deploy uses (decrypted credential +
+  // component) for the config type and runs the app's `options` provider, so a
+  // field can list the target system's live objects (e.g. Okta groups) by
+  // name→id. Read-only; returns { options: [{ value, label, description? }] }.
+  // ------------------------------------------------------------------
+  fastify.get('/:appId/config-options', {
+    preHandler: [verifyToken, hasPermission('apps', 'read')],
+    handler: async (
+      request: FastifyRequest<{
+        Params: { appId: string }
+        Querystring: { configTypeId?: string; source?: string; environmentId?: string; q?: string }
+      }>,
+      reply: FastifyReply,
+    ) => {
+      const { appId } = request.params
+      const { configTypeId, source, q } = request.query
+      const customerId = request.user?.customerId
+      if (!customerId) {
+        return reply.status(401).send({ error: 'Authentication required' })
+      }
+      if (!configTypeId || !source) {
+        return reply.status(400).send({ error: 'configTypeId and source are required' })
+      }
+
+      const registry = getAppRegistry()
+      if (!registry.getLoadedApp(appId)) {
+        return reply.status(404).send({ error: `App "${appId}" is not installed` })
+      }
+
+      const optionsHandler = registry.getPipelineHandlers(appId, configTypeId)?.options
+      if (!optionsHandler) {
+        // No provider for this config type — an empty set, not an error.
+        return reply.send({ options: [] })
+      }
+
+      const { component, credential } = await resolveConnectionForConfigType(customerId, appId, configTypeId)
+      const installation = await prisma.appInstallation.findFirst({
+        where: { app: { appId }, customerId, enabled: true },
+      })
+      const settings = (installation?.settings as Record<string, unknown>) ?? {}
+
+      try {
+        const options = await optionsHandler({
+          appId,
+          customerId,
+          configTypeId,
+          source,
+          query: q,
+          component,
+          credential,
+          settings,
+        })
+        return reply.send({ options: Array.isArray(options) ? options : [] })
+      } catch (err) {
+        loggerService.warn(`[config-options] ${appId}/${configTypeId}/${source} failed:`, err)
+        return reply.status(502).send({
+          error: err instanceof Error ? err.message : 'Failed to load options',
         })
       }
     },

@@ -23,7 +23,8 @@ export type FieldType =
   | 'password'
   | 'path'
   | 'files'
-  | 'keyvalue';
+  | 'keyvalue'
+  | 'remote-multiselect';
 
 /**
  * Option for select/multiselect fields
@@ -144,6 +145,15 @@ export interface ConfigField {
    * keys (seed the keys via `defaultValue`).
    */
   lockKeys?: boolean;
+  /**
+   * For a `remote-multiselect` field: the options source key handed to the app's
+   * options provider (?source=). The field lists live options from the connected
+   * target (label shown, value/id stored). Generic — the app decides what the
+   * source means.
+   */
+  optionsSource?: string;
+  /** For a `remote-multiselect` field: allow multiple selections (default true). */
+  optionsMulti?: boolean;
 }
 
 // ============================================

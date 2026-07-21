@@ -520,7 +520,9 @@ export const ConfigurationCanvas: React.FC<ConfigurationCanvasProps> = ({
   );
 
   return (
-    <ConfigCanvasContext.Provider value={{ toolType, entityType }}>
+    <ConfigCanvasContext.Provider
+      value={{ toolType, entityType, appId: toolType, environmentId: selectedTagIds[0] }}
+    >
     <DndContext
       collisionDetection={customCollisionDetection}
       onDragStart={handleDragStart}

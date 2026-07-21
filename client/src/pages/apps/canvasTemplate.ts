@@ -60,6 +60,9 @@ export interface CanvasTemplateField {
   visibleWhen?: { field: string; equals?: string | number | boolean; in?: Array<string | number | boolean> }
   /** For a `keyvalue` field: lock keys to read-only labels (edit values only). */
   lockKeys?: boolean
+  /** For a `remote-multiselect` field: options source key + multi flag. */
+  optionsSource?: string
+  optionsMulti?: boolean
 }
 
 export interface CanvasTemplateSection {
@@ -243,6 +246,8 @@ function buildItem(
         fileCatalog: field.fileCatalog as ConfigField['fileCatalog'],
         visibleWhen: field.visibleWhen as ConfigField['visibleWhen'],
         lockKeys: field.lockKeys,
+        optionsSource: field.optionsSource,
+        optionsMulti: field.optionsMulti,
         group: options.tagGroups ? group.name : undefined,
         order: fields.length,
       })

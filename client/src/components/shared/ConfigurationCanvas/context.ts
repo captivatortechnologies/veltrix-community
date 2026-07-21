@@ -9,6 +9,10 @@ import { createContext, useContext } from 'react';
 export interface ConfigCanvasContextValue {
   toolType?: string;
   entityType?: string;
+  /** The app id (== toolType) — used by remote-option fields to call the app. */
+  appId?: string;
+  /** The selected environment (tag) id — passed to the options endpoint. */
+  environmentId?: string;
 }
 
 export const ConfigCanvasContext = createContext<ConfigCanvasContextValue>({});

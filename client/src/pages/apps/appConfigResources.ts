@@ -46,6 +46,40 @@ async function asJson<T>(res: Response, action: string): Promise<T> {
 }
 
 // ---------------------------------------------------------------------------
+// Live field options — powers `remote-multiselect` fields. Generic: the app's
+// options provider decides what `source` means; this just relays it.
+// ---------------------------------------------------------------------------
+
+export interface ConfigOptionItem {
+  value: string
+  label: string
+  description?: string
+}
+
+/**
+ * Fetch live options for a `remote-multiselect` field. The platform resolves the
+ * connection and runs the app's options provider server-side, so nothing
+ * app-specific lives here. GET /apps/:appId/config-options.
+ */
+export async function fetchConfigOptions(params: {
+  appId: string
+  configTypeId: string
+  source: string
+  environmentId?: string
+  query?: string
+}): Promise<ConfigOptionItem[]> {
+  const qs = new URLSearchParams({ configTypeId: params.configTypeId, source: params.source })
+  if (params.environmentId) qs.set('environmentId', params.environmentId)
+  if (params.query) qs.set('q', params.query)
+  const res = await fetch(
+    `${API_URL}/apps/${encodeURIComponent(params.appId)}/config-options?${qs.toString()}`,
+    { method: 'GET', headers: authHeaders(), credentials: 'include' },
+  )
+  const body = await asJson<{ options?: ConfigOptionItem[] }>(res, 'load options')
+  return Array.isArray(body.options) ? body.options : []
+}
+
+// ---------------------------------------------------------------------------
 // Pipeline — validate / deploy / deployment status
 // ---------------------------------------------------------------------------
 

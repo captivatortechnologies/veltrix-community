@@ -51,6 +51,7 @@ import { useConfirmDialog } from '../../components/shared/ConfirmationDialog'
 import { AppShell, buildAppNavItems } from './AppShell'
 import { FilterBar, SortSelect, Pagination } from '@/components/shared'
 import { ReviewsDrawer } from './reviews/ReviewsDrawer'
+import { ConfigDetailsModal } from './ConfigDetailsModal'
 import {
   validateCanvas,
   deployCanvas,
@@ -204,6 +205,8 @@ const AppPipelinePage: React.FC = () => {
 
   // Reviews drawer (GitHub-PR-style review surface) + per-config approval summaries.
   const [reviewsConfig, setReviewsConfig] = useState<ConfigurationCanvasListItem | null>(null)
+  // Read-only details modal (opened by clicking a config's name).
+  const [detailsConfig, setDetailsConfig] = useState<ConfigurationCanvasListItem | null>(null)
   const [approvalSummaries, setApprovalSummaries] = useState<
     Record<string, { approved: number; total: number }>
   >({})
@@ -747,9 +750,13 @@ const AppPipelinePage: React.FC = () => {
                                 <FileText className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
                               </div>
                               <div>
-                                <div className="font-medium text-gray-900 dark:text-white">
+                                <button
+                                  type="button"
+                                  onClick={() => setDetailsConfig(config)}
+                                  className="text-left font-medium text-gray-900 hover:text-indigo-600 hover:underline dark:text-white dark:hover:text-indigo-400"
+                                >
                                   {config.name}
-                                </div>
+                                </button>
                                 {config.description && (
                                   <div className="text-sm text-gray-500 dark:text-gray-400">
                                     {config.description}
@@ -926,6 +933,20 @@ const AppPipelinePage: React.FC = () => {
           onChanged={() => void fetchConfigurations()}
         />
       )}
+
+      {/* Read-only details modal with the same row actions in its footer. */}
+      <ConfigDetailsModal
+        config={detailsConfig}
+        onClose={() => setDetailsConfig(null)}
+        onValidate={handleValidate}
+        onEdit={handleEdit}
+        onDuplicate={handleDuplicate}
+        onDeploy={handleDeploy}
+        onDelete={handleDelete}
+        onReviews={setReviewsConfig}
+        onSubmitApproval={setApprovalConfig}
+        deployBlockedReason={deployBlockedReason}
+      />
     </AppShell>
   )
 }

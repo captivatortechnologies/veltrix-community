@@ -23,6 +23,7 @@ import type { ValidationResult, DeploymentStrategy } from '../../../../shared/ty
 import { createPlatformDataApi } from './platform-data-api'
 import { toCanvasItems } from './canvasSnapshot'
 import { resolvePermissionSnapshotForUser } from '../../lib/permissions'
+import { resolveConnectionForConfigType } from './connection-resolver'
 
 export class PipelineService {
   constructor(
@@ -64,6 +65,17 @@ export class PipelineService {
     const snapshot = this.buildCanvasSnapshot(canvas)
     const environment = await this.resolveEnvironment(canvas)
     const ctx = await this.buildPipelineContext(canvas, snapshot, environment, user)
+
+    // Best-effort: give validate the same connection deploy will use, so a
+    // validator can do LIVE checks (e.g. verify referenced ids exist in the
+    // target system). If nothing is registered, validate runs static-only.
+    try {
+      const conn = await resolveConnectionForConfigType(canvas.customerId, canvas.toolType, canvas.entityType)
+      ctx.component = conn.component
+      ctx.credential = conn.credential
+    } catch {
+      // best-effort — validate stays static-only if resolution fails
+    }
 
     try {
       const result = await handlers.validate(ctx)

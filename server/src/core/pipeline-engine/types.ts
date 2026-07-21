@@ -64,6 +64,16 @@ export interface PipelineContext {
    * DB directly (which they must never do — see PlatformDataApi).
    */
   permissions: PermissionSnapshot
+  /**
+   * Resolved deploy target + decrypted credential for this config type's
+   * environment, when a connection exists. Required on deploy/rollback/etc.
+   * (which narrow them below); also provided best-effort to `validate` so a
+   * validator can do LIVE checks against the target (e.g. verify a referenced
+   * id exists). Optional/null on the base context — validate must still work
+   * with no connection, and handlers must null-check.
+   */
+  component?: ComponentRef | null
+  credential?: CredentialRef | null
 }
 
 export interface DeployContext extends PipelineContext {
@@ -189,6 +199,8 @@ export interface DeploymentSummary {
   startedAt: string
   completedAt: string | null
   environment: EnvironmentRef
+  /** The app-owned rollback/identity payload this deploy stored. */
+  rollbackData?: unknown
 }
 
 /**
@@ -246,6 +258,28 @@ export type HealthCheckHandler = (ctx: HealthCheckContext) => Promise<HealthChec
 export type DriftDetectHandler = (ctx: DriftContext) => Promise<DriftResult>
 export type GetStatusHandler = (ctx: PipelineContext) => Promise<ConfigStatus>
 
+/** One selectable option returned by an app's options provider. */
+export interface OptionItem {
+  value: string
+  label: string
+  description?: string
+}
+
+/** Context passed to an app's options provider (powers remote-multiselect fields). */
+export interface OptionsProviderContext {
+  appId: string
+  customerId: string
+  configTypeId: string
+  source: string
+  query?: string
+  component: ComponentRef | null
+  credential: CredentialRef | null
+  settings: Record<string, unknown>
+  identity?: IdentityBroker
+}
+
+export type OptionsHandler = (ctx: OptionsProviderContext) => Promise<OptionItem[]>
+
 export interface PipelineHandlers {
   validate: ValidateHandler
   deploy: DeployHandler
@@ -253,6 +287,7 @@ export interface PipelineHandlers {
   healthCheck: HealthCheckHandler
   driftDetect?: DriftDetectHandler
   getStatus: GetStatusHandler
+  options?: OptionsHandler
 }
 
 // --- Pipeline Job Types (for BullMQ) ---

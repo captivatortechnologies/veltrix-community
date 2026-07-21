@@ -391,6 +391,12 @@ export class AppRegistry {
           driftDetectFn = driftMod.default || driftMod
         }
 
+        let optionsFn = undefined
+        if (ct.handlers.options) {
+          const optionsMod = require(resolve(ct.handlers.options))
+          optionsFn = optionsMod.default || optionsMod
+        }
+
         handlers.set(ct.id, {
           validate: validateMod.default || validateMod,
           deploy: deployMod.default || deployMod,
@@ -398,6 +404,7 @@ export class AppRegistry {
           healthCheck: healthCheckMod.default || healthCheckMod,
           driftDetect: driftDetectFn,
           getStatus: getStatusMod.default || getStatusMod,
+          options: optionsFn,
         })
       } catch (err) {
         console.error(`Failed to load pipeline handlers for ${manifest.id}/${ct.id}:`, err)

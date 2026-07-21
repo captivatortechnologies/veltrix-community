@@ -38,6 +38,9 @@ export function createPlatformDataApi(db: PrismaClient, customerId: string): Pla
         startedAt: deployment.startedAt.toISOString(),
         completedAt: deployment.completedAt?.toISOString() ?? null,
         environment: { id: deployment.environment.id, name: deployment.environment.name },
+        // The app's own rollback/identity payload from that deploy, so a handler
+        // can read the external ids it assigned per item and match by id next time.
+        rollbackData: deployment.rollbackData ?? undefined,
       }
     },
 
