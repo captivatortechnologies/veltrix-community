@@ -48,7 +48,10 @@ export const ConfigurationCanvasFieldSchema = z.object({
 
 // Section schema
 export const ConfigurationCanvasSectionSchema = z.object({
-  id: z.string().uuid().optional(),
+  // The stable per-item id, preserved across edits so deploy handlers can match
+  // the same target on rename. Any non-empty string (client-generated UUID or a
+  // legacy/fallback id) — not strictly a UUID.
+  id: z.string().min(1).optional(),
   name: z.string().min(1, 'Section name is required'),
   icon: z.string().optional(),
   description: z.string().optional(),

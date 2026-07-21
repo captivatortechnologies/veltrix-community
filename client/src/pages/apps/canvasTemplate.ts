@@ -135,6 +135,24 @@ function makeId(prefix: string): string {
 }
 
 /**
+ * Stable, collision-free id for a NEW canvas item (group/policy/…). It becomes
+ * the ConfigurationCanvasSection id and is PRESERVED across edits (round-tripped
+ * on save), so deploy handlers can key an external-id map by it and update the
+ * SAME target on rename instead of creating a duplicate. A UUID (not the
+ * counter-based makeId) so it never collides across the global section table.
+ */
+function newItemId(): string {
+  try {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID()
+    }
+  } catch {
+    // fall through
+  }
+  return makeId('item')
+}
+
+/**
  * Normalize a template to a single item spec.
  *
  * `item:` is used as-is. A legacy `sections:` template means "one section is one
@@ -259,7 +277,7 @@ function buildItem(
     : undefined
 
   return {
-    id: makeId('item'),
+    id: newItemId(),
     name:
       options.displayName ??
       (typeof identityValue === 'string' && identityValue ? identityValue : options.fallbackName),

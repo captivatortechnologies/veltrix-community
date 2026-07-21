@@ -239,6 +239,10 @@ const ENDPOINT = `${API_URL}/configuration-canvas`;
 
 // Convert client ConfigSection to API format
 const toApiSection = (section: ConfigSection): ConfigurationCanvasSection => ({
+  // Round-trip the section id so the server preserves it across edits — this is
+  // the stable per-item identity deploy handlers key their external-id map on
+  // (rename-safe: an edit keeps the same id → updates the same target in Okta).
+  id: section.id,
   name: section.name,
   icon: section.icon,
   description: section.description,

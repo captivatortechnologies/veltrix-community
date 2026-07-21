@@ -37,7 +37,9 @@ const canvasFieldSchema = {
 const canvasSectionSchema = {
   type: 'object',
   properties: {
-    id: { type: 'string', format: 'uuid' },
+    // Stable per-item id preserved across edits (rename-safe deploy identity);
+    // any non-empty string, not strictly a UUID.
+    id: { type: 'string' },
     name: { type: 'string' },
     icon: { type: 'string' },
     description: { type: 'string' },

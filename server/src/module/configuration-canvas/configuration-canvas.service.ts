@@ -229,6 +229,8 @@ export const configurationCanvasService = {
         for (const section of data.sections) {
           const newSection = await tx.configurationCanvasSection.create({
             data: {
+              // Preserve the client-supplied stable item id (rename-safe identity).
+              id: section.id,
               canvasId: newCanvas.id,
               name: section.name,
               icon: section.icon,
@@ -423,6 +425,9 @@ export const configurationCanvasService = {
         for (const section of data.sections) {
           const newSection = await tx.configurationCanvasSection.create({
             data: {
+              // Preserve the stable item id across the delete+recreate so a rename
+              // updates the SAME external object instead of creating a duplicate.
+              id: section.id,
               canvasId: id,
               name: section.name,
               icon: section.icon,

@@ -403,4 +403,27 @@ describe('configurationCanvasService.update — re-approval on edit', () => {
     expect(updateArg.data.status).toBeUndefined();
     expect(db.configurationCanvasApproval.deleteMany).not.toHaveBeenCalled();
   });
+
+  it('preserves the section id across the delete+recreate so a rename hits the same target', async () => {
+    // A stable item id is what lets deploy handlers key rename-safe external-id
+    // maps on the section — regenerating it on every edit created duplicates.
+    const STABLE_ID = 'item-stable-123';
+    db.configurationCanvas.findFirst.mockResolvedValue({
+      id: CANVAS, version: 1, status: 'DRAFT', name: 'n', description: 'd', sections: [], tags: [],
+    });
+    db.configurationCanvasSection.create.mockResolvedValue({ id: STABLE_ID });
+
+    const RENAME_EDIT = {
+      sections: [{ id: STABLE_ID, name: 'Renamed Group', order: 0, fields: [] }],
+    } as never;
+
+    await configurationCanvasService.update(CANVAS, RENAME_EDIT, CUSTOMER, 'user-1');
+
+    expect(db.configurationCanvasSection.deleteMany).toHaveBeenCalledWith({ where: { canvasId: CANVAS } });
+    expect(db.configurationCanvasSection.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ id: STABLE_ID, name: 'Renamed Group' }),
+      }),
+    );
+  });
 });
