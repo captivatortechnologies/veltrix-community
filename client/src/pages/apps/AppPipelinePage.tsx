@@ -828,21 +828,6 @@ const AppPipelinePage: React.FC = () => {
                                 <Edit2 className="h-4 w-4" />
                               </button>
                               <button
-                                onClick={() => void handleDuplicate(config)}
-                                disabled={rowBusy}
-                                title="Duplicate"
-                                className="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-green-600 disabled:opacity-50 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-green-400"
-                              >
-                                <Copy className="h-4 w-4" />
-                              </button>
-                              <button
-                                onClick={() => setReviewsConfig(config)}
-                                title="Reviews & comments"
-                                className="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-indigo-600 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-indigo-400"
-                              >
-                                <GitPullRequest className="h-4 w-4" />
-                              </button>
-                              <button
                                 onClick={() => handleLinkTicket(config)}
                                 title="Change / issue tickets"
                                 className="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-indigo-600 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-indigo-400"
@@ -859,6 +844,13 @@ const AppPipelinePage: React.FC = () => {
                                 </button>
                               )}
                               <button
+                                onClick={() => setReviewsConfig(config)}
+                                title="Reviews & comments"
+                                className="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-indigo-600 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-indigo-400"
+                              >
+                                <GitPullRequest className="h-4 w-4" />
+                              </button>
+                              <button
                                 onClick={() => void handleDeploy(config)}
                                 disabled={!!blockedReason || rowBusy}
                                 title={
@@ -874,6 +866,14 @@ const AppPipelinePage: React.FC = () => {
                                 ) : (
                                   <Rocket className="h-4 w-4" />
                                 )}
+                              </button>
+                              <button
+                                onClick={() => void handleDuplicate(config)}
+                                disabled={rowBusy}
+                                title="Duplicate"
+                                className="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-green-600 disabled:opacity-50 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-green-400"
+                              >
+                                <Copy className="h-4 w-4" />
                               </button>
                               <button
                                 onClick={() => void handleDelete(config)}
