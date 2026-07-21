@@ -25,6 +25,8 @@ import type { Prisma } from '@prisma/client'
 import { createPlatformDataApi } from './platform-data-api'
 import { toCanvasItems } from './canvasSnapshot'
 import { decryptCredentialSecrets } from '../../module/credential/credential.service'
+import { configurationHistoryService } from '../../module/configuration-history/configuration-history.service'
+import { ConfigActionType } from '@prisma/client'
 import { resolvePermissionSnapshotForUser } from '../../lib/permissions'
 
 export class DeploymentOrchestrator {
@@ -88,6 +90,9 @@ export class DeploymentOrchestrator {
       const message = err instanceof Error ? err.message : 'Unknown deployment error'
       await this.failDeployment(data.deploymentId, message)
       await this.updateCanvas(data.canvasId, 'DEPLOYMENT_FAILED')
+      // Central configuration history so the Version History panel shows the
+      // deploy failure alongside the other lifecycle actions. Best-effort.
+      await this.recordDeployHistory(data, 'failed', `Deployment failed: ${message}`)
 
       // Auto-rollback if policy says so
       await this.checkAutoRollback(data)
@@ -663,10 +668,44 @@ export class DeploymentOrchestrator {
     })
     await this.updateCanvas(data.canvasId, 'DEPLOYED')
     await this.addLog(data.deploymentId, 'info', 'Deployment completed successfully')
+    // Central configuration history so the Version History panel shows "Deployed"
+    // (the pipeline's per-canvas history is separate). Best-effort.
+    await this.recordDeployHistory(data, 'deployed', 'Deployment completed successfully')
   }
 
   private async failDeployment(id: string, message: string) {
     await this.updateDeployment(id, { status: 'FAILED', completedAt: new Date() })
     await this.addLog(id, 'error', `Deployment failed: ${message}`)
+  }
+
+  /**
+   * Write a central configuration-history entry for a deploy outcome so it shows
+   * in the Version History / Reviews panel alongside validate/approve/edit. The
+   * deploy path otherwise only writes the pipeline's per-canvas history table.
+   * Best-effort — history logging must never fail a deploy.
+   */
+  private async recordDeployHistory(
+    data: DeployJobData,
+    deployState: 'deployed' | 'failed',
+    message: string,
+  ): Promise<void> {
+    try {
+      const canvas = await this.db.configurationCanvas.findUnique({
+        where: { id: data.canvasId },
+        select: { name: true },
+      })
+      await configurationHistoryService.createHistoryEntry({
+        action: ConfigActionType.DEPLOYED,
+        entityType: 'CONFIGURATION_CANVAS',
+        entityId: data.canvasId,
+        entityName: canvas?.name ?? 'Configuration',
+        userId: data.triggeredById,
+        customerId: data.customerId,
+        deployState,
+        details: { message },
+      })
+    } catch {
+      // ignore — history logging must not affect the deploy lifecycle
+    }
   }
 }

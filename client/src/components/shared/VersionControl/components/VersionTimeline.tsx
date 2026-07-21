@@ -8,6 +8,20 @@ import { History, GitCompare, Loader2 } from 'lucide-react';
 import type { VersionTimelineProps, VersionEntry } from '../types';
 import { VersionTimelineItem } from './VersionTimelineItem';
 
+/**
+ * A version entry represents an ACTUAL configuration content change — the only
+ * thing worth diffing. Workflow transitions (submit-for-approval / approve /
+ * request-changes / deploy) don't change the config content, so they are
+ * excluded from Compare even though they appear in the full audit timeline.
+ * Distinguished by deployState (a workflow state) or a workflow action.
+ */
+function isConfigurationChange(entry: VersionEntry): boolean {
+  const workflowStates = ['pending_approval', 'approved', 'rejected', 'deployed'];
+  if (entry.deployState && workflowStates.includes(entry.deployState)) return false;
+  if (['APPROVED', 'REJECTED', 'DEPLOYED', 'DELETED', 'REVERTED'].includes(entry.action)) return false;
+  return entry.action === 'CREATED' || entry.action === 'UPDATED';
+}
+
 function VersionTimelineComponent({
   entries,
   isLoading = false,
@@ -72,6 +86,10 @@ function VersionTimelineComponent({
     return entry.id === selectedEntryId;
   };
 
+  // In compare mode only real configuration-change versions are shown/selectable;
+  // the full audit timeline (submit/approve/deploy/…) still shows otherwise.
+  const displayEntries = isCompareMode ? entries.filter(isConfigurationChange) : entries;
+
   return (
     <div className={`bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 ${className}`}>
       {/* Header */}
@@ -119,7 +137,7 @@ function VersionTimelineComponent({
       {isCompareMode && (
         <div className="px-4 py-2 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-100 dark:border-blue-800">
           <p className="text-sm text-blue-700 dark:text-blue-300">
-            Select 2 versions to compare.{' '}
+            Select 2 configuration-change versions to compare.{' '}
             <span className="font-medium">
               {compareSelection.length}/2 selected
             </span>
@@ -133,15 +151,19 @@ function VersionTimelineComponent({
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 text-gray-400 animate-spin" />
           </div>
-        ) : entries.length === 0 ? (
+        ) : displayEntries.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-gray-500 dark:text-gray-400">
             <History className="h-12 w-12 mb-3 opacity-50" />
-            <p className="text-lg font-medium">No history yet</p>
-            <p className="text-sm">Changes will appear here once made</p>
+            <p className="text-lg font-medium">
+              {isCompareMode ? 'No configuration changes to compare' : 'No history yet'}
+            </p>
+            <p className="text-sm">
+              {isCompareMode ? 'Only content edits can be compared' : 'Changes will appear here once made'}
+            </p>
           </div>
         ) : (
           <div className="divide-y divide-gray-100 dark:divide-gray-800">
-            {entries.map((entry) => (
+            {displayEntries.map((entry) => (
               <VersionTimelineItem
                 key={entry.id}
                 entry={entry}
