@@ -236,8 +236,14 @@ export class PipelineService {
       include: { sections: { include: { fields: true } }, tags: true, history: { orderBy: { version: 'desc' }, take: 1 } },
     })
 
-    if (canvas.status !== 'APPROVED' && canvas.status !== 'DEPLOYED') {
-      throw new Error(`Canvas must be APPROVED to deploy. Current: ${canvas.status}`)
+    // APPROVED is the normal gate. DEPLOYED re-deploys the same config, and
+    // DEPLOYMENT_FAILED / ROLLED_BACK let a failed or reverted deploy be retried
+    // as-is (e.g. after fixing the cause in the target system) without a fresh
+    // approval cycle. Editing the config instead resets it to DRAFT and forces
+    // re-approval (see configuration-canvas.service.update).
+    const DEPLOYABLE_STATUSES = ['APPROVED', 'DEPLOYED', 'DEPLOYMENT_FAILED', 'ROLLED_BACK']
+    if (!DEPLOYABLE_STATUSES.includes(canvas.status)) {
+      throw new Error(`Canvas must be approved (or a failed/rolled-back deploy) to deploy. Current: ${canvas.status}`)
     }
 
     // Check environment promotion requirement

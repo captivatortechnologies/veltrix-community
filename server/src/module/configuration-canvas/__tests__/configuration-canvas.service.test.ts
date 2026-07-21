@@ -25,6 +25,8 @@ jest.mock('../../../db', () => {
     configurationCanvasTag: model(),
     configurationCanvasHistory: model(),
     environmentPolicy: model(),
+    configurationCanvasSection: model(),
+    configurationCanvasField: model(),
   };
   // Callback-style transaction: run the callback against the same mock ("tx").
   db.$transaction = jest.fn((cb: any) => cb(db));
@@ -51,6 +53,8 @@ const db = prisma as unknown as {
   configurationCanvasTag: Record<string, jest.Mock>;
   configurationCanvasHistory: Record<string, jest.Mock>;
   environmentPolicy: Record<string, jest.Mock>;
+  configurationCanvasSection: Record<string, jest.Mock>;
+  configurationCanvasField: Record<string, jest.Mock>;
   $transaction: jest.Mock;
 };
 
@@ -358,5 +362,45 @@ describe('configurationCanvasService.approveCanvas — policy enforcement', () =
     expect(db.configurationCanvas.update).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ status: 'APPROVED' }) }),
     );
+  });
+});
+
+// ===========================================================================
+// Re-approval on edit — a content edit to an already-approved (or deployed /
+// failed) canvas must invalidate the prior sign-off: reset to DRAFT + clear
+// approvals, so the approval bar is re-met before it can deploy again.
+// ===========================================================================
+
+describe('configurationCanvasService.update — re-approval on edit', () => {
+  const CONTENT_EDIT = { sections: [{ name: 'Section', order: 0, fields: [] }] } as never;
+
+  beforeEach(() => {
+    db.configurationCanvasHistory.create.mockResolvedValue({ id: 'hist-1' });
+  });
+
+  it('resets an APPROVED canvas to DRAFT and clears approvals when its content is edited', async () => {
+    db.configurationCanvas.findFirst.mockResolvedValue({
+      id: CANVAS, version: 3, status: 'APPROVED', name: 'n', description: 'd', sections: [], tags: [],
+    });
+
+    await configurationCanvasService.update(CANVAS, CONTENT_EDIT, CUSTOMER, 'user-1');
+
+    expect(db.configurationCanvas.update).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: CANVAS }, data: expect.objectContaining({ status: 'DRAFT' }) }),
+    );
+    expect(db.configurationCanvasApproval.deleteMany).toHaveBeenCalledWith({ where: { canvasId: CANVAS } });
+  });
+
+  it('does NOT change status or wipe approvals when a DRAFT canvas is edited', async () => {
+    db.configurationCanvas.findFirst.mockResolvedValue({
+      id: CANVAS, version: 1, status: 'DRAFT', name: 'n', description: 'd', sections: [], tags: [],
+    });
+
+    await configurationCanvasService.update(CANVAS, CONTENT_EDIT, CUSTOMER, 'user-1');
+
+    // DRAFT is already editable — status stays undefined (unchanged) and no wipe.
+    const updateArg = db.configurationCanvas.update.mock.calls[0][0];
+    expect(updateArg.data.status).toBeUndefined();
+    expect(db.configurationCanvasApproval.deleteMany).not.toHaveBeenCalled();
   });
 });

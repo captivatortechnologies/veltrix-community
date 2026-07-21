@@ -364,6 +364,28 @@ export const configurationCanvasService = {
     // Update in a transaction - capture newVersion for use outside transaction
     const newVersion = existing.version + 1;
 
+    // Re-approval on edit: editing a canvas that has already advanced past the
+    // editable stage (submitted, approved, deployed, or a failed/rolled-back
+    // deploy) invalidates its prior sign-off — a reviewer approved specific
+    // content and it just changed. Force it back to DRAFT and clear the approval
+    // records so a fresh approval cycle is required before it can deploy again.
+    // Skipped when the caller sets an explicit status (the approval/deploy
+    // workflow path) or when the canvas is already editable.
+    const EDITABLE_STATUSES: ConfigCanvasStatus[] = [
+      ConfigCanvasStatus.DRAFT,
+      ConfigCanvasStatus.CHANGES_REQUESTED,
+      ConfigCanvasStatus.VALIDATION_FAILED,
+    ];
+    const isContentEdit = data.sections !== undefined || data.tagIds !== undefined;
+    const resetForReapproval =
+      data.status === undefined &&
+      isContentEdit &&
+      !EDITABLE_STATUSES.includes(existing.status);
+    const nextStatus = resetForReapproval ? ConfigCanvasStatus.DRAFT : data.status;
+    if (resetForReapproval) {
+      loggerService.info(`Canvas ${id} edited from ${existing.status} — resetting to DRAFT for re-approval`);
+    }
+
     const canvasHistoryId = await prisma.$transaction(async (tx) => {
       // Update canvas metadata
       await tx.configurationCanvas.update({
@@ -371,11 +393,18 @@ export const configurationCanvasService = {
         data: {
           name: data.name,
           description: data.description,
-          status: data.status,
+          status: nextStatus,
           version: newVersion,
           updatedById: userId,
         },
       });
+
+      // A content edit invalidates prior approvals — clear them so the approval
+      // bar must be re-met (submitForApproval's fresh path also clears, but do it
+      // here too so the UI never shows stale approvals while back in DRAFT).
+      if (resetForReapproval) {
+        await tx.configurationCanvasApproval.deleteMany({ where: { canvasId: id } });
+      }
 
       // If sections are provided, replace all sections and fields
       if (data.sections !== undefined) {
@@ -448,7 +477,7 @@ export const configurationCanvasService = {
             sections: data.sections || existing.sections,
             tagIds: data.tagIds !== undefined ? data.tagIds : existing.tags.map(t => t.tagId),
             previousStatus: existing.status,
-            newStatus: data.status || existing.status,
+            newStatus: nextStatus ?? existing.status,
           } as Prisma.JsonObject,
           userId,
         },

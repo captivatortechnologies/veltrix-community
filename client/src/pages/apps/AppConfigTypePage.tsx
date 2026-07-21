@@ -777,7 +777,10 @@ const AppConfigTypeSurface: React.FC = () => {
   // Deploy prerequisites (generic — approval + environment + a matching connection).
   const deployBlockedReason = useCallback(
     (config: ConfigurationCanvasListItem): string | null => {
-      if (config.status !== 'APPROVED') return 'Approve this configuration to deploy'
+      // APPROVED deploys normally; DEPLOYMENT_FAILED / ROLLED_BACK can be retried
+      // as-is. Editing the config resets it to DRAFT and forces re-approval.
+      const retryable = config.status === 'DEPLOYMENT_FAILED' || config.status === 'ROLLED_BACK'
+      if (config.status !== 'APPROVED' && !retryable) return 'Approve this configuration to deploy'
       if (!config.tags?.[0]?.tagId) return 'Assign an environment to deploy'
       if (matchingComponents.length === 0) {
         const target = componentTypes.length > 0 ? componentTypes.join('/') : 'target'

@@ -511,7 +511,10 @@ const AppPipelinePage: React.FC = () => {
   // evaluated per-row against THAT row's configuration type's target componentTypes.
   const deployBlockedReason = useCallback(
     (config: ConfigurationCanvasListItem): string | null => {
-      if (config.status !== 'APPROVED') return 'Approve this configuration to deploy'
+      // APPROVED deploys normally; DEPLOYMENT_FAILED / ROLLED_BACK can be retried
+      // as-is. Editing the config resets it to DRAFT and forces re-approval.
+      const retryable = config.status === 'DEPLOYMENT_FAILED' || config.status === 'ROLLED_BACK'
+      if (config.status !== 'APPROVED' && !retryable) return 'Approve this configuration to deploy'
       if (!config.tags?.[0]?.tagId) return 'Assign an environment to deploy'
       const matching = matchingComponentsFor(config.entityType)
       if (matching.length === 0) {
