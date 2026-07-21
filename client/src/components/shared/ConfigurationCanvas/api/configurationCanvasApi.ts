@@ -86,6 +86,8 @@ export interface ConfigurationCanvas {
   toolType: string;
   entityType: string;
   status: ConfigCanvasStatus;
+  /** Reason from the most recent failed deploy; explains a DEPLOYMENT_FAILED status. */
+  lastDeployError?: string | null;
   version: number;
   customerId: string;
   createdById: string;
@@ -113,6 +115,8 @@ export interface ConfigurationCanvasListItem {
   toolType: string;
   entityType: string;
   status: ConfigCanvasStatus;
+  /** Reason from the most recent failed deploy; explains a DEPLOYMENT_FAILED status. */
+  lastDeployError?: string | null;
   version: number;
   sectionsCount: number;
   createdAt: string;

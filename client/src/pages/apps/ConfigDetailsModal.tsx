@@ -169,6 +169,17 @@ export const ConfigDetailsModal: React.FC<ConfigDetailsModalProps> = ({
         </div>
       }
     >
+      {config.status === 'DEPLOYMENT_FAILED' &&
+        (detail?.lastDeployError ?? config.lastDeployError) && (
+          <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 dark:border-red-900/50 dark:bg-red-900/20">
+            <p className="text-sm font-semibold text-red-700 dark:text-red-300">
+              Last deployment failed
+            </p>
+            <p className="mt-1 whitespace-pre-wrap break-words text-sm text-red-600 dark:text-red-400">
+              {detail?.lastDeployError ?? config.lastDeployError}
+            </p>
+          </div>
+        )}
       {loading ? (
         <div className="flex items-center justify-center py-10 text-gray-500 dark:text-gray-400">
           <Loader2 className="h-5 w-5 animate-spin" />

@@ -58,6 +58,7 @@ const canvasSchema = {
     toolType: { type: 'string' },
     entityType: { type: 'string' },
     status: { type: 'string', enum: ['DRAFT', 'VALIDATION_PENDING', 'VALIDATION_FAILED', 'PENDING_APPROVAL', 'APPROVED', 'DEPLOYMENT_QUEUED', 'DEPLOYING', 'DEPLOYMENT_PAUSED', 'DEPLOYED', 'DEPLOYMENT_FAILED', 'ROLLED_BACK', 'ARCHIVED', 'CHANGES_REQUESTED'] },
+    lastDeployError: { type: ['string', 'null'] },
     version: { type: 'integer' },
     customerId: { type: 'string', format: 'uuid' },
     createdById: { type: 'string', format: 'uuid' },

@@ -687,6 +687,10 @@ model ConfigurationCanvas {
   entityType  String // e.g., 'INDEXES', 'ROLES', 'INPUTS'
   status      ConfigCanvasStatus @default(DRAFT)
   version     Int                @default(1)
+  // Human-readable reason from the most recent failed deploy (e.g. the provider's
+  // validation error). Set when a deploy fails, cleared when one starts/succeeds,
+  // so the "Deploy failed" badge can explain WHY without digging into logs.
+  lastDeployError String?
   customerId  String
   createdById String
   updatedById String?

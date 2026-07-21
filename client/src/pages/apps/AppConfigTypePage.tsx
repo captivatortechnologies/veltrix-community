@@ -117,9 +117,15 @@ function statusBadgeClass(status: ConfigCanvasStatus): string {
   }
 }
 
-const StatusBadge: React.FC<{ status: ConfigCanvasStatus }> = ({ status }) => (
+const StatusBadge: React.FC<{ status: ConfigCanvasStatus; error?: string | null }> = ({
+  status,
+  error,
+}) => (
   <span
     className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${statusBadgeClass(status)}`}
+    // A failed status carries the reason as a native tooltip; the row also shows
+    // it inline (see below) so it's discoverable without hovering.
+    title={status === 'DEPLOYMENT_FAILED' && error ? error : undefined}
   >
     {STATUS_LABEL[status] ?? status}
   </span>
@@ -1081,11 +1087,19 @@ const AppConfigTypeSurface: React.FC = () => {
                           </div>
                         </td>
                         <td className="px-4 py-4">
-                          <StatusBadge status={config.status} />
+                          <StatusBadge status={config.status} error={config.lastDeployError} />
                           {approvalSummaries[config.id] && (
                             <div className="mt-1 text-xs font-medium text-gray-500 dark:text-gray-400">
                               Approved {approvalSummaries[config.id].approved}/
                               {approvalSummaries[config.id].total}
+                            </div>
+                          )}
+                          {config.status === 'DEPLOYMENT_FAILED' && config.lastDeployError && (
+                            <div
+                              className="mt-1 max-w-xs text-xs text-red-600 dark:text-red-400 line-clamp-2"
+                              title={config.lastDeployError}
+                            >
+                              {config.lastDeployError}
                             </div>
                           )}
                         </td>

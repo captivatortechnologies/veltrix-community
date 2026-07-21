@@ -53,19 +53,23 @@ export class DeploymentOrchestrator {
 
     const handlers = this.getHandlers(data.appId, data.configTypeId)
     if (!handlers) {
-      await this.failDeployment(data.deploymentId, 'No pipeline handlers registered for this app/config type')
+      const reason = 'No pipeline handlers registered for this app/config type'
+      await this.failDeployment(data.deploymentId, reason)
+      await this.updateCanvas(data.canvasId, 'DEPLOYMENT_FAILED', reason)
       return
     }
 
     try {
-      // Mark as in progress
+      // Mark as in progress — clear any prior failure reason so a retry starts clean.
       await this.updateDeployment(data.deploymentId, { status: 'IN_PROGRESS' })
-      await this.updateCanvas(data.canvasId, 'DEPLOYING')
+      await this.updateCanvas(data.canvasId, 'DEPLOYING', null)
 
       // Get target components
       const components = await this.getTargetComponents(data)
       if (components.length === 0) {
-        await this.failDeployment(data.deploymentId, 'No target components found for this configuration')
+        const reason = 'No target components found for this configuration'
+        await this.failDeployment(data.deploymentId, reason)
+        await this.updateCanvas(data.canvasId, 'DEPLOYMENT_FAILED', reason)
         return
       }
 
@@ -91,7 +95,7 @@ export class DeploymentOrchestrator {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown deployment error'
       await this.failDeployment(data.deploymentId, message)
-      await this.updateCanvas(data.canvasId, 'DEPLOYMENT_FAILED')
+      await this.updateCanvas(data.canvasId, 'DEPLOYMENT_FAILED', message)
       // Central configuration history so the Version History panel shows the
       // deploy failure alongside the other lifecycle actions. Best-effort.
       await this.recordDeployHistory(data, 'failed', `Deployment failed: ${message}`)
@@ -652,11 +656,15 @@ export class DeploymentOrchestrator {
     await this.db.deployment.update({ where: { id }, data })
   }
 
-  private async updateCanvas(id: string, status: string) {
-    await this.db.configurationCanvas.update({
-      where: { id },
-      data: { status } as Prisma.ConfigurationCanvasUpdateInput,
-    })
+  private async updateCanvas(id: string, status: string, lastDeployError?: string | null) {
+    // `lastDeployError` is only touched when the caller passes it: a string sets
+    // the failure reason (surfaced on the "Deploy failed" badge), null clears a
+    // stale one on retry/success, and `undefined` leaves it untouched.
+    const data: Prisma.ConfigurationCanvasUpdateInput = { status } as Prisma.ConfigurationCanvasUpdateInput
+    if (lastDeployError !== undefined) {
+      ;(data as { lastDeployError?: string | null }).lastDeployError = lastDeployError
+    }
+    await this.db.configurationCanvas.update({ where: { id }, data })
   }
 
   private async addLog(deploymentId: string, level: string, message: string, metadata?: unknown) {
@@ -670,7 +678,7 @@ export class DeploymentOrchestrator {
       status: 'SUCCEEDED',
       completedAt: new Date(),
     })
-    await this.updateCanvas(data.canvasId, 'DEPLOYED')
+    await this.updateCanvas(data.canvasId, 'DEPLOYED', null)
     await this.addLog(data.deploymentId, 'info', 'Deployment completed successfully')
     // Central configuration history so the Version History panel shows "Deployed"
     // (the pipeline's per-canvas history is separate). Best-effort.
