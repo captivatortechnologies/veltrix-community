@@ -33,7 +33,7 @@ import {
   formatEntityType,
   entriesToJSON,
 } from '../utils/formatUtils';
-import { INTERNAL_FIELDS } from '../utils/diffUtils';
+import { INTERNAL_FIELDS, computeObjectDiff, getChangedFields, computeDiffSummary } from '../utils/diffUtils';
 
 function VersionDetailModalComponent({
   entry,
@@ -61,6 +61,20 @@ function VersionDetailModalComponent({
     deployState === 'pending approval';
 
   const avatarColor = getUserAvatarColor(entry.user.email);
+
+  // Derive the ACTUAL changes from oldValue/newValue so the field chips + counts
+  // match the diff below. The server's `changedFields` can over-report — e.g. a
+  // "Submitted for approval" entry that only really changed `status` still lists
+  // every field — so prefer the computed diff and fall back to changedFields only
+  // when no before/after snapshot is available.
+  const oldValue = (entry.details.oldValue ?? null) as Record<string, unknown> | null;
+  const newValue = (entry.details.newValue ?? null) as Record<string, unknown> | null;
+  const diffChanges =
+    oldValue || newValue ? computeObjectDiff(oldValue ?? {}, newValue ?? {}) : [];
+  const realChangedFields = (
+    diffChanges.length > 0 ? getChangedFields(diffChanges) : entry.details.changedFields ?? []
+  ).filter((field: string) => !INTERNAL_FIELDS.has(field));
+  const summary = computeDiffSummary(diffChanges);
 
   const handleExport = () => {
     const json = entriesToJSON([entry]);
@@ -199,35 +213,47 @@ function VersionDetailModalComponent({
               )}
             </div>
 
-            {/* Changed fields */}
-            {entry.details.changedFields && entry.details.changedFields.length > 0 && (() => {
-              // Filter out internal fields
-              const filteredFields = entry.details.changedFields.filter(
-                (field: string) => !INTERNAL_FIELDS.has(field)
-              );
-              if (filteredFields.length === 0) return null;
-              return (
-                <div className="mt-3">
-                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
-                    Changed fields ({filteredFields.length}):
-                  </p>
-                  <div className="flex flex-wrap gap-1">
-                    {filteredFields.map((field: string) => (
-                      <span
-                        key={field}
-                        className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600"
-                      >
-                        {field}
-                      </span>
-                    ))}
-                  </div>
+            {/* Changed fields — derived from the actual diff so it matches Changes below. */}
+            {realChangedFields.length > 0 && (
+              <div className="mt-3">
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">
+                  Changed fields ({realChangedFields.length}):
+                </p>
+                <div className="flex flex-wrap gap-1">
+                  {realChangedFields.map((field: string) => (
+                    <span
+                      key={field}
+                      className="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600"
+                    >
+                      {field}
+                    </span>
+                  ))}
                 </div>
-              );
-            })()}
+              </div>
+            )}
           </div>
 
           {/* Diff View / Configuration Details */}
           <div className="p-6 max-h-[400px] overflow-auto">
+            {(oldValue || newValue) && (summary.added + summary.modified + summary.removed) > 0 && (
+              <div className="mb-4 flex flex-wrap items-center gap-2 text-xs font-medium">
+                {summary.added > 0 && (
+                  <span className="inline-flex items-center rounded px-2 py-0.5 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300">
+                    +{summary.added} added
+                  </span>
+                )}
+                {summary.modified > 0 && (
+                  <span className="inline-flex items-center rounded px-2 py-0.5 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                    ~{summary.modified} modified
+                  </span>
+                )}
+                {summary.removed > 0 && (
+                  <span className="inline-flex items-center rounded px-2 py-0.5 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300">
+                    -{summary.removed} removed
+                  </span>
+                )}
+              </div>
+            )}
             {entry.details.oldValue || entry.details.newValue ? (
               <DiffViewer
                 oldValue={entry.details.oldValue || null}
