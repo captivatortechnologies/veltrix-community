@@ -68,6 +68,58 @@ describe('ServiceNowAdapter', () => {
     expect(bad.valid).toBe(false)
     expect(bad.errors[0]).toMatch(/not a known table/)
   })
+
+  describe('getTicket', () => {
+    const ctx = {
+      instanceUrl: 'https://acme.service-now.com',
+      auth: { kind: 'basic', username: 'svc', password: 'pw' } as TicketAuth,
+      config: {}, // no defaultTable -> would default to change_request
+    }
+
+    const jsonResponse = (body: unknown, status = 200): Response =>
+      ({ ok: status >= 200 && status < 300, status, json: async () => body } as unknown as Response)
+
+    afterEach(() => {
+      jest.restoreAllMocks()
+    })
+
+    it('looks a human number up by `number=` in the prefix-implied table (INC -> incident)', async () => {
+      const fetchMock = jest
+        .spyOn(global, 'fetch')
+        .mockResolvedValue(
+          jsonResponse({ result: [{ sys_id: 'abc123', number: 'INC0010001', short_description: 'Veltrix', state: '1' }] }),
+        )
+
+      const ticket = await adapter.getTicket(ctx, 'INC0010001')
+
+      expect(ticket).not.toBeNull()
+      expect(ticket?.externalId).toBe('abc123')
+      expect(ticket?.externalKey).toBe('INC0010001')
+      // First (and only needed) call: the incident table, queried by number — NOT
+      // the /{table}/{sys_id} GET that a raw number can never satisfy.
+      const firstUrl = String(fetchMock.mock.calls[0][0])
+      expect(firstUrl).toContain('/api/now/table/incident?')
+      expect(decodeURIComponent(firstUrl)).toContain('number=INC0010001')
+    })
+
+    it('looks a sys_id up directly via /{table}/{sys_id}', async () => {
+      const sysId = 'a'.repeat(32)
+      const fetchMock = jest
+        .spyOn(global, 'fetch')
+        .mockResolvedValue(jsonResponse({ result: { sys_id: sysId, number: 'CHG0030001' } }))
+
+      const ticket = await adapter.getTicket(ctx, sysId)
+
+      expect(ticket?.externalId).toBe(sysId)
+      expect(String(fetchMock.mock.calls[0][0])).toContain(`/change_request/${sysId}`)
+    })
+
+    it('falls back across tables and returns null when nothing matches', async () => {
+      jest.spyOn(global, 'fetch').mockResolvedValue(jsonResponse({ result: [] }))
+      const ticket = await adapter.getTicket(ctx, 'INC9999999')
+      expect(ticket).toBeNull()
+    })
+  })
 })
 
 describe('ZendeskAdapter', () => {

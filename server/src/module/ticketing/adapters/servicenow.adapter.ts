@@ -35,6 +35,20 @@ const TABLE_BY_TYPE: Record<TicketType, string> = {
   task: 'task',
 }
 
+// A ServiceNow record `number` carries a table-specific prefix (INC0010001 is an
+// incident, CHG… a change, PRB… a problem, TASK… a task). Used to look in the
+// right table first when the caller only gives us the human number, not a sys_id.
+const TABLE_BY_NUMBER_PREFIX: Record<string, string> = {
+  INC: 'incident',
+  CHG: 'change_request',
+  PRB: 'problem',
+  TASK: 'task',
+}
+
+// A sys_id is a 32-char hex GUID; anything else the user pastes (INC0010001) is a
+// human `number` that the Table API's `/{table}/{id}` GET does NOT accept.
+const SYS_ID_RE = /^[0-9a-f]{32}$/i
+
 interface ServiceNowRecord {
   sys_id?: string
   number?: string
@@ -105,19 +119,24 @@ export class ServiceNowAdapter implements TicketProvider {
     return this.toTicketRef(ctx, table, record)
   }
 
-  async getTicket(ctx: TicketProviderContext, externalId: string): Promise<TicketRef | null> {
-    // externalId is the sys_id; the table is carried by the caller's default or
-    // resolved from config. We try the default table first.
-    const table = this.resolveTable(ctx)
-    const res = await this.request(
-      ctx,
-      'GET',
-      `/api/now/table/${table}/${encodeURIComponent(externalId)}?sysparm_display_value=all`,
-    )
-    if (res.status === 404) return null
-    if (!res.ok) throw new Error(`ServiceNow get failed (${res.status}).`)
-    const record = ((await res.json()) as { result?: ServiceNowRecord }).result
-    return record ? this.toTicketRef(ctx, table, record) : null
+  async getTicket(ctx: TicketProviderContext, externalRef: string): Promise<TicketRef | null> {
+    // externalRef is EITHER a sys_id (32-char hex GUID) or a human number like
+    // INC0010001. The Table API's `/{table}/{id}` GET only accepts a sys_id, so a
+    // number must be looked up with `?sysparm_query=number=…`. We also don't know
+    // the table up front — infer it from the number prefix, then fall back to the
+    // other supported tables so a link never fails just because it's an incident
+    // rather than the configured default (change_request).
+    const ref = externalRef.trim()
+    if (!ref) return null
+
+    const bySysId = SYS_ID_RE.test(ref)
+    for (const table of this.candidateTables(ctx, ref, bySysId)) {
+      const record = bySysId
+        ? await this.fetchBySysId(ctx, table, ref)
+        : await this.fetchByNumber(ctx, table, ref)
+      if (record) return this.toTicketRef(ctx, table, record)
+    }
+    return null
   }
 
   async searchTickets(ctx: TicketProviderContext, query: TicketSearchQuery): Promise<TicketRef[]> {
@@ -162,6 +181,45 @@ export class ServiceNowAdapter implements TicketProvider {
     const configured = ctx.config.defaultTable
     if (typeof configured === 'string' && configured) return configured
     return TABLE_BY_TYPE.change
+  }
+
+  /**
+   * Tables to search for a lookup, best guess first. For a number we lead with the
+   * table its prefix implies (INC -> incident); for a sys_id — which is globally
+   * unique — we lead with the configured default. Every supported table follows as
+   * a fallback, de-duplicated, so a lookup still resolves when the prefix is custom
+   * or the record lives outside the default table.
+   */
+  private candidateTables(ctx: TicketProviderContext, ref: string, bySysId: boolean): string[] {
+    const all = Object.values(TABLE_BY_TYPE)
+    const lead = bySysId
+      ? this.resolveTable(ctx)
+      : TABLE_BY_NUMBER_PREFIX[(ref.match(/^[A-Za-z]+/)?.[0] ?? '').toUpperCase()]
+    return Array.from(new Set([lead, ...all].filter((t): t is string => Boolean(t))))
+  }
+
+  private async fetchBySysId(
+    ctx: TicketProviderContext,
+    table: string,
+    sysId: string,
+  ): Promise<ServiceNowRecord | null> {
+    const res = await this.request(ctx, 'GET', `/api/now/table/${table}/${encodeURIComponent(sysId)}`)
+    if (res.status === 404) return null
+    if (!res.ok) throw new Error(`ServiceNow get failed (${res.status}).`)
+    return ((await res.json()) as { result?: ServiceNowRecord }).result ?? null
+  }
+
+  private async fetchByNumber(
+    ctx: TicketProviderContext,
+    table: string,
+    number: string,
+  ): Promise<ServiceNowRecord | null> {
+    const params = new URLSearchParams({ sysparm_query: `number=${number}`, sysparm_limit: '1' })
+    const res = await this.request(ctx, 'GET', `/api/now/table/${table}?${params.toString()}`)
+    if (res.status === 404) return null
+    if (!res.ok) throw new Error(`ServiceNow get failed (${res.status}).`)
+    const records = ((await res.json()) as { result?: ServiceNowRecord[] }).result ?? []
+    return records[0] ?? null
   }
 
   private composeDescription(input: CreateTicketInput): string {
