@@ -100,23 +100,48 @@ export function createTimeoutMiddleware(config: TimeoutConfig = {}) {
     const timeout = getTimeoutForRoute(request.url, mergedConfig);
     const timeoutHandler = mergedConfig.onTimeout || defaultTimeoutHandler;
 
+    // Single-response guard. A request's response can come from either the
+    // route handler or the timeout timer below — whichever fires first wins,
+    // and any later reply.send() becomes a silent no-op. Without this, a
+    // handler that resolves just after the timer already answered with 408
+    // calls reply.send() a second time; both sends race past Fastify's async
+    // `reply.sent` check into ServerResponse.writeHead and the second throws
+    // ERR_HTTP_HEADERS_SENT — as an UNHANDLED rejection. Making send idempotent
+    // per-request removes the race (and guards any accidental double-send in a
+    // handler) while preserving the 408 behaviour.
+    let responded = false;
+    const rawSend = reply.send.bind(reply);
+    (reply as any).send = (payload: any) => {
+      if (responded || reply.sent) {
+        // The expected handler-finished-after-timeout case is flagged quiet;
+        // a genuine double-send bug in a handler still logs a warning.
+        if (!(reply as any).__timedOut) {
+          loggerService.warn('Suppressed duplicate reply.send()', {
+            url: request.url,
+            method: request.method,
+            correlationId: (request as any).correlationId,
+          });
+        }
+        return reply;
+      }
+      responded = true;
+      return rawSend(payload);
+    };
+
     // Create timeout timer
     const timer = setTimeout(() => {
-      // Check if response has already been sent
-      if (!reply.sent) {
-        timeoutHandler(request, reply);
+      if (!responded && !reply.sent) {
+        (reply as any).__timedOut = true;
+        timeoutHandler(request, reply); // sends 408 through the guarded send
       }
     }, timeout);
 
-    // Clear timeout when response is sent
-    reply.raw.on('finish', () => {
-      clearTimeout(timer);
-    });
-
-    // Clear timeout on error
-    reply.raw.on('error', () => {
-      clearTimeout(timer);
-    });
+    // Clear the timer when the response finishes, the socket closes (client
+    // disconnect / aborted request), or the connection errors.
+    const clear = () => clearTimeout(timer);
+    reply.raw.on('finish', clear);
+    reply.raw.on('close', clear);
+    reply.raw.on('error', clear);
 
     // Attach timeout info to request for logging
     (request as any).timeout = timeout;
