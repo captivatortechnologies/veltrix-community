@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Shield, Building, Key, FileText, Network, Cloud, Radio, Mail, ChevronRight, type LucideIcon } from 'lucide-react';
+import { Shield, Building, Key, FileText, Network, Cloud, Radio, Mail, Ticket, ChevronRight, type LucideIcon } from 'lucide-react';
 import { Card, CardBody } from '../../components/shared/Card';
 import { useBrand, type BrandConfig } from '../../brand';
 
@@ -48,6 +48,13 @@ function getSettingsLinks(brand: BrandConfig): SettingsLink[] {
       iconClassName: 'bg-cyan-100 text-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-400',
       title: 'Connectivity (ZTNA)',
       description: 'Zero-Trust Network Access providers used platform-wide to reach your deployment targets.',
+    },
+    {
+      to: '/settings/ticketing',
+      icon: Ticket,
+      iconClassName: 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400',
+      title: 'Ticketing',
+      description: 'Connect ServiceNow, Zendesk, or another provider to link configurations to change/issue tickets.',
     },
     {
       to: '/settings/cloud-accounts',

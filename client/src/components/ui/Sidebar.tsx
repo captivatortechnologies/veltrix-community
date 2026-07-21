@@ -22,6 +22,7 @@ import {
   PackageCheck,
   FlaskConical,
   Network,
+  Ticket,
 } from 'lucide-react';
 import SidebarNavItem from './sidebar/SidebarNavItem';
 import { useSidebarCollapse } from './sidebar/useSidebarCollapse';
@@ -50,6 +51,7 @@ const SETTINGS_ROUTES = [
   '/settings/organization',
   '/settings/keys-token',
   '/settings/connectivity',
+  '/settings/ticketing',
   '/settings/logs',
   '/access-control',
 ];
@@ -296,6 +298,13 @@ const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
                   icon={<Network size={16} aria-hidden="true" />}
                   label="Connectivity (ZTNA)"
                   isActive={isActive('/settings/connectivity')}
+                  indent
+                />
+                <SidebarNavItem
+                  to="/settings/ticketing"
+                  icon={<Ticket size={16} aria-hidden="true" />}
+                  label="Ticketing"
+                  isActive={isActive('/settings/ticketing')}
                   indent
                 />
                 <SidebarNavItem

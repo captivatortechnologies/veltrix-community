@@ -53,6 +53,7 @@ export const PLATFORM_RESOURCE_CATALOG: readonly Omit<CatalogResource, 'appId'>[
   { resource: 'subscription', actions: ['read'], description: 'Subscription tier and usage (read-only)' },
   { resource: 'organization', actions: commonCrud, description: 'Organization profile and branding' },
   { resource: 'report', actions: commonCrud, description: 'Compliance & security reports' },
+  { resource: 'ticketing', actions: commonCrud, description: 'Ticket system connections (ServiceNow / Zendesk) for change & issue management' },
 ] as const;
 
 const commonActionsFallback = ['read', 'create', 'update', 'delete'];

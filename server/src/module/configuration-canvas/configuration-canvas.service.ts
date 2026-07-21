@@ -12,6 +12,12 @@ import {
 } from './configuration-canvas.schema';
 import { loggerService } from '../logger/logger.service';
 import { configurationHistoryService } from '../configuration-history/configuration-history.service';
+import { ticketingService } from '../ticketing/ticketing.service';
+
+/** Fire-and-forget: reflect a lifecycle action onto the canvas's linked tickets. */
+function reflectTicketActivity(canvasId: string, customerId: string, note: string): void {
+  void ticketingService.reflectActivity(canvasId, customerId, note).catch(() => {});
+}
 
 // Entity type constant for configuration history
 const ENTITY_TYPE = 'CONFIGURATION_CANVAS';
@@ -638,6 +644,10 @@ export const configurationCanvasService = {
       loggerService.error('Failed to create central history entry for canvas update', { historyError, canvasId: id });
     }
 
+    if (resetForReapproval) {
+      reflectTicketActivity(id, customerId, `Configuration "${existing.name}" edited — reset to draft, re-approval required`);
+    }
+
     return this.getById(id, customerId);
   },
 
@@ -1003,6 +1013,8 @@ export const configurationCanvasService = {
       loggerService.error('Failed to create central history entry for approval submission', { historyError, canvasId: id });
     }
 
+    reflectTicketActivity(id, customerId, `Configuration "${canvas.name}" submitted for approval (${approverIds.length} approver(s))`);
+
     return this.getById(id, customerId);
   },
 
@@ -1173,6 +1185,20 @@ export const configurationCanvasService = {
       loggerService.error('Failed to create central history entry for approval', { historyError, canvasId: id });
     }
 
+    // Reflect onto linked tickets — derive the outcome from the committed status
+    // (the approve counts are transaction-internal).
+    const afterApprove = await prisma.configurationCanvas.findFirst({
+      where: { id, customerId },
+      select: { status: true },
+    });
+    reflectTicketActivity(
+      id,
+      customerId,
+      afterApprove?.status === ConfigCanvasStatus.APPROVED
+        ? `Configuration "${canvas.name}" APPROVED`
+        : `A reviewer approved "${canvas.name}"`,
+    );
+
     return this.getApprovals(id, customerId);
   },
 
@@ -1269,6 +1295,8 @@ export const configurationCanvasService = {
     } catch (historyError) {
       loggerService.error('Failed to create central history entry for rejection', { historyError, canvasId: id });
     }
+
+    reflectTicketActivity(id, customerId, `Changes requested on "${canvas.name}": ${reason}`);
 
     return this.getApprovals(id, customerId);
   },

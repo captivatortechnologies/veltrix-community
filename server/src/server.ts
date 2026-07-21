@@ -15,6 +15,7 @@ import tagRoutes from './module/tag/tag.route';
 import environmentRoutes from './module/environment/environment.route';
 import credentialRoutes from './module/credential/credential.route';
 import componentRoutes from './module/component/component.route';
+import ticketingRoutes from './module/ticketing/ticketing.route';
 import { apiKeyRoutes } from './module/api-key/api-key.route';
 import { apiKeyAuthRoutes } from './module/api-key/api-key.auth.route';
 import logForwardingRoutes from './module/log-forwarding/log-forwarding.route';
@@ -323,6 +324,7 @@ server.register(userRoleRoutes, { prefix: '/api' });
 server.register(userRoutes, { prefix: '/api' }); // Tenant-scoped user management (GET/POST /users, PUT/DELETE /users/:id)
 server.register(configurationHistoryController, { prefix: '/api/configuration-history' });
 server.register(configurationCanvasRoutes, { prefix: '/api/configuration-canvas' });
+server.register(ticketingRoutes, { prefix: '/api' }); // Ticket system (ServiceNow/Zendesk) — change & issue management
 server.register(pipelineRoutes, { prefix: '/api/pipeline' }); // Security-as-Code pipeline routes
 server.register(appManagementRoutes, { prefix: '/api/apps' }); // App management routes
 server.register(sandboxRoutes, { prefix: '/api/sandboxes' }); // Developer sandbox routes (self-gates on platform.sandbox; off by default)

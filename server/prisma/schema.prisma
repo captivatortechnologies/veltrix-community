@@ -91,6 +91,8 @@ model Organization {
   userSessions              UserSession[]
   auditEvents               AuditEvent[]
   complianceControlStatuses ComplianceControlStatus[]
+  ticketingConnections      TicketingConnection[]
+  configurationTicketLinks  ConfigurationTicketLink[]
 
   // Explicit (technically redundant) map documents the intentional rename
   // from the private schema's `Customer` table.
@@ -147,6 +149,7 @@ model User {
   sessions              UserSession[]
   auditEvents           AuditEvent[]                  @relation("AuditEventUser")
   assessedControls      ComplianceControlStatus[]     @relation("ComplianceAssessedBy")
+  ticketLinks           ConfigurationTicketLink[]     @relation("TicketLinkCreatedBy")
 
   @@index([customerId])
   @@index([roleId])
@@ -363,6 +366,7 @@ model Credential {
   tags        CredentialTag[]
   // Access Servers (components) that use this credential as their Connection.
   components  Component[]
+  ticketingConnections TicketingConnection[]
 
   @@index([toolId])
   @@index([customerId])
@@ -699,12 +703,68 @@ model ConfigurationCanvas {
   approvals   ConfigurationCanvasApproval[]
   comments    ConfigurationCanvasComment[]
   deployments Deployment[]
+  ticketLinks ConfigurationTicketLink[]
 
   @@index([customerId])
   @@index([createdById])
   @@index([toolType, entityType])
   @@index([status])
   @@map("ConfigurationCanvas")
+}
+
+model TicketingConnection {
+  id            String    @id @default(uuid())
+  customerId    String
+  provider      String // servicenow | zendesk  (TICKETING_PROVIDERS)
+  name          String
+  instanceUrl   String
+  credentialId  String?
+  isDefault     Boolean   @default(false)
+  isEnabled     Boolean   @default(true)
+  config        Json      @default("{}")
+  status        String    @default("UNCONFIGURED") // UNCONFIGURED | CONFIGURED | CONNECTED | ERROR
+  statusMessage String?
+  lastTestedAt  DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  customer   Organization              @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  credential Credential?               @relation(fields: [credentialId], references: [id], onDelete: SetNull)
+  links      ConfigurationTicketLink[]
+
+  @@unique([customerId, provider, name])
+  @@index([customerId])
+  @@index([customerId, isDefault])
+  @@map("TicketingConnection")
+}
+
+model ConfigurationTicketLink {
+  id           String   @id @default(uuid())
+  canvasId     String
+  customerId   String
+  connectionId String?
+  provider     String
+  externalId   String
+  externalKey  String?
+  url          String?
+  ticketType   String?
+  title        String?
+  status       String?
+  linkType     String   @default("change") // change | issue
+  createdById  String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  canvas     ConfigurationCanvas  @relation(fields: [canvasId], references: [id], onDelete: Cascade)
+  customer   Organization         @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  connection TicketingConnection? @relation(fields: [connectionId], references: [id], onDelete: SetNull)
+  createdBy  User                 @relation("TicketLinkCreatedBy", fields: [createdById], references: [id])
+
+  @@unique([canvasId, provider, externalId])
+  @@index([canvasId])
+  @@index([customerId])
+  @@index([connectionId])
+  @@map("ConfigurationTicketLink")
 }
 
 // Junction table for ConfigurationCanvas and Tag (environments)

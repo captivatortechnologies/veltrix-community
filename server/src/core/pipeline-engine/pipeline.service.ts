@@ -24,6 +24,7 @@ import { createPlatformDataApi } from './platform-data-api'
 import { toCanvasItems } from './canvasSnapshot'
 import { resolvePermissionSnapshotForUser } from '../../lib/permissions'
 import { resolveConnectionForConfigType } from './connection-resolver'
+import { ticketingService } from '../../module/ticketing/ticketing.service'
 
 export class PipelineService {
   constructor(
@@ -84,6 +85,17 @@ export class PipelineService {
         where: { id: canvasId },
         data: { status: result.valid ? 'DRAFT' : 'VALIDATION_FAILED' },
       })
+
+      // Reflect the validate outcome onto any linked ticket (best-effort, async).
+      void ticketingService
+        .reflectActivity(
+          canvasId,
+          canvas.customerId,
+          result.valid
+            ? `Validation passed for "${canvas.name}"`
+            : `Validation failed for "${canvas.name}" (${result.errors.length} issue(s))`,
+        )
+        .catch(() => {})
 
       return result
     } catch (err) {

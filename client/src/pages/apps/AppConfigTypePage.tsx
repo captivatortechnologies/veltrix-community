@@ -28,6 +28,7 @@ import {
   Layers,
   ShieldCheck,
   GitPullRequest,
+  Ticket,
 } from 'lucide-react'
 import {
   ConfigurationCanvas,
@@ -777,6 +778,13 @@ const AppConfigTypeSurface: React.FC = () => {
     [approvalConfig, toast, fetchConfigurations],
   )
 
+  // Opens the read-only details modal focused on its "Change / Issue tickets"
+  // section — the ticket list/create/link UI lives inline there (TicketLinkPanel),
+  // so there's no separate action to perform here (mirrors handleDeploy's shape).
+  const handleLinkTicket = useCallback((config: ConfigurationCanvasListItem) => {
+    setDetailsConfig(config)
+  }, [])
+
   // Deploy prerequisites (generic — approval + environment + a matching connection).
   const deployBlockedReason = useCallback(
     (config: ConfigurationCanvasListItem): string | null => {
@@ -1123,6 +1131,13 @@ const AppConfigTypeSurface: React.FC = () => {
                             >
                               <GitPullRequest className="h-4 w-4" />
                             </button>
+                            <button
+                              onClick={() => handleLinkTicket(config)}
+                              title="Change / issue tickets"
+                              className="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-indigo-600 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-indigo-400"
+                            >
+                              <Ticket className="h-4 w-4" />
+                            </button>
                             {config.status === 'DRAFT' && (
                               <button
                                 onClick={() => setApprovalConfig(config)}
@@ -1223,6 +1238,7 @@ const AppConfigTypeSurface: React.FC = () => {
         onDelete={handleDelete}
         onReviews={setReviewsConfig}
         onSubmitApproval={setApprovalConfig}
+        onLinkTicket={handleLinkTicket}
         deployBlockedReason={deployBlockedReason}
       />
     </AppShell>

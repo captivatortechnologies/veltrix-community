@@ -28,6 +28,8 @@ import { decryptCredentialSecrets } from '../../module/credential/credential.ser
 import { configurationHistoryService } from '../../module/configuration-history/configuration-history.service'
 import { ConfigActionType } from '@prisma/client'
 import { resolvePermissionSnapshotForUser } from '../../lib/permissions'
+import { ticketingService } from '../../module/ticketing/ticketing.service'
+import type { TicketStatusTransition } from '../../module/ticketing/adapters'
 
 export class DeploymentOrchestrator {
   constructor(
@@ -93,6 +95,8 @@ export class DeploymentOrchestrator {
       // Central configuration history so the Version History panel shows the
       // deploy failure alongside the other lifecycle actions. Best-effort.
       await this.recordDeployHistory(data, 'failed', `Deployment failed: ${message}`)
+      // Change management: reflect the failure onto any linked ticket (best-effort).
+      await this.reflectTicket(data, { outcome: 'deploy_failed', note: message })
 
       // Auto-rollback if policy says so
       await this.checkAutoRollback(data)
@@ -671,6 +675,21 @@ export class DeploymentOrchestrator {
     // Central configuration history so the Version History panel shows "Deployed"
     // (the pipeline's per-canvas history is separate). Best-effort.
     await this.recordDeployHistory(data, 'deployed', 'Deployment completed successfully')
+    // Change management: reflect the success onto any linked ticket (best-effort).
+    await this.reflectTicket(data, { outcome: 'deploy_succeeded' })
+  }
+
+  /**
+   * Reflect a deploy outcome onto the canvas's linked change tickets. Best-effort
+   * and fully isolated — the ticketing service already swallows its own errors,
+   * and this extra guard guarantees ticketing can NEVER fail a deploy.
+   */
+  private async reflectTicket(data: DeployJobData, transition: TicketStatusTransition): Promise<void> {
+    try {
+      await ticketingService.reflectDeployStatus(data.canvasId, data.customerId, transition)
+    } catch {
+      // ignore — ticketing must never affect the deploy lifecycle
+    }
   }
 
   private async failDeployment(id: string, message: string) {

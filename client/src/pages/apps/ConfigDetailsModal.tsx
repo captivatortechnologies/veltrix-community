@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react'
-import { CheckCircle2, Edit2, Copy, Rocket, Trash2, GitPullRequest, Send, Loader2 } from 'lucide-react'
+import { CheckCircle2, Edit2, Copy, Rocket, Trash2, GitPullRequest, Send, Loader2, Ticket } from 'lucide-react'
 import { Modal } from '@/components/shared/Modal/Modal'
 import {
   configurationCanvasApi,
   type ConfigurationCanvas,
   type ConfigurationCanvasListItem,
 } from '@/components/shared/ConfigurationCanvas/api/configurationCanvasApi'
+import { TicketLinkPanel } from '@/components/apps/TicketLinkPanel'
 
 /** Render any field value as a readable string for the details view. */
 function formatValue(v: unknown): string {
@@ -32,6 +33,8 @@ export interface ConfigDetailsModalProps {
   onDelete?: (c: ConfigurationCanvasListItem) => void
   onReviews?: (c: ConfigurationCanvasListItem) => void
   onSubmitApproval?: (c: ConfigurationCanvasListItem) => void
+  /** Renders a "Change / Issue tickets" section (TicketLinkPanel) and a footer button. */
+  onLinkTicket?: (c: ConfigurationCanvasListItem) => void
   deployBlockedReason?: (c: ConfigurationCanvasListItem) => string | null
 }
 
@@ -56,6 +59,7 @@ export const ConfigDetailsModal: React.FC<ConfigDetailsModalProps> = ({
   onDelete,
   onReviews,
   onSubmitApproval,
+  onLinkTicket,
   deployBlockedReason,
 }) => {
   const [detail, setDetail] = useState<ConfigurationCanvas | null>(null)
@@ -129,6 +133,11 @@ export const ConfigDetailsModal: React.FC<ConfigDetailsModalProps> = ({
               <GitPullRequest className="h-4 w-4" /> Reviews
             </button>
           )}
+          {onLinkTicket && (
+            <button onClick={act(onLinkTicket)} className={`${BTN} ${GHOST}`}>
+              <Ticket className="h-4 w-4" /> Tickets
+            </button>
+          )}
           {onSubmitApproval && config.status === 'DRAFT' && (
             <button
               onClick={act(onSubmitApproval)}
@@ -195,6 +204,26 @@ export const ConfigDetailsModal: React.FC<ConfigDetailsModalProps> = ({
                 </dl>
               </div>
             ))
+          )}
+
+          {onLinkTicket && (
+            <div className="rounded-lg border border-gray-200 dark:border-gray-700">
+              <div className="border-b border-gray-200 bg-gray-50 px-4 py-2 text-sm font-semibold text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100">
+                Change / Issue tickets
+              </div>
+              <div className="p-4">
+                <TicketLinkPanel
+                  canvasId={config.id}
+                  defaultSummary={`Change: ${config.name}`}
+                  defaultDescription={
+                    `Change request for Veltrix configuration "${config.name}".\n\n` +
+                    `Status: ${config.status} (v${config.version})\n` +
+                    (config.description ? `Description: ${config.description}\n` : '') +
+                    `\nTracked in Veltrix for change & issue management.`
+                  }
+                />
+              </div>
+            </div>
           )}
         </div>
       ) : null}
