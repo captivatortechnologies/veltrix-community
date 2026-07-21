@@ -421,9 +421,9 @@ export const ticketingService = {
         const adapter = getTicketProvider(row.provider)
         const ctx = await buildProviderContext(row)
         if (adapter.updateStatus) {
-          await adapter.updateStatus(ctx, link.externalId, transition)
+          await adapter.updateStatus(ctx, link.externalId, transition, link.ticketType)
         } else {
-          await adapter.addComment(ctx, link.externalId, `[Veltrix] ${transition.outcome}`)
+          await adapter.addComment(ctx, link.externalId, `[Veltrix] ${transition.outcome}`, link.ticketType)
         }
       } catch (err) {
         loggerService.warn(`[ticketing] failed to reflect deploy status to ticket ${link.externalId}`, err)
@@ -453,7 +453,7 @@ export const ticketingService = {
         if (!row || !row.isEnabled) continue
         const adapter = getTicketProvider(row.provider)
         const ctx = await buildProviderContext(row)
-        await adapter.addComment(ctx, link.externalId, `[Veltrix] ${note}`)
+        await adapter.addComment(ctx, link.externalId, `[Veltrix] ${note}`, link.ticketType)
       } catch (err) {
         loggerService.warn(`[ticketing] failed to reflect activity to ticket ${link.externalId}`, err)
       }

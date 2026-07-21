@@ -120,6 +120,37 @@ describe('ServiceNowAdapter', () => {
       expect(ticket).toBeNull()
     })
   })
+
+  describe('addComment / updateStatus targeting', () => {
+    const ctx = {
+      instanceUrl: 'https://acme.service-now.com',
+      auth: { kind: 'basic', username: 'svc', password: 'pw' } as TicketAuth,
+      config: {}, // default table is change_request
+    }
+    const ok = (): Response => ({ ok: true, status: 200, json: async () => ({}) } as unknown as Response)
+
+    afterEach(() => jest.restoreAllMocks())
+
+    it('PATCHes the incident table when the ticket type is incident, not the default', async () => {
+      const fetchMock = jest.spyOn(global, 'fetch').mockResolvedValue(ok())
+      await adapter.addComment(ctx, 'sysid123', 'note', 'incident')
+      const url = String(fetchMock.mock.calls[0][0])
+      expect(url).toContain('/api/now/table/incident/sysid123')
+      expect(url).not.toContain('change_request')
+    })
+
+    it('updateStatus forwards the ticket type so an incident outcome lands on the incident', async () => {
+      const fetchMock = jest.spyOn(global, 'fetch').mockResolvedValue(ok())
+      await adapter.updateStatus(ctx, 'sysid123', { outcome: 'deploy_succeeded' }, 'incident')
+      expect(String(fetchMock.mock.calls[0][0])).toContain('/api/now/table/incident/sysid123')
+    })
+
+    it('falls back to the default table when no ticket type is stored (legacy links)', async () => {
+      const fetchMock = jest.spyOn(global, 'fetch').mockResolvedValue(ok())
+      await adapter.addComment(ctx, 'sysid123', 'note')
+      expect(String(fetchMock.mock.calls[0][0])).toContain('/api/now/table/change_request/sysid123')
+    })
+  })
 })
 
 describe('ZendeskAdapter', () => {

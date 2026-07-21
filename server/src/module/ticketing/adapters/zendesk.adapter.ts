@@ -118,8 +118,13 @@ export class ZendeskAdapter implements TicketProvider {
     return results.slice(0, limit).map((t) => this.toTicketRef(ctx, t))
   }
 
-  async addComment(ctx: TicketProviderContext, externalId: string, body: string): Promise<void> {
-    // Update the ticket with a private comment (internal note).
+  async addComment(
+    ctx: TicketProviderContext,
+    externalId: string,
+    body: string,
+    _ticketType?: string | null,
+  ): Promise<void> {
+    // Zendesk has a single ticket surface, so the ticketType hint is not needed.
     const res = await this.request(ctx, 'PUT', `/api/v2/tickets/${encodeURIComponent(externalId)}.json`, {
       ticket: { comment: { body, public: false } },
     })
@@ -130,6 +135,7 @@ export class ZendeskAdapter implements TicketProvider {
     ctx: TicketProviderContext,
     externalId: string,
     transition: TicketStatusTransition,
+    _ticketType?: string | null,
   ): Promise<void> {
     // Record the outcome as a private note; optionally solve on success.
     const status = transition.outcome === 'deploy_succeeded' ? 'solved' : undefined

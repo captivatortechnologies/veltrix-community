@@ -153,8 +153,16 @@ export class ServiceNowAdapter implements TicketProvider {
     return records.map((r) => this.toTicketRef(ctx, table, r))
   }
 
-  async addComment(ctx: TicketProviderContext, externalId: string, body: string): Promise<void> {
-    const table = this.resolveTable(ctx)
+  async addComment(
+    ctx: TicketProviderContext,
+    externalId: string,
+    body: string,
+    ticketType?: string | null,
+  ): Promise<void> {
+    // Target the table the ticket actually lives in (incident vs change_request…),
+    // not the connection default — otherwise a work note on an incident is PATCHed
+    // to change_request/{sys_id}, which 404s and silently drops the comment.
+    const table = this.resolveTableForHint(ctx, ticketType)
     // `comments` = customer-visible; `work_notes` = internal. Platform events go
     // to work_notes so they don't spam the requester.
     const res = await this.request(ctx, 'PATCH', `/api/now/table/${table}/${encodeURIComponent(externalId)}`, {
@@ -167,11 +175,12 @@ export class ServiceNowAdapter implements TicketProvider {
     ctx: TicketProviderContext,
     externalId: string,
     transition: TicketStatusTransition,
+    ticketType?: string | null,
   ): Promise<void> {
     // A safe, config-agnostic default: record the outcome as a work note.
     // TODO(ticketing): optionally advance `state`/`close_code` per config.stateMap
     // (e.g. deploy_succeeded -> Implement/Review) once the tenant's workflow is known.
-    await this.addComment(ctx, externalId, formatTransition(transition))
+    await this.addComment(ctx, externalId, formatTransition(transition), ticketType)
   }
 
   // --- internals -------------------------------------------------------
@@ -181,6 +190,22 @@ export class ServiceNowAdapter implements TicketProvider {
     const configured = ctx.config.defaultTable
     if (typeof configured === 'string' && configured) return configured
     return TABLE_BY_TYPE.change
+  }
+
+  /**
+   * Resolve the table for a comment/status update from the hint stored on the link
+   * (TicketRef.ticketType). The hint is normally the table name itself
+   * ("incident", "change_request"…) but may also be a TicketType key ("incident"),
+   * so accept both; fall back to the connection default only when there's no usable
+   * hint, preserving the old behaviour for legacy links with no stored type.
+   */
+  private resolveTableForHint(ctx: TicketProviderContext, hint?: string | null): string {
+    if (hint) {
+      if (Object.values(TABLE_BY_TYPE).includes(hint)) return hint
+      const mapped = TABLE_BY_TYPE[hint as TicketType]
+      if (mapped) return mapped
+    }
+    return this.resolveTable(ctx)
   }
 
   /**

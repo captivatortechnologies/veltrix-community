@@ -105,14 +105,26 @@ export interface TicketProvider {
   /** Search tickets (used by the "link existing" picker). */
   searchTickets(ctx: TicketProviderContext, query: TicketSearchQuery): Promise<TicketRef[]>
 
-  /** Append a comment / work note (used to record deploy/approval events). */
-  addComment(ctx: TicketProviderContext, externalId: string, body: string): Promise<void>
+  /**
+   * Append a comment / work note (used to record deploy/approval events).
+   * `ticketType` is the linked ticket's provider-native type/table (e.g. the
+   * ServiceNow "incident" vs "change_request"), passed so the adapter targets the
+   * RIGHT table instead of falling back to its configured default. Providers with
+   * a single ticket surface (Zendesk) ignore it.
+   */
+  addComment(
+    ctx: TicketProviderContext,
+    externalId: string,
+    body: string,
+    ticketType?: string | null,
+  ): Promise<void>
 
   /** Optional: reflect a deploy outcome onto the ticket (change management). */
   updateStatus?(
     ctx: TicketProviderContext,
     externalId: string,
     transition: TicketStatusTransition,
+    ticketType?: string | null,
   ): Promise<void>
 }
 
