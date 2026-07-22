@@ -209,10 +209,12 @@ export function buildAppNavItems(app: EnabledApp, hasPermission?: AppNavPermissi
     { path: '/pipeline', label: 'Pipeline', group: 'page', icon: 'activity' },
   ]
   // Order the flat tab strip (and thus the sidebar reading order) as
-  // Pages -> Configurations -> Settings so Settings always trails.
+  // Pages -> Configurations -> Settings so Settings always trails. Within
+  // Configurations, the configuration TYPES lead, then any config-group
+  // management pages (e.g. Splunk's BYOL Infrastructure / Upgrades) follow.
   const pages = [...pageItems.filter((i) => i.group === 'page'), ...platformPageItems]
   const settings = pageItems.filter((i) => i.group === 'settings')
-  const configs = [...pageItems.filter((i) => i.group === 'config'), ...configItems]
+  const configs = [...configItems, ...pageItems.filter((i) => i.group === 'config')]
   return [...pages, ...configs, ...settings]
 }
 
