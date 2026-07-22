@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Puzzle, AlertCircle, ArrowRight } from 'lucide-react'
-import { Badge } from '../../components/shared/Badge'
 import { Skeleton } from '../../components/shared/Skeleton'
 import { appService } from '../../services/appService'
 import type { AppListItem } from '../../../../shared/types/app'
@@ -9,10 +8,10 @@ import type { AppListItem } from '../../../../shared/types/app'
 /**
  * Home dashboard card summarizing the tenant's installed apps.
  *
- * Real data only — pulled from GET /api/apps (appService.listApps()). Shows how many
- * apps are installed vs. enabled and lists each app's live status. When the tenant has
- * no apps at all this renders an honest "nothing installed" state rather than a chart
- * built on invented numbers.
+ * Real data only — pulled from GET /api/apps (appService.listApps()). Shows a compact
+ * enabled/total summary and links to the full Apps page; the per-app list itself lives
+ * on the Apps page, not here. When the tenant has no apps at all this renders an honest
+ * "nothing installed" state rather than a chart built on invented numbers.
  */
 const AppsIntegrationsCard: React.FC = () => {
   const [apps, setApps] = useState<AppListItem[]>([])
@@ -70,25 +69,17 @@ const AppsIntegrationsCard: React.FC = () => {
           </Link>
         </div>
       ) : (
-        <>
-          <div className="flex items-baseline gap-2 mb-4">
+        <div className="flex-1 flex flex-col justify-center">
+          <div className="flex items-baseline gap-2">
             <span className="text-3xl font-bold text-content-primary">{enabledCount}</span>
             <span className="text-sm text-content-secondary">
               of {apps.length} app{apps.length === 1 ? '' : 's'} enabled
             </span>
           </div>
-
-          <ul className="space-y-2 flex-1">
-            {apps.map((app) => (
-              <li key={app.appId} className="flex items-center justify-between gap-2 text-sm">
-                <span className="text-content-primary truncate">{app.name}</span>
-                <Badge variant={app.enabled ? 'success' : 'default'} size="sm" dot>
-                  {app.enabled ? 'Enabled' : app.installed ? 'Installed' : 'Available'}
-                </Badge>
-              </li>
-            ))}
-          </ul>
-        </>
+          <p className="mt-2 text-sm text-content-secondary">
+            {apps.length - enabledCount} available to enable. Manage them below.
+          </p>
+        </div>
       )}
 
       <div className="text-center mt-4 pt-4 border-t border-border">

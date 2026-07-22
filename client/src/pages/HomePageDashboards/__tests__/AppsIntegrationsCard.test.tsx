@@ -57,7 +57,7 @@ describe('AppsIntegrationsCard', () => {
     expect(screen.queryByText(/of \d+ apps? enabled/)).not.toBeInTheDocument()
   })
 
-  it('renders real enabled/installed counts and per-app status', async () => {
+  it('shows a real enabled/total summary without listing individual apps', async () => {
     vi.mocked(appService.listApps).mockResolvedValue([
       app({ appId: 'splunk-enterprise', name: 'Splunk Enterprise', enabled: true }),
       app({ appId: 'splunk-cloud', name: 'Splunk Cloud Platform', enabled: false, installed: true }),
@@ -68,9 +68,10 @@ describe('AppsIntegrationsCard', () => {
       expect(screen.getByText('1')).toBeInTheDocument()
     })
     expect(screen.getByText(/of 2 apps enabled/)).toBeInTheDocument()
-    expect(screen.getByText('Splunk Enterprise')).toBeInTheDocument()
-    expect(screen.getByText('Splunk Cloud Platform')).toBeInTheDocument()
-    expect(screen.getByText('Enabled')).toBeInTheDocument()
-    expect(screen.getByText('Installed')).toBeInTheDocument()
+    // The per-app list was moved to the Apps page — the dashboard card no longer lists apps.
+    expect(screen.queryByText('Splunk Enterprise')).not.toBeInTheDocument()
+    expect(screen.queryByText('Splunk Cloud Platform')).not.toBeInTheDocument()
+    // Links to manage them instead.
+    expect(screen.getByText('Manage apps')).toBeInTheDocument()
   })
 })
