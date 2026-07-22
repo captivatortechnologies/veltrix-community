@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from 'react'
 import { CheckCircle2, Edit2, Copy, Rocket, Trash2, GitPullRequest, Send, Loader2, Ticket } from 'lucide-react'
 import { Modal } from '@/components/shared/Modal/Modal'
+import { Tabs, type TabItem } from '@/components/shared/Tabs'
 import {
   configurationCanvasApi,
   type ConfigurationCanvas,
   type ConfigurationCanvasListItem,
 } from '@/components/shared/ConfigurationCanvas/api/configurationCanvasApi'
 import { TicketLinkPanel } from '@/components/apps/TicketLinkPanel'
+import { ConfigDriftPanel } from '@/components/apps/ConfigDriftPanel'
+import { useConfigDrift } from './useConfigDrift'
 
 /** Render any field value as a readable string for the details view. */
 function formatValue(v: unknown): string {
@@ -66,6 +69,10 @@ export const ConfigDetailsModal: React.FC<ConfigDetailsModalProps> = ({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Configuration Drift for this canvas — fetched independently of the section
+  // detail above so the Drift tab has its own loading/error state.
+  const drift = useConfigDrift(config?.id)
+
   useEffect(() => {
     if (!config) {
       setDetail(null)
@@ -98,6 +105,90 @@ export const ConfigDetailsModal: React.FC<ConfigDetailsModalProps> = ({
     onClose()
     fn?.(config)
   }
+
+  const driftTabLabel = drift.unresolved.length > 0 ? `Drift (${drift.unresolved.length})` : 'Drift'
+
+  const tabs: TabItem[] = [
+    {
+      key: 'details',
+      label: 'Details',
+      content: loading ? (
+        <div className="flex items-center justify-center py-10 text-gray-500 dark:text-gray-400">
+          <Loader2 className="h-5 w-5 animate-spin" />
+          <span className="ml-2">Loading…</span>
+        </div>
+      ) : error ? (
+        <div className="py-6 text-sm text-red-600 dark:text-red-400">{error}</div>
+      ) : detail ? (
+        <div className="space-y-5">
+          {config.description && (
+            <p className="text-sm text-gray-600 dark:text-gray-300">{config.description}</p>
+          )}
+          {(detail.sections ?? []).length === 0 ? (
+            <p className="text-sm text-gray-500 dark:text-gray-400">This configuration has no sections.</p>
+          ) : (
+            (detail.sections ?? []).map((section) => (
+              <div
+                key={section.id ?? section.name}
+                className="rounded-lg border border-gray-200 dark:border-gray-700"
+              >
+                <div className="border-b border-gray-200 bg-gray-50 px-4 py-2 text-sm font-semibold text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100">
+                  {section.name}
+                </div>
+                <dl className="divide-y divide-gray-100 dark:divide-gray-800">
+                  {(section.fields ?? []).map((f) => (
+                    <div key={f.key} className="grid grid-cols-3 gap-3 px-4 py-2">
+                      <dt className="text-sm text-gray-500 dark:text-gray-400">{f.label || f.key}</dt>
+                      <dd className="col-span-2 break-words text-sm text-gray-900 dark:text-white">
+                        {formatValue(f.value)}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            ))
+          )}
+
+          {onLinkTicket && (
+            <div className="rounded-lg border border-gray-200 dark:border-gray-700">
+              <div className="border-b border-gray-200 bg-gray-50 px-4 py-2 text-sm font-semibold text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100">
+                Change / Issue tickets
+              </div>
+              <div className="p-4">
+                <TicketLinkPanel
+                  canvasId={config.id}
+                  defaultSummary={`Change: ${config.name}`}
+                  defaultDescription={
+                    `Change request for Veltrix configuration "${config.name}".\n\n` +
+                    `Status: ${config.status} (v${config.version})\n` +
+                    (config.description ? `Description: ${config.description}\n` : '') +
+                    `\nTracked in Veltrix for change & issue management.`
+                  }
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      ) : null,
+    },
+    {
+      key: 'drift',
+      label: driftTabLabel,
+      content: (
+        <ConfigDriftPanel
+          records={drift.records}
+          unresolved={drift.unresolved}
+          loading={drift.loading}
+          error={drift.error}
+          checking={drift.checking}
+          busy={drift.busy}
+          onCheckNow={drift.checkNow}
+          onCorrect={drift.correct}
+          onAcknowledge={drift.acknowledge}
+        />
+      ),
+    },
+  ]
 
   return (
     <Modal
@@ -180,64 +271,7 @@ export const ConfigDetailsModal: React.FC<ConfigDetailsModalProps> = ({
             </p>
           </div>
         )}
-      {loading ? (
-        <div className="flex items-center justify-center py-10 text-gray-500 dark:text-gray-400">
-          <Loader2 className="h-5 w-5 animate-spin" />
-          <span className="ml-2">Loading…</span>
-        </div>
-      ) : error ? (
-        <div className="py-6 text-sm text-red-600 dark:text-red-400">{error}</div>
-      ) : detail ? (
-        <div className="space-y-5">
-          {config.description && (
-            <p className="text-sm text-gray-600 dark:text-gray-300">{config.description}</p>
-          )}
-          {(detail.sections ?? []).length === 0 ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400">This configuration has no sections.</p>
-          ) : (
-            (detail.sections ?? []).map((section) => (
-              <div
-                key={section.id ?? section.name}
-                className="rounded-lg border border-gray-200 dark:border-gray-700"
-              >
-                <div className="border-b border-gray-200 bg-gray-50 px-4 py-2 text-sm font-semibold text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100">
-                  {section.name}
-                </div>
-                <dl className="divide-y divide-gray-100 dark:divide-gray-800">
-                  {(section.fields ?? []).map((f) => (
-                    <div key={f.key} className="grid grid-cols-3 gap-3 px-4 py-2">
-                      <dt className="text-sm text-gray-500 dark:text-gray-400">{f.label || f.key}</dt>
-                      <dd className="col-span-2 break-words text-sm text-gray-900 dark:text-white">
-                        {formatValue(f.value)}
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
-              </div>
-            ))
-          )}
-
-          {onLinkTicket && (
-            <div className="rounded-lg border border-gray-200 dark:border-gray-700">
-              <div className="border-b border-gray-200 bg-gray-50 px-4 py-2 text-sm font-semibold text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100">
-                Change / Issue tickets
-              </div>
-              <div className="p-4">
-                <TicketLinkPanel
-                  canvasId={config.id}
-                  defaultSummary={`Change: ${config.name}`}
-                  defaultDescription={
-                    `Change request for Veltrix configuration "${config.name}".\n\n` +
-                    `Status: ${config.status} (v${config.version})\n` +
-                    (config.description ? `Description: ${config.description}\n` : '') +
-                    `\nTracked in Veltrix for change & issue management.`
-                  }
-                />
-              </div>
-            </div>
-          )}
-        </div>
-      ) : null}
+      <Tabs tabs={tabs} />
     </Modal>
   )
 }

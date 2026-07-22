@@ -7,6 +7,7 @@ import {
   Loader2,
   ChevronLeft,
   ChevronRight,
+  SearchCheck,
 } from 'lucide-react'
 import PipelineNav from './PipelineNav'
 import {
@@ -18,12 +19,15 @@ import type {
   DriftSeverity,
   PaginatedResponse,
 } from '../../components/shared/Pipeline'
+import { useToast } from '../../components/shared/Toast'
 
 type ResolvedFilter = 'unresolved' | 'resolved' | 'all'
 
 const DriftOverview: React.FC = () => {
+  const toast = useToast()
   const [driftData, setDriftData] = useState<PaginatedResponse<DriftRecord> | null>(null)
   const [loading, setLoading] = useState(true)
+  const [checking, setChecking] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [resolvedFilter, setResolvedFilter] = useState<ResolvedFilter>('unresolved')
   const [page, setPage] = useState(1)
@@ -47,12 +51,27 @@ const DriftOverview: React.FC = () => {
     fetchData()
   }, [fetchData])
 
+  const handleCheckNow = useCallback(async () => {
+    setChecking(true)
+    try {
+      const result = await pipelineApi.detectDrift()
+      await fetchData()
+      toast.success(
+        `Checked — ${result.unresolved} unresolved drift record${result.unresolved !== 1 ? 's' : ''}.`,
+      )
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to check for drift')
+    } finally {
+      setChecking(false)
+    }
+  }, [fetchData, toast])
+
   const handleResolveDrift = async (driftId: string, action: string) => {
     try {
       await pipelineApi.resolveDrift(driftId, action)
       await fetchData()
     } catch (err) {
-      console.error('Failed to resolve drift:', err)
+      toast.error(err instanceof Error ? err.message : 'Failed to resolve drift')
     }
   }
 
@@ -91,14 +110,28 @@ const DriftOverview: React.FC = () => {
             </p>
           </div>
         </div>
-        <button
-          onClick={fetchData}
-          disabled={loading}
-          className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => void handleCheckNow()}
+            disabled={checking}
+            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60 rounded-lg transition-colors"
+          >
+            {checking ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <SearchCheck className="w-4 h-4" />
+            )}
+            Check drift now
+          </button>
+          <button
+            onClick={fetchData}
+            disabled={loading}
+            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* Severity Summary */}

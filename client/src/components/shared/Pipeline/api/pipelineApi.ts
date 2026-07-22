@@ -85,23 +85,50 @@ export interface DeploymentLog {
   metadata?: Record<string, unknown>
 }
 
+/** Who changed a field + when, best-effort attribution from the platform's audit trail. */
+export interface DriftDiffActor {
+  id?: string
+  name?: string
+  email?: string
+  at?: string
+  eventType?: string
+  source?: string
+}
+
+export interface DriftDiff {
+  field: string
+  expected: unknown
+  actual: unknown
+  severity: DriftSeverity
+  actor?: DriftDiffActor
+}
+
 export interface DriftRecord {
   id: string
   appId: string
   configTypeId: string
+  environmentId: string
+  componentId: string | null
   severity: DriftSeverity
-  diffs: Array<{
-    field: string
-    expected: unknown
-    actual: unknown
-    severity: DriftSeverity
-  }>
+  diffs: DriftDiff[]
   isResolved: boolean
   detectedAt: string
   resolvedAt: string | null
   resolvedAction: string | null
-  environment: { id: string; name: string }
-  component: { id: string; hostname: string }
+  environment: { id: string; name: string } | null
+  component: { id: string; hostname: string } | null
+}
+
+/** Response of a canvas-scoped drift check/list — the records for ONE configuration. */
+export interface CanvasDriftResponse {
+  data: DriftRecord[]
+}
+
+/** Response of an on-demand, cross-config drift detection sweep. */
+export interface DriftDetectResponse {
+  checked: true
+  unresolved: number
+  data: DriftRecord[]
 }
 
 export interface EnvironmentMatrixEntry {
@@ -276,6 +303,38 @@ export const pipelineApi = {
       method: 'POST',
       headers: getAuthHeaders(true, true),
       body: JSON.stringify({ action }),
+    })
+    return handleResponse(res)
+  },
+
+  /** GET /pipeline/configuration-canvas/:canvasId/drift — drift records for ONE configuration. */
+  getCanvasDrift: async (canvasId: string): Promise<DriftRecord[]> => {
+    const res = await fetch(`${API_URL}/pipeline/configuration-canvas/${canvasId}/drift`, {
+      headers: getAuthHeaders(),
+    })
+    const body = await handleResponse<CanvasDriftResponse>(res)
+    return body.data
+  },
+
+  /**
+   * POST /pipeline/configuration-canvas/:canvasId/drift/check — runs a drift check for ONE
+   * config, then returns its records. No request body, so Content-Type is omitted (an empty
+   * JSON body would trip Fastify's FST_ERR_CTP_EMPTY_JSON_BODY).
+   */
+  checkCanvasDrift: async (canvasId: string): Promise<CanvasDriftResponse> => {
+    const res = await fetch(`${API_URL}/pipeline/configuration-canvas/${canvasId}/drift/check`, {
+      method: 'POST',
+      headers: getAuthHeaders(false, true),
+    })
+    return handleResponse(res)
+  },
+
+  /** POST /pipeline/drift/detect — on-demand "check now" across all configs, or one environment. */
+  detectDrift: async (environmentId?: string): Promise<DriftDetectResponse> => {
+    const res = await fetch(`${API_URL}/pipeline/drift/detect`, {
+      method: 'POST',
+      headers: getAuthHeaders(true, true),
+      body: JSON.stringify({ environmentId }),
     })
     return handleResponse(res)
   },

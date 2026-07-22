@@ -1,5 +1,4 @@
 import React from 'react'
-import { vi, type Mock } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
@@ -7,6 +6,7 @@ import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest'
 import DriftOverview from '../DriftOverview'
 import { pipelineApi } from '../../../components/shared/Pipeline'
 import type { PaginatedResponse, DriftRecord } from '../../../components/shared/Pipeline'
+import { ToastProvider } from '../../../components/shared/Toast'
 
 vi.mock('../../../components/shared/Pipeline', async () => {
   const actual = await vi.importActual<typeof import('../../../components/shared/Pipeline')>(
@@ -18,6 +18,7 @@ vi.mock('../../../components/shared/Pipeline', async () => {
       ...actual.pipelineApi,
       getDriftRecords: vi.fn(),
       resolveDrift: vi.fn(),
+      detectDrift: vi.fn(),
     },
   }
 })
@@ -28,6 +29,8 @@ const mockDriftData: PaginatedResponse<DriftRecord> = {
       id: 'drift-1',
       appId: 'splunk-enterprise',
       configTypeId: 'indexes',
+      environmentId: 'env-1',
+      componentId: 'comp-1',
       severity: 'critical',
       diffs: [
         { field: 'maxDataSizeMB', expected: 500, actual: 250, severity: 'critical' },
@@ -43,6 +46,8 @@ const mockDriftData: PaginatedResponse<DriftRecord> = {
       id: 'drift-2',
       appId: 'crowdstrike',
       configTypeId: 'policies',
+      environmentId: 'env-2',
+      componentId: 'comp-2',
       severity: 'warning',
       diffs: [
         { field: 'scanInterval', expected: 60, actual: 120, severity: 'warning' },
@@ -66,7 +71,9 @@ const mockDriftData: PaginatedResponse<DriftRecord> = {
 const renderComponent = () =>
   render(
     <MemoryRouter initialEntries={['/pipeline/drift']}>
-      <DriftOverview />
+      <ToastProvider>
+        <DriftOverview />
+      </ToastProvider>
     </MemoryRouter>
   )
 
@@ -140,5 +147,29 @@ describe('DriftOverview', () => {
     expect(pipelineApi.getDriftRecords).toHaveBeenCalledWith(
       expect.objectContaining({ isResolved: true })
     )
+  })
+
+  it('runs an on-demand drift check and refreshes the list', async () => {
+    ;(pipelineApi.getDriftRecords as Mock).mockResolvedValue(mockDriftData)
+    ;(pipelineApi.detectDrift as Mock).mockResolvedValue({
+      checked: true,
+      unresolved: 2,
+      data: mockDriftData.data,
+    })
+    const user = userEvent.setup()
+    renderComponent()
+
+    await waitFor(() => {
+      expect(screen.getByText('2 records')).toBeTruthy()
+    })
+
+    await user.click(screen.getByText('Check drift now'))
+
+    await waitFor(() => {
+      expect(pipelineApi.detectDrift).toHaveBeenCalledWith()
+      expect(screen.getByText(/Checked — 2 unresolved/)).toBeTruthy()
+    })
+    // Refetches the list after the check completes.
+    expect(pipelineApi.getDriftRecords).toHaveBeenCalledTimes(2)
   })
 })
