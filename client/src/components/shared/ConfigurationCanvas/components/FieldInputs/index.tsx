@@ -10,6 +10,7 @@ import { PathField } from './PathField';
 import { FilesField } from './FilesField';
 import { KeyValueField } from './KeyValueField';
 import { RemoteMultiSelectField } from './RemoteMultiSelectField';
+import { RemoteSelectField } from './RemoteSelectField';
 
 /**
  * The concrete value type each field type's input component works with.
@@ -29,6 +30,7 @@ interface FieldValueTypeMap {
   files: import('../../types').FileEntry[];
   keyvalue: import('../../types').KeyValueEntry[];
   'remote-multiselect': string[];
+  'remote-select': string;
 }
 
 /**
@@ -55,6 +57,7 @@ const fieldComponents: {
   files: FilesField,
   keyvalue: KeyValueField,
   'remote-multiselect': RemoteMultiSelectField,
+  'remote-select': RemoteSelectField,
 };
 
 /**

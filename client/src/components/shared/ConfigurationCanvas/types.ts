@@ -24,7 +24,8 @@ export type FieldType =
   | 'path'
   | 'files'
   | 'keyvalue'
-  | 'remote-multiselect';
+  | 'remote-multiselect'
+  | 'remote-select';
 
 /**
  * Option for select/multiselect fields
