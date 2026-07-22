@@ -43,21 +43,30 @@ export interface AppClientBundleModule {
 const bundleCache = new Map<string, Promise<AppClientBundleModule>>()
 
 /**
- * Import an app's client bundle, memoized per appId. Failed loads are
- * evicted from the cache so a retry re-fetches instead of replaying the
- * cached rejection.
+ * Import an app's client bundle, memoized per appId + version. Including the
+ * version in BOTH the cache key and the import URL means a redeploy that bumps
+ * the app version imports a FRESH module in an already-open tab (a stable URL
+ * would keep the old module in the ES-module registry until a full page reload —
+ * the "I deployed a fix but still see the old app page" trap). Failed loads are
+ * evicted so a retry re-fetches instead of replaying the cached rejection.
  */
-export function loadAppClientBundle(appId: string): Promise<AppClientBundleModule> {
-  const cached = bundleCache.get(appId)
+export function loadAppClientBundle(appId: string, version?: string): Promise<AppClientBundleModule> {
+  const key = `${appId}@${version ?? ''}`
+  const cached = bundleCache.get(key)
   if (cached) return cached
 
-  const promise = import(/* @vite-ignore */ `/api/apps/${appId}/client.mjs`).then(
+  // `no-store` on the bundle means the version query never has to fight an HTTP
+  // cache; it exists purely to give a new version a distinct module-registry URL.
+  const url = version
+    ? `/api/apps/${appId}/client.mjs?v=${encodeURIComponent(version)}`
+    : `/api/apps/${appId}/client.mjs`
+  const promise = import(/* @vite-ignore */ url).then(
     (mod) => (mod?.default ?? mod) as AppClientBundleModule,
   )
   promise.catch(() => {
-    bundleCache.delete(appId)
+    bundleCache.delete(key)
   })
-  bundleCache.set(appId, promise)
+  bundleCache.set(key, promise)
   return promise
 }
 
@@ -143,7 +152,7 @@ class AppPageErrorBoundary extends React.Component<ErrorBoundaryProps, { error: 
 
 export interface AppPageHostProps {
   /** Injectable bundle loader (tests); defaults to the real dynamic import. */
-  loadBundle?: (appId: string) => Promise<AppClientBundleModule>
+  loadBundle?: (appId: string, version?: string) => Promise<AppClientBundleModule>
 }
 
 const AppPageHost: React.FC<AppPageHostProps> = ({ loadBundle = loadAppClientBundle }) => {
@@ -151,7 +160,7 @@ const AppPageHost: React.FC<AppPageHostProps> = ({ loadBundle = loadAppClientBun
   const appId = params.appId ?? ''
   const remainder = (params['*'] ?? '').replace(/\/+$/, '')
 
-  const { enabledApps, loading } = useApps()
+  const { enabledApps, loading, refreshApps } = useApps()
   const { hasPermission } = usePermissions()
   const app = enabledApps.find((candidate) => candidate.appId === appId)
 
@@ -160,14 +169,36 @@ const AppPageHost: React.FC<AppPageHostProps> = ({ loadBundle = loadAppClientBun
   const [attempt, setAttempt] = useState(0)
 
   const enabledAppId = app?.appId
+  const appVersion = app?.version
 
-  // Load (or re-load after retry) the app's client bundle.
+  // Notice a redeploy while this tab stays open on an app page: the apps context
+  // only refetches on route change, so poll it (and on window focus / tab
+  // re-show) so `appVersion` reflects the latest deploy. When it changes, the
+  // load effect below re-imports the fresh bundle — no manual hard-refresh.
+  useEffect(() => {
+    if (!enabledAppId) return
+    const wake = () => {
+      if (document.visibilityState === 'visible') void refreshApps()
+    }
+    const interval = window.setInterval(wake, 60_000)
+    window.addEventListener('focus', wake)
+    document.addEventListener('visibilitychange', wake)
+    return () => {
+      window.clearInterval(interval)
+      window.removeEventListener('focus', wake)
+      document.removeEventListener('visibilitychange', wake)
+    }
+  }, [enabledAppId, refreshApps])
+
+  // Load (or re-load after retry, or after a version bump) the app's client
+  // bundle. `appVersion` in the deps + the version-keyed loader means a new
+  // deploy swaps in the fresh module here.
   useEffect(() => {
     if (!enabledAppId) return
     let active = true
     setBundle(null)
     setLoadError(null)
-    loadBundle(enabledAppId).then(
+    loadBundle(enabledAppId, appVersion).then(
       (mod) => {
         if (active) setBundle(mod)
       },
@@ -178,7 +209,7 @@ const AppPageHost: React.FC<AppPageHostProps> = ({ loadBundle = loadAppClientBun
     return () => {
       active = false
     }
-  }, [enabledAppId, attempt, loadBundle])
+  }, [enabledAppId, appVersion, attempt, loadBundle])
 
   // Shared with AppConfigTypePage's companion tabs — one source of truth for
   // the customer-scoped settings, fetchers, branding and permission API.

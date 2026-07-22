@@ -70,7 +70,7 @@ export interface AppBundleTabProps {
   app: EnabledApp
   page: AppPageDeclaration
   /** Injectable bundle loader (tests); defaults to the real dynamic import. */
-  loadBundle?: (appId: string) => Promise<AppClientBundleModule>
+  loadBundle?: (appId: string, version?: string) => Promise<AppClientBundleModule>
 }
 
 /**
@@ -92,7 +92,7 @@ export const AppBundleTab: React.FC<AppBundleTabProps> = ({
     let active = true
     setBundle(null)
     setLoadError(null)
-    loadBundle(app.appId).then(
+    loadBundle(app.appId, app.version).then(
       (mod) => {
         if (active) setBundle(mod)
       },
@@ -103,7 +103,7 @@ export const AppBundleTab: React.FC<AppBundleTabProps> = ({
     return () => {
       active = false
     }
-  }, [app.appId, attempt, loadBundle])
+  }, [app.appId, app.version, attempt, loadBundle])
 
   if (!contextValue) return <CenteredSpinner label={`Loading ${app.name}…`} />
 
