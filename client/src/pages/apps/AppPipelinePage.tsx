@@ -994,9 +994,6 @@ const AppPipelinePage: React.FC = () => {
                 {deployError.message}
               </p>
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              This reason is also shown on the configuration and recorded in its Review History.
-            </p>
           </div>
         )}
       </Modal>
