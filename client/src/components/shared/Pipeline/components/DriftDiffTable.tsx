@@ -33,10 +33,11 @@ function formatValue(v: unknown): string {
 }
 
 /**
- * Field / Previous (approved) / Current (live) / Severity / Changed-by table for a
- * drift record's diffs — an explicit previous-vs-current comparison of exactly what
- * changed. Shared by DriftAlert (the standalone Drift page) and the configuration
- * details modal's Drift tab so both surfaces stay visually consistent.
+ * Field / Expected / Actual / Severity / Changed-by table for a drift record's
+ * diffs — Expected is the approved/deployed value, Actual is the live value, so
+ * the row reads as exactly what changed. Shared by DriftAlert (the standalone Drift
+ * page) and the configuration details modal's Drift tab so both surfaces stay
+ * visually consistent.
  *
  * "Changed by" surfaces the best-effort actor attribution the server may attach
  * to a diff (`diff.actor`) — who made the manual change and when. It renders a
@@ -48,8 +49,8 @@ export const DriftDiffTable: React.FC<DriftDiffTableProps> = ({ diffs, className
       <thead>
         <tr className="text-gray-500 dark:text-gray-400">
           <th className="text-left py-1 pr-3 font-medium">Field</th>
-          <th className="text-left py-1 pr-3 font-medium">Previous (approved)</th>
-          <th className="text-left py-1 pr-3 font-medium">Current (live)</th>
+          <th className="text-left py-1 pr-3 font-medium">Expected</th>
+          <th className="text-left py-1 pr-3 font-medium">Actual</th>
           <th className="text-left py-1 pr-3 font-medium">Severity</th>
           <th className="text-left py-1 font-medium">Changed by</th>
         </tr>

@@ -4,13 +4,13 @@ import DriftDiffTable from '../components/DriftDiffTable'
 import type { DriftDiff } from '../api/pipelineApi'
 
 describe('DriftDiffTable', () => {
-  it('renders field / previous / current / severity columns', () => {
+  it('renders field / expected / actual / severity columns', () => {
     const diffs: DriftDiff[] = [
       { field: 'maxDataSizeMB', expected: 500, actual: 250, severity: 'critical' },
     ]
     render(<DriftDiffTable diffs={diffs} />)
-    expect(screen.getByText('Previous (approved)')).toBeTruthy()
-    expect(screen.getByText('Current (live)')).toBeTruthy()
+    expect(screen.getByText('Expected')).toBeTruthy()
+    expect(screen.getByText('Actual')).toBeTruthy()
     expect(screen.getByText('maxDataSizeMB')).toBeTruthy()
     expect(screen.getByText('500')).toBeTruthy()
     expect(screen.getByText('250')).toBeTruthy()
