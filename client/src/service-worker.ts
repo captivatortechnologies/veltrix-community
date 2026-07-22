@@ -15,7 +15,10 @@ declare const self: ServiceWorkerGlobalScope;
 // handler deletes every cache whose name != CACHE_NAME, so bumping the version
 // purges old precached assets (e.g. a stale JS bundle pointing at an old API URL)
 // for all clients on their next visit.
-const CACHE_VERSION = 'v3';
+// (v3 -> v4, 2026-07-22: purge stale caches + get every client onto the
+// network-first-HTML SW; paired with auto-reload on SW takeover so client fixes
+// actually reach browsers without a manual hard-refresh.)
+const CACHE_VERSION = 'v4';
 const CACHE_NAME = `veltrix-cache-${CACHE_VERSION}`;
 
 // Assets to cache immediately on install

@@ -27,12 +27,11 @@ registerServiceWorker({
     console.log('Service worker registered successfully');
   },
   onUpdate: (registration) => {
-    console.log('New version available');
-    // Notify user about update
-    if (window.confirm('New version available! Reload to update?')) {
-      registration.waiting?.postMessage({ type: 'SKIP_WAITING' });
-      window.location.reload();
-    }
+    // A new version installed. It self-activates and the registration's
+    // controllerchange handler reloads the page onto the fresh bundle
+    // automatically — no confirm dialog needed.
+    console.log('New version installed — reloading to apply');
+    registration.waiting?.postMessage({ type: 'SKIP_WAITING' });
   },
   onError: (error) => {
     console.error('Service worker registration failed:', error);

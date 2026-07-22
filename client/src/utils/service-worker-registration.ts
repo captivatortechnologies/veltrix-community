@@ -41,6 +41,22 @@ export async function register(config: ServiceWorkerConfig = {}): Promise<void> 
   }
 
   try {
+    // A page controlled by a service worker keeps serving the SW's cached app
+    // shell + bundle until a NEW worker takes control AND the page reloads. The
+    // SW self-`skipWaiting()`s on install, so a new version activates and fires
+    // `controllerchange`; reload once there to land the browser on the fresh
+    // bundle automatically — this is what makes a deploy's client fixes reach
+    // users without a manual hard-refresh. Guarded so it never loops and never
+    // fires on the very first registration (no prior controller = first install,
+    // not an update).
+    const hadController = !!navigator.serviceWorker.controller;
+    let reloadingForUpdate = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!hadController || reloadingForUpdate) return;
+      reloadingForUpdate = true;
+      window.location.reload();
+    });
+
     const registration = await navigator.serviceWorker.register('/service-worker.js', {
       scope: '/'
     });
@@ -54,17 +70,13 @@ export async function register(config: ServiceWorkerConfig = {}): Promise<void> 
 
       newWorker.addEventListener('statechange', () => {
         if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-          // New service worker available
-          console.log('New service worker available');
-          
-          if (config.onUpdate) {
-            config.onUpdate(registration);
-          } else {
-            // Default behavior: prompt user to reload
-            if (window.confirm('New version available! Reload to update?')) {
-              window.location.reload();
-            }
-          }
+          // A new version installed alongside the running one. Activate it now
+          // (belt-and-suspenders: the SW also self-skipWaiting's); its takeover
+          // fires `controllerchange`, which reloads the page onto the fresh
+          // bundle via the handler above — no user prompt, no stale bundle.
+          console.log('New service worker installed — activating and reloading');
+          newWorker.postMessage({ type: 'SKIP_WAITING' });
+          config.onUpdate?.(registration);
         }
       });
     });
