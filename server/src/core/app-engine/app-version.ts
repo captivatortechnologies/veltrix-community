@@ -125,9 +125,44 @@ export function isUpgradeAvailable(installed: string | null | undefined, latest:
  * (i.e. the catalog actually describes the resolved latest). When the on-disk
  * copy is somehow ahead of the catalog, the on-disk version wins with no notes.
  */
+/**
+ * Extract one version's section from a CHANGELOG.md — the lines from its
+ * `## <version> …` heading up to (not including) the next `## ` heading. Returns
+ * undefined when the version has no section. Lets the on-disk CHANGELOG be the
+ * release-notes source for built-in/placeholder apps that have no installable
+ * catalog entry (the standing rule is every bump ships CHANGELOG notes).
+ */
+export function extractChangelogSection(changelog: string, version: string): string | undefined {
+  if (!changelog) return undefined
+  const target = version.replace(/^v/, '')
+  const lines = changelog.split(/\r?\n/)
+  const headingVersion = (l: string): string | null => {
+    const m = l.match(/^##\s+v?(\d+\.\d+\.\d+)/)
+    return m ? m[1] : null
+  }
+  let start = -1
+  for (let i = 0; i < lines.length; i++) {
+    if (headingVersion(lines[i]) === target) {
+      start = i
+      break
+    }
+  }
+  if (start === -1) return undefined
+  let end = lines.length
+  for (let i = start + 1; i < lines.length; i++) {
+    if (/^##\s+/.test(lines[i])) {
+      end = i
+      break
+    }
+  }
+  const section = lines.slice(start, end).join('\n').trim()
+  return section || undefined
+}
+
 export function resolveLatestRelease(
   appVersion: string,
   catalogEntry?: Pick<MarketplaceEntry, 'version' | 'releaseNotes' | 'releasedAt' | 'downloadUrl'> | null,
+  onDiskReleaseNotes?: string,
 ): ResolvedRelease {
   // A catalog entry only represents a real upgrade target when it is actually
   // installable — i.e. it carries a downloadUrl. "Coming soon" marketplace
@@ -137,7 +172,7 @@ export function resolveLatestRelease(
   // phantom banner the tenant can never action. Ignore such entries and fall
   // back to the registered on-disk version.
   if (!catalogEntry?.version || !catalogEntry.downloadUrl) {
-    return { version: appVersion }
+    return { version: appVersion, releaseNotes: onDiskReleaseNotes }
   }
   const catalogIsNewerOrEqual = compareVersions(catalogEntry.version, appVersion) >= 0
   if (catalogIsNewerOrEqual) {
@@ -147,7 +182,7 @@ export function resolveLatestRelease(
       releasedAt: catalogEntry.releasedAt,
     }
   }
-  return { version: appVersion }
+  return { version: appVersion, releaseNotes: onDiskReleaseNotes }
 }
 
 /**
@@ -159,8 +194,10 @@ export function buildAppVersionInfo(input: {
   appVersion: string
   installedVersion: string | null
   catalogEntry?: Pick<MarketplaceEntry, 'version' | 'releaseNotes' | 'releasedAt' | 'downloadUrl'> | null
+  /** The app's on-disk CHANGELOG section for `appVersion`; used when the catalog carries no notes. */
+  onDiskReleaseNotes?: string
 }): AppVersionInfo {
-  const latest = resolveLatestRelease(input.appVersion, input.catalogEntry)
+  const latest = resolveLatestRelease(input.appVersion, input.catalogEntry, input.onDiskReleaseNotes)
   return {
     appId: input.appId,
     installedVersion: input.installedVersion,

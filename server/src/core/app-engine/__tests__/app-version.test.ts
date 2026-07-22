@@ -8,7 +8,58 @@ import {
   isUpgradeAvailable,
   resolveLatestRelease,
   buildAppVersionInfo,
+  extractChangelogSection,
 } from '../app-version'
+
+const CHANGELOG = [
+  '# Changelog',
+  '',
+  '## 1.8.6 — 2026-07-21',
+  '',
+  '### Changed',
+  '- Live pickers for the polymorphic fields.',
+  '',
+  '## 1.8.5 — 2026-07-21',
+  '',
+  '### Changed',
+  '- Single-value pickers.',
+].join('\n')
+
+describe('extractChangelogSection', () => {
+  it('returns the section for a version, up to the next heading', () => {
+    const s = extractChangelogSection(CHANGELOG, '1.8.6')
+    expect(s).toContain('## 1.8.6')
+    expect(s).toContain('Live pickers for the polymorphic fields.')
+    expect(s).not.toContain('1.8.5')
+    expect(s).not.toContain('Single-value pickers.')
+  })
+
+  it('matches a v-prefixed version and the last section', () => {
+    const s = extractChangelogSection(CHANGELOG, 'v1.8.5')
+    expect(s).toContain('## 1.8.5')
+    expect(s).toContain('Single-value pickers.')
+  })
+
+  it('returns undefined for a missing version or empty changelog', () => {
+    expect(extractChangelogSection(CHANGELOG, '9.9.9')).toBeUndefined()
+    expect(extractChangelogSection('', '1.8.6')).toBeUndefined()
+  })
+})
+
+describe('buildAppVersionInfo — on-disk release notes fallback', () => {
+  it('uses on-disk notes when the catalog placeholder carries none', () => {
+    const info = buildAppVersionInfo({
+      appId: 'okta-identity',
+      appVersion: '1.8.6',
+      installedVersion: '1.8.5',
+      catalogEntry: { version: '4.0.0', releaseNotes: undefined }, // placeholder, no downloadUrl
+      onDiskReleaseNotes: '## 1.8.6\n- notes',
+    })
+    expect(info.latestVersion).toBe('1.8.6')
+    expect(info.upgradeAvailable).toBe(true)
+    expect(info.releaseNotes).toBe('## 1.8.6\n- notes')
+  })
+})
 
 describe('compareVersions', () => {
   it('orders by numeric release segments', () => {

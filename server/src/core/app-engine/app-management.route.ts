@@ -21,7 +21,7 @@ import { registerAppClientBundleRoute } from './app-client-bundle.route'
 import { registerAppConfigTemplateRoutes } from './app-config-template.route'
 import { registerAppBrandingRoutes, buildEnabledBranding } from './app-branding.route'
 import { vetApp, type VetResult } from './app-vetting.service'
-import { buildAppVersionInfo, compareVersions } from './app-version'
+import { buildAppVersionInfo, compareVersions, extractChangelogSection } from './app-version'
 import { recordAuditEvent } from '../../lib/audit-event'
 import { resolvePermissionSnapshotForUser, snapshotGrants } from '../../lib/permissions'
 import { decryptCredentialSecrets } from '../../module/credential/credential.service'
@@ -31,6 +31,21 @@ import type { AppPageDeclaration } from '../../../../shared/types/app'
 const errorSchema = {
   type: 'object',
   properties: { error: { type: 'string' } },
+}
+
+/**
+ * Read the app's on-disk CHANGELOG.md and return the section for `version`, so the
+ * upgrade dialog shows release notes for built-in/placeholder apps whose catalog
+ * entry carries none. Best-effort: missing/unparseable CHANGELOG -> undefined.
+ */
+async function readOnDiskReleaseNotes(appId: string, version: string): Promise<string | undefined> {
+  try {
+    const changelogPath = path.join(getAppRegistry().getAppsDir(), appId, 'CHANGELOG.md')
+    const md = await fs.promises.readFile(changelogPath, 'utf8')
+    return extractChangelogSection(md, version)
+  } catch {
+    return undefined
+  }
 }
 
 // APAV-style vetting report shapes (see app-vetting.service.ts).
@@ -679,6 +694,7 @@ export async function appManagementRoutes(fastify: FastifyInstance) {
           appVersion: app.version,
           installedVersion: app.installations[0]?.version ?? null,
           catalogEntry: marketplaceCatalog.getById(app.appId),
+          onDiskReleaseNotes: await readOnDiskReleaseNotes(app.appId, app.version),
         })
 
         reply.send(info)
@@ -738,6 +754,7 @@ export async function appManagementRoutes(fastify: FastifyInstance) {
           appVersion: app.version,
           installedVersion: fromVersion,
           catalogEntry,
+          onDiskReleaseNotes: await readOnDiskReleaseNotes(appId, app.version),
         })
 
         if (!info.upgradeAvailable) {
