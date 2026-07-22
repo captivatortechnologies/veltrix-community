@@ -8,9 +8,63 @@ import {
   canvasTemplateToSections,
   canvasTemplateToItems,
   makeCanvasItem,
+  applyTemplateFieldMeta,
   resolveItemSpec,
   type CanvasTemplate,
 } from '../canvasTemplate'
+
+describe('applyTemplateFieldMeta', () => {
+  const template: CanvasTemplate = {
+    item: {
+      groups: [
+        {
+          name: 'Rule',
+          fields: [
+            { key: 'name', label: 'Name', fieldType: 'text' },
+            {
+              key: 'groupIds',
+              label: 'Target Groups',
+              fieldType: 'remote-multiselect',
+              optionsSource: 'groups',
+              optionsMulti: true,
+            },
+          ],
+        },
+      ],
+    },
+  }
+
+  // A saved config reopened for edit: the picker field kept its type + value but
+  // lost the template-only optionsSource (never persisted per-field).
+  const savedSections = [
+    {
+      id: 's1',
+      name: 'Rule 1',
+      fields: [
+        { id: 'f1', key: 'name', label: 'Name', type: 'text' as const, value: 'r1' },
+        {
+          id: 'f2',
+          key: 'groupIds',
+          label: 'Target Groups',
+          type: 'remote-multiselect' as const,
+          value: ['00g1'],
+        },
+      ],
+    },
+  ]
+
+  it('re-applies optionsSource/optionsMulti from the template onto the saved field', () => {
+    const merged = applyTemplateFieldMeta(savedSections, template)
+    const picker = merged[0].fields.find((f) => f.key === 'groupIds')!
+    expect(picker.optionsSource).toBe('groups')
+    expect(picker.optionsMulti).toBe(true)
+    expect(picker.value).toEqual(['00g1']) // value untouched
+  })
+
+  it('returns the sections unchanged when there is no template', () => {
+    expect(applyTemplateFieldMeta(savedSections, null)).toBe(savedSections)
+  })
+})
 
 const template: CanvasTemplate = {
   name: 'Host Group',

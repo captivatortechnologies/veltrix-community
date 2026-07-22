@@ -56,6 +56,7 @@ import { ConfigDetailsModal } from './ConfigDetailsModal'
 import { Modal } from '@/components/shared/Modal/Modal'
 import {
   canvasTemplateToItems,
+  applyTemplateFieldMeta,
   fetchCanvasTemplate,
   fetchCanvasDefaults,
   makeCanvasItem,
@@ -636,7 +637,12 @@ const AppConfigTypeSurface: React.FC = () => {
       try {
         const full = await configurationCanvasApi.getById(config.id)
         setConfigName(full.name)
-        setInitialSections(configurationCanvasApi.sectionsFromApi(full.sections))
+        // Re-apply template-owned field metadata (options source, visibleWhen, …)
+        // that isn't persisted per-field, so live pickers keep their source on edit.
+        const template = canvasTemplate ?? (await fetchCanvasTemplate(appId, configTypeId).catch(() => null))
+        setInitialSections(
+          applyTemplateFieldMeta(configurationCanvasApi.sectionsFromApi(full.sections), template),
+        )
         setSelectedTagIds(full.tags?.map((t) => t.tagId) ?? [])
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Failed to load configuration'
@@ -647,7 +653,7 @@ const AppConfigTypeSurface: React.FC = () => {
         setEditorLoading(false)
       }
     },
-    [toast],
+    [toast, canvasTemplate, appId, configTypeId],
   )
 
   const handleCancelEditor = useCallback(() => {

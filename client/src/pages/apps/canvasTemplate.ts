@@ -289,6 +289,45 @@ function buildItem(
   }
 }
 
+/**
+ * Re-apply template-owned field METADATA onto a saved canvas's fields on edit.
+ *
+ * `optionsSource` / `optionsMulti` (live pickers) and `visibleWhen` / `lockKeys`
+ * live only in the canvas.yaml template — they are NOT persisted with the field's
+ * value. So a saved config reopened for edit loads fields without them, and a
+ * `remote-multiselect` / `remote-select` picker reports "no options source
+ * configured". This copies each metadata prop from the template (matched by field
+ * key) back onto the loaded fields; the field's saved value/id/etc. are untouched.
+ */
+export function applyTemplateFieldMeta(
+  sections: ConfigSection[],
+  template: CanvasTemplate | null | undefined,
+): ConfigSection[] {
+  if (!template) return sections
+  const meta = new Map<string, CanvasTemplateField>()
+  const collect = (fields?: CanvasTemplateField[]) => {
+    for (const f of fields ?? []) if (f.key && !meta.has(f.key)) meta.set(f.key, f)
+  }
+  for (const group of template.item?.groups ?? []) collect(group.fields)
+  for (const section of template.sections ?? []) collect(section.fields)
+  if (meta.size === 0) return sections
+
+  return sections.map((section) => ({
+    ...section,
+    fields: section.fields.map((field) => {
+      const t = meta.get(field.key)
+      if (!t) return field
+      return {
+        ...field,
+        optionsSource: t.optionsSource ?? field.optionsSource,
+        optionsMulti: t.optionsMulti ?? field.optionsMulti,
+        visibleWhen: (t.visibleWhen as ConfigField['visibleWhen']) ?? field.visibleWhen,
+        lockKeys: t.lockKeys ?? field.lockKeys,
+      }
+    }),
+  }))
+}
+
 /** Build one new item from the template — the factory behind Add and Duplicate. */
 export function makeCanvasItem(
   template: CanvasTemplate | null | undefined,
