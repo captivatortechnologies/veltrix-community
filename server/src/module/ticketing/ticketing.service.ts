@@ -408,11 +408,26 @@ export const ticketingService = {
   ): Promise<void> {
     let links: any[]
     try {
-      links = await prisma.configurationTicketLink.findMany({ where: { canvasId, customerId, linkType: 'change' } })
+      // Reflect the deploy outcome onto EVERY linked ticket, not just change-type
+      // links — an Issue ticket linked to the config should see that its deploy
+      // failed (with the reason) just as much as a Change ticket.
+      links = await prisma.configurationTicketLink.findMany({ where: { canvasId, customerId } })
     } catch (err) {
       loggerService.warn('[ticketing] could not load ticket links for deploy reflection', err)
       return
     }
+    // A readable one-liner carrying the outcome AND, on failure, the reason — used
+    // for the comment fallback and as a guaranteed record even when updateStatus
+    // does its own formatting.
+    const outcomeLabel: Record<TicketStatusTransition['outcome'], string> = {
+      deploy_started: 'Deployment started',
+      deploy_succeeded: 'Deployment succeeded',
+      deploy_failed: 'Deployment failed',
+      rolled_back: 'Deployment rolled back',
+    };
+    const note = `[Veltrix] ${outcomeLabel[transition.outcome] ?? transition.outcome}${
+      transition.note ? `: ${transition.note}` : ''
+    }`;
     for (const link of links) {
       try {
         if (!link.connectionId) continue
@@ -423,7 +438,9 @@ export const ticketingService = {
         if (adapter.updateStatus) {
           await adapter.updateStatus(ctx, link.externalId, transition, link.ticketType)
         } else {
-          await adapter.addComment(ctx, link.externalId, `[Veltrix] ${transition.outcome}`, link.ticketType)
+          // Fallback for a provider without updateStatus — include the reason so a
+          // failure still tells the ticket WHY, not just the bare outcome.
+          await adapter.addComment(ctx, link.externalId, note, link.ticketType)
         }
       } catch (err) {
         loggerService.warn(`[ticketing] failed to reflect deploy status to ticket ${link.externalId}`, err)

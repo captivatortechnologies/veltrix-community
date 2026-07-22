@@ -56,6 +56,7 @@ export class DeploymentOrchestrator {
       const reason = 'No pipeline handlers registered for this app/config type'
       await this.failDeployment(data.deploymentId, reason)
       await this.updateCanvas(data.canvasId, 'DEPLOYMENT_FAILED', reason)
+      await this.reflectTicket(data, { outcome: 'deploy_failed', note: reason })
       return
     }
 
@@ -70,6 +71,7 @@ export class DeploymentOrchestrator {
         const reason = 'No target components found for this configuration'
         await this.failDeployment(data.deploymentId, reason)
         await this.updateCanvas(data.canvasId, 'DEPLOYMENT_FAILED', reason)
+        await this.reflectTicket(data, { outcome: 'deploy_failed', note: reason })
         return
       }
 
