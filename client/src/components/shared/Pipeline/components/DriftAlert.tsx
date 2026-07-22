@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
-import { ChevronDown, ChevronUp, CheckCircle } from 'lucide-react'
-import type { DriftRecord } from '../api/pipelineApi'
+import { ChevronDown, ChevronUp, CheckCircle, UserRound } from 'lucide-react'
+import type { DriftDiff, DriftRecord } from '../api/pipelineApi'
 import { DRIFT_SEVERITY_CONFIG } from './severityConfig'
 import { DriftDiffTable } from './DriftDiffTable'
 
@@ -9,10 +9,37 @@ interface DriftAlertProps {
   onResolve?: (driftId: string, action: string) => void
 }
 
+/** ISO -> local time, falling back to the raw string. */
+function formatWhen(at?: string): string {
+  if (!at) return ''
+  const d = new Date(at)
+  return Number.isNaN(d.getTime()) ? at : d.toLocaleString()
+}
+
+/**
+ * Roll a record's per-diff actor attribution up to one "who + when" summary for the
+ * always-visible header: the most recent attributed change, plus a count of any other
+ * distinct people. Returns null when no diff could be attributed (the full per-field
+ * breakdown still lives in the expanded DriftDiffTable's "Changed by" column).
+ */
+function summarizeActor(diffs: DriftDiff[]): { name: string; email?: string; when: string; others: number } | null {
+  const actors = diffs.map((d) => d.actor).filter((a): a is NonNullable<DriftDiff['actor']> => Boolean(a?.name))
+  if (actors.length === 0) return null
+  const primary = actors.reduce((a, b) => ((b.at ?? '') > (a.at ?? '') ? b : a))
+  const distinct = new Set(actors.map((a) => a.name))
+  return {
+    name: primary.name!,
+    email: primary.email,
+    when: formatWhen(primary.at),
+    others: Math.max(0, distinct.size - 1),
+  }
+}
+
 const DriftAlert: React.FC<DriftAlertProps> = ({ drift, onResolve }) => {
   const [expanded, setExpanded] = useState(false)
   const config = DRIFT_SEVERITY_CONFIG[drift.severity]
   const Icon = config.icon
+  const actor = summarizeActor(drift.diffs)
 
   return (
     <div className={`rounded-lg border ${config.borderColor} ${config.bgColor} p-4`}>
@@ -37,8 +64,21 @@ const DriftAlert: React.FC<DriftAlertProps> = ({ drift, onResolve }) => {
               {drift.diffs.length !== 1 ? 's' : ''} detected
             </p>
             <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-              {new Date(drift.detectedAt).toLocaleString()}
+              Detected {new Date(drift.detectedAt).toLocaleString()}
             </p>
+            {actor && (
+              <p
+                className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 mt-0.5"
+                title={actor.email}
+              >
+                <UserRound className="w-3 h-3 flex-shrink-0" />
+                <span>
+                  Changed by <span className="font-medium text-gray-700 dark:text-gray-300">{actor.name}</span>
+                  {actor.others > 0 && ` +${actor.others} other${actor.others === 1 ? '' : 's'}`}
+                  {actor.when && ` · ${actor.when}`}
+                </span>
+              </p>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">
