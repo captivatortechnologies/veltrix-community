@@ -1,8 +1,61 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
 import prisma from '../../db'
 import { loggerService } from '../../module/logger/logger.service'
-import { getPipelineService } from '../platform-bootstrap'
+import { getPipelineService, getDriftDetector } from '../platform-bootstrap'
 import type { DeploymentStrategy } from '../../../../shared/types/pipeline'
+
+/**
+ * Attach a lightweight `component { id, hostname }` onto drift records. The
+ * DriftRecord model stores only a bare `componentId` (no relation), so the client
+ * — which renders `drift.component.hostname` — would otherwise see it undefined.
+ * Batched to one query regardless of record count.
+ */
+async function withComponents<T extends { componentId: string | null }>(
+  records: T[],
+): Promise<Array<T & { component: { id: string; hostname: string } | null }>> {
+  const ids = [...new Set(records.map((r) => r.componentId).filter((v): v is string => Boolean(v)))]
+  const byId = new Map<string, { id: string; hostname: string }>()
+  if (ids.length > 0) {
+    const comps = await prisma.component.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, hostname: true },
+    })
+    for (const c of comps) byId.set(c.id, c)
+  }
+  return records.map((r) => ({
+    ...r,
+    component: r.componentId ? byId.get(r.componentId) ?? null : null,
+  }))
+}
+
+/** Drift records relevant to one canvas: same app + config type, in any env it was deployed to. */
+async function driftRecordsForCanvas(customerId: string, canvasId: string) {
+  const canvas = await prisma.configurationCanvas.findFirst({
+    where: { id: canvasId, customerId },
+    select: { toolType: true, entityType: true },
+  })
+  if (!canvas) return null
+
+  const envs = await prisma.deployment.findMany({
+    where: { canvasId, customerId, status: 'SUCCEEDED' },
+    distinct: ['environmentId'],
+    select: { environmentId: true },
+  })
+  const environmentIds = envs.map((e) => e.environmentId)
+  if (environmentIds.length === 0) return []
+
+  const records = await prisma.driftRecord.findMany({
+    where: {
+      customerId,
+      appId: canvas.toolType,
+      configTypeId: canvas.entityType,
+      environmentId: { in: environmentIds },
+    },
+    orderBy: { detectedAt: 'desc' },
+    include: { environment: { select: { id: true, name: true } } },
+  })
+  return withComponents(records)
+}
 
 // --- Request Types ---
 
@@ -259,12 +312,93 @@ export const pipelineController = {
       ])
 
       reply.send({
-        data: records,
+        data: await withComponents(records),
         pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
       })
     } catch (error) {
       loggerService.error('Error fetching drift records:', error)
       reply.status(500).send({ error: 'Error fetching drift records' })
+    }
+  },
+
+  /**
+   * On-demand drift detection ("Check drift now"). Runs inline (no queue) so the
+   * caller gets fresh records back immediately. With an environmentId, checks that
+   * environment; otherwise every environment the tenant has deployed to.
+   */
+  detectDrift: async (
+    request: FastifyRequest<{ Body: { environmentId?: string } }>,
+    reply: FastifyReply,
+  ) => {
+    try {
+      if (!request.user?.customerId) {
+        return reply.status(401).send({ error: 'Authentication required' })
+      }
+      const customerId = request.user.customerId
+      const environmentId = request.body?.environmentId
+
+      if (environmentId) await getDriftDetector().detectAll(customerId, environmentId)
+      else await getDriftDetector().detectForCustomer(customerId)
+
+      const where: Record<string, unknown> = { customerId, isResolved: false }
+      if (environmentId) where.environmentId = environmentId
+      const [records, unresolved] = await Promise.all([
+        prisma.driftRecord.findMany({
+          where,
+          orderBy: { detectedAt: 'desc' },
+          take: 50,
+          include: { environment: { select: { id: true, name: true } } },
+        }),
+        prisma.driftRecord.count({ where }),
+      ])
+      reply.send({ checked: true, unresolved, data: await withComponents(records) })
+    } catch (error) {
+      loggerService.error('Error running drift detection:', error)
+      reply.status(500).send({ error: 'Error running drift detection' })
+    }
+  },
+
+  /** Drift records for a single configuration (used by the config view modal's Drift tab). */
+  getCanvasDrift: async (
+    request: FastifyRequest<{ Params: { canvasId: string } }>,
+    reply: FastifyReply,
+  ) => {
+    try {
+      if (!request.user?.customerId) {
+        return reply.status(401).send({ error: 'Authentication required' })
+      }
+      const records = await driftRecordsForCanvas(request.user.customerId, request.params.canvasId)
+      if (records === null) return reply.status(404).send({ error: 'Configuration not found' })
+      reply.send({ data: records })
+    } catch (error) {
+      loggerService.error('Error fetching canvas drift:', error)
+      reply.status(500).send({ error: 'Error fetching canvas drift' })
+    }
+  },
+
+  /** On-demand drift check for a single configuration, then return its drift records. */
+  checkCanvasDrift: async (
+    request: FastifyRequest<{ Params: { canvasId: string } }>,
+    reply: FastifyReply,
+  ) => {
+    try {
+      if (!request.user?.customerId) {
+        return reply.status(401).send({ error: 'Authentication required' })
+      }
+      const customerId = request.user.customerId
+      const { canvasId } = request.params
+      const canvas = await prisma.configurationCanvas.findFirst({
+        where: { id: canvasId, customerId },
+        select: { id: true },
+      })
+      if (!canvas) return reply.status(404).send({ error: 'Configuration not found' })
+
+      await getDriftDetector().detectForCanvas(customerId, canvasId)
+      const records = await driftRecordsForCanvas(customerId, canvasId)
+      reply.send({ checked: true, data: records ?? [] })
+    } catch (error) {
+      loggerService.error('Error checking canvas drift:', error)
+      reply.status(500).send({ error: 'Error checking canvas drift' })
     }
   },
 

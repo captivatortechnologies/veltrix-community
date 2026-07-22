@@ -19,6 +19,7 @@ import { DriftDetector } from './pipeline-engine/drift-detector'
 import { loggerService } from '../module/logger/logger.service'
 import { isFeatureEnabled } from '../config/feature-flags'
 import { registerSandboxCleanupJob } from '../module/sandbox/sandbox.jobs'
+import { registerDriftSweepJob } from './pipeline-engine/drift.jobs'
 
 // --- Singleton instances ---
 
@@ -149,16 +150,28 @@ export async function initializePlatform(): Promise<void> {
     loggerService.info('[Platform] JobRunner initialized')
 
     // 9b. Sandbox TTL cleanup (only when the sandbox feature is enabled). The
-    // only background job the community edition registers here — the hosted
-    // platform-metrics-aggregation / BYOL-usage-reporting / billing-
+    // hosted platform-metrics-aggregation / BYOL-usage-reporting / billing-
     // enforcement jobs are commercial-tier concerns and do not exist in this
-    // edition (see the excluded module/subscription, module/platform-admin).
+    // edition (see the excluded module/subscription, module/platform-admin);
+    // the sandbox cleanup and the drift sweep below are the only jobs the
+    // community edition registers here.
     if (isFeatureEnabled('platform.sandbox')) {
       try {
         await withBootTimeout(registerSandboxCleanupJob(jobRunner), 'Sandbox cleanup job registration')
       } catch (err) {
         loggerService.warn('[Platform] Sandbox cleanup job registration skipped:', err)
       }
+    }
+
+    // 9c. Configuration drift sweep → detect manual changes made outside the
+    // pipeline across every deployed config (hourly by default).
+    try {
+      await withBootTimeout(
+        registerDriftSweepJob(jobRunner, driftDetector),
+        'Drift sweep job registration',
+      )
+    } catch (err) {
+      loggerService.warn('[Platform] Drift sweep job registration skipped:', err)
     }
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : JSON.stringify(err)

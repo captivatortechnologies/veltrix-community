@@ -21,6 +21,20 @@ const SYSTEM_PERMISSION_SNAPSHOT: PermissionSnapshot = {
   isPlatformAdmin: false,
 }
 
+/**
+ * Pull the persisted canvas sections out of a deploy-time history snapshot. The
+ * snapshot is `JSON.parse(JSON.stringify(canvas))` (see pipeline.service), so its
+ * `sections[].fields[]` are the relational rows canvasItemsOf already flattens.
+ * Returns undefined for a legacy snapshot with no sections so the caller can fall
+ * back to the current canvas.
+ */
+export function snapshotSections(
+  snapshot: unknown,
+): Array<{ id?: string; name: string; fields?: unknown }> | undefined {
+  const sections = (snapshot as { sections?: unknown } | null)?.sections
+  return Array.isArray(sections) ? (sections as Array<{ id?: string; name: string; fields?: unknown }>) : undefined
+}
+
 export class DriftDetector {
   constructor(
     private db: PrismaClient,
@@ -48,6 +62,60 @@ export class DriftDetector {
 
     for (const deployment of deployments) {
       await this.detectForDeployment(deployment)
+    }
+  }
+
+  /**
+   * On-demand drift check for a SINGLE configuration (its latest SUCCEEDED
+   * deployment). Powers the "Check drift now" button on a config; runs inline so
+   * the caller can return fresh records immediately (no queue dependency).
+   */
+  async detectForCanvas(customerId: string, canvasId: string): Promise<void> {
+    const deployment = await this.db.deployment.findFirst({
+      where: { customerId, canvasId, status: 'SUCCEEDED' },
+      orderBy: { completedAt: 'desc' },
+      include: {
+        canvas: { include: { sections: { include: { fields: true } } } },
+      },
+    })
+    if (!deployment) return
+    await this.detectForDeployment(deployment)
+  }
+
+  /**
+   * On-demand drift check for ALL of a tenant's deployed configs across every
+   * environment they've deployed to. Powers the Drift page's "Check drift now".
+   */
+  async detectForCustomer(customerId: string): Promise<void> {
+    const envs = await this.db.deployment.findMany({
+      where: { customerId, status: 'SUCCEEDED' },
+      distinct: ['environmentId'],
+      select: { environmentId: true },
+    })
+    for (const { environmentId } of envs) {
+      await this.detectAll(customerId, environmentId)
+    }
+  }
+
+  /**
+   * Scheduled sweep across the whole platform: every tenant/environment pair that
+   * has a SUCCEEDED deployment gets a detection run. Invoked by the recurring
+   * `pipeline-drift-sweep` job (see drift.jobs.ts). Each pair is isolated so one
+   * tenant's failure never aborts the sweep.
+   */
+  async sweepAll(): Promise<void> {
+    const pairs = await this.db.deployment.findMany({
+      where: { status: 'SUCCEEDED' },
+      distinct: ['customerId', 'environmentId'],
+      select: { customerId: true, environmentId: true },
+    })
+    for (const { customerId, environmentId } of pairs) {
+      try {
+        await this.detectAll(customerId, environmentId)
+      } catch (err) {
+        const { loggerService } = await import('../../module/logger/logger.service')
+        loggerService.error(`Drift sweep failed for ${customerId}/${environmentId}:`, err)
+      }
     }
   }
 
@@ -185,8 +253,14 @@ export class DriftDetector {
             name: deployment.canvas.name,
             toolType: deployment.canvas.toolType,
             entityType: deployment.canvas.entityType,
-            items: [],
-            sections: [],
+            // The DESIRED state is the frozen deploy-time snapshot (the canvas
+            // serialized at deploy), NOT the live canvas — which may hold
+            // undeployed edits. Reconstruct its items/sections so handlers, which
+            // read deployedConfig.sections, see the approved spec. (Previously
+            // hard-coded to [], so every drift check saw an empty desired spec and
+            // reported no drift.) Fall back to the current canvas for any legacy
+            // snapshot that predates section serialization.
+            ...canvasItemsOf(snapshotSections(snapshot.snapshot) ?? deployment.canvas.sections),
             snapshot: snapshot.snapshot as Record<string, unknown>,
           },
         }

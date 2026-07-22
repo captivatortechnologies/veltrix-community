@@ -514,6 +514,60 @@ export async function pipelineRoutes(fastify: FastifyInstance) {
     },
     handler: pipelineController.resolveDrift,
   })
+
+  // Run drift detection on demand ("Check drift now")
+  // @ts-ignore
+  fastify.post('/drift/detect', {
+    preHandler: [verifyToken, hasPermission('configuration-canvas', 'read')],
+    schema: {
+      tags: ['pipeline'],
+      summary: 'Run drift detection on demand',
+      description: 'Checks deployed configs for drift immediately and returns unresolved records',
+      body: {
+        type: 'object',
+        properties: { environmentId: { type: 'string', format: 'uuid' } },
+      },
+      security: [{ bearerAuth: [] }],
+      response: { 401: errorSchema, 500: errorSchema },
+    },
+    handler: pipelineController.detectDrift,
+  })
+
+  // Drift records for one configuration (config view modal Drift tab)
+  // @ts-ignore
+  fastify.get('/configuration-canvas/:canvasId/drift', {
+    preHandler: [verifyToken, hasPermission('configuration-canvas', 'read')],
+    schema: {
+      tags: ['pipeline'],
+      summary: 'List drift records for a configuration',
+      params: {
+        type: 'object',
+        required: ['canvasId'],
+        properties: { canvasId: { type: 'string', format: 'uuid' } },
+      },
+      security: [{ bearerAuth: [] }],
+      response: { 401: errorSchema, 404: errorSchema, 500: errorSchema },
+    },
+    handler: pipelineController.getCanvasDrift,
+  })
+
+  // On-demand drift check for one configuration, then return its records
+  // @ts-ignore
+  fastify.post('/configuration-canvas/:canvasId/drift/check', {
+    preHandler: [verifyToken, hasPermission('configuration-canvas', 'read')],
+    schema: {
+      tags: ['pipeline'],
+      summary: 'Check a configuration for drift on demand',
+      params: {
+        type: 'object',
+        required: ['canvasId'],
+        properties: { canvasId: { type: 'string', format: 'uuid' } },
+      },
+      security: [{ bearerAuth: [] }],
+      response: { 401: errorSchema, 404: errorSchema, 500: errorSchema },
+    },
+    handler: pipelineController.checkCanvasDrift,
+  })
 }
 
 export default pipelineRoutes
