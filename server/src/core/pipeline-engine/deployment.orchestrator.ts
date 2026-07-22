@@ -198,13 +198,8 @@ export class DeploymentOrchestrator {
 
       await this.addLog(data.deploymentId, 'info', `Deployed to ${component.hostname}: ${result.message}`)
 
-      // Store rollback data
-      if (result.rollbackData) {
-        await this.db.deployment.update({
-          where: { id: data.deploymentId },
-          data: { rollbackData: result.rollbackData as Prisma.InputJsonValue },
-        })
-      }
+      // Store rollback data (rename-safe resourceIds + prior state).
+      await this.persistRollbackData(data.deploymentId, result.rollbackData)
     }
 
     // Final health check
@@ -239,6 +234,9 @@ export class DeploymentOrchestrator {
       if (!result.success) {
         throw new Error(`Deploy failed on ${component.hostname}: ${result.message}`)
       }
+
+      // Store rollback data (rename-safe resourceIds + prior state).
+      await this.persistRollbackData(data.deploymentId, result.rollbackData)
 
       // Health check after each component
       const healthCtx = await this.buildHealthCheckContext(data, component)
@@ -287,6 +285,8 @@ export class DeploymentOrchestrator {
         if (!result.success) {
           throw new Error(`Canary deploy failed on ${component.hostname}: ${result.message}`)
         }
+        // Store rollback data (rename-safe resourceIds + prior state).
+        await this.persistRollbackData(data.deploymentId, result.rollbackData)
       }
 
       // Health check at each canary step
@@ -322,6 +322,8 @@ export class DeploymentOrchestrator {
       if (!result.success) {
         throw new Error(`Blue-green deploy failed on ${component.hostname}: ${result.message}`)
       }
+      // Store rollback data (rename-safe resourceIds + prior state).
+      await this.persistRollbackData(data.deploymentId, result.rollbackData)
     }
 
     // Phase 2: Health check the green deployment
@@ -654,6 +656,23 @@ export class DeploymentOrchestrator {
 
   private async updateDeployment(id: string, data: Prisma.DeploymentUpdateInput) {
     await this.db.deployment.update({ where: { id }, data })
+  }
+
+  /**
+   * Persist a deploy handler's rollbackData onto the Deployment. This carries the
+   * app's rename-safe identity map (e.g. Okta `resourceIds`: canvas item id -> Okta
+   * id) and prior state forward, and is what the NEXT deploy reads to update the
+   * same external object instead of recreating it — and what rollback reverts to.
+   * Every strategy must call this after a successful deploy; historically only
+   * DIRECT did, so ROLLING/CANARY/BLUE_GREEN silently dropped it (renames recreated,
+   * rollback had nothing to restore).
+   */
+  private async persistRollbackData(deploymentId: string, rollbackData: unknown) {
+    if (!rollbackData) return
+    await this.db.deployment.update({
+      where: { id: deploymentId },
+      data: { rollbackData: rollbackData as Prisma.InputJsonValue },
+    })
   }
 
   private async updateCanvas(id: string, status: string, lastDeployError?: string | null) {
