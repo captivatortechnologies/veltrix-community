@@ -290,39 +290,62 @@ function buildItem(
 }
 
 /**
- * Re-apply template-owned field METADATA onto a saved canvas's fields on edit.
+ * Re-derive template-owned field PRESENTATION onto a saved canvas's fields on edit.
  *
- * `optionsSource` / `optionsMulti` (live pickers) and `visibleWhen` / `lockKeys`
- * live only in the canvas.yaml template — they are NOT persisted with the field's
- * value. So a saved config reopened for edit loads fields without them, and a
- * `remote-multiselect` / `remote-select` picker reports "no options source
- * configured". This copies each metadata prop from the template (matched by field
- * key) back onto the loaded fields; the field's saved value/id/etc. are untouched.
+ * The server persists a field's FULL presentation (label, fieldType, helpText,
+ * validation, options, optionsSource, group…) frozen at save time — only `value`
+ * is user data. So when a canvas.yaml field later changes (e.g. `memberUserIds`
+ * went from a free-text `tags` box to a live `remote-multiselect` users picker,
+ * and was relabelled "Member User IDs" -> "Members"), a config saved under the OLD
+ * template keeps rendering the OLD field: stale type, stale label, and the picker
+ * never appears. This re-applies EVERY presentation prop from the CURRENT template
+ * (matched by field key) so an edit always reflects today's canvas — the field's
+ * saved `value` and stable `id`/`key`/`order` are the only things kept.
+ *
+ * Fields present in the saved config but absent from the template (a field the
+ * template removed) are left exactly as saved. Fields the template ADDED are not
+ * injected here — a new template field appears only when the item is re-added.
  */
 export function applyTemplateFieldMeta(
   sections: ConfigSection[],
   template: CanvasTemplate | null | undefined,
 ): ConfigSection[] {
   if (!template) return sections
-  const meta = new Map<string, CanvasTemplateField>()
-  const collect = (fields?: CanvasTemplateField[]) => {
-    for (const f of fields ?? []) if (f.key && !meta.has(f.key)) meta.set(f.key, f)
+  const isItem = Boolean(template.item)
+  // key -> { template field, containing group name (item templates only) }
+  const meta = new Map<string, { field: CanvasTemplateField; group?: string }>()
+  const collect = (fields?: CanvasTemplateField[], group?: string) => {
+    for (const f of fields ?? []) if (f.key && !meta.has(f.key)) meta.set(f.key, { field: f, group })
   }
-  for (const group of template.item?.groups ?? []) collect(group.fields)
+  for (const group of template.item?.groups ?? []) collect(group.fields, group.name)
   for (const section of template.sections ?? []) collect(section.fields)
   if (meta.size === 0) return sections
 
   return sections.map((section) => ({
     ...section,
     fields: section.fields.map((field) => {
-      const t = meta.get(field.key)
-      if (!t) return field
+      const entry = meta.get(field.key)
+      if (!entry) return field
+      const t = entry.field
+      // Template WINS on every presentation prop (so a relabel/retype/rule change
+      // in canvas.yaml takes effect on existing configs); keep only the user's
+      // data (`value`) and the field's stable identity (`id`, `key`, `order`).
       return {
         ...field,
-        optionsSource: t.optionsSource ?? field.optionsSource,
-        optionsMulti: t.optionsMulti ?? field.optionsMulti,
-        visibleWhen: (t.visibleWhen as ConfigField['visibleWhen']) ?? field.visibleWhen,
-        lockKeys: t.lockKeys ?? field.lockKeys,
+        label: t.label ?? field.key,
+        type: (t.fieldType as ConfigField['type']) || 'text',
+        required: t.required,
+        placeholder: t.placeholder,
+        helpText: t.helpText,
+        defaultValue: t.defaultValue,
+        options: t.options as ConfigField['options'],
+        validation: t.validation as ConfigField['validation'],
+        fileCatalog: t.fileCatalog as ConfigField['fileCatalog'],
+        visibleWhen: t.visibleWhen as ConfigField['visibleWhen'],
+        lockKeys: t.lockKeys,
+        optionsSource: t.optionsSource,
+        optionsMulti: t.optionsMulti,
+        group: isItem ? entry.group : field.group,
       }
     }),
   }))

@@ -67,6 +67,17 @@ export const RemoteSelectField: React.FC<FieldInputProps<string>> = ({
     return () => clearTimeout(t);
   }, [open, query, load]);
 
+  // Resolve a saved selection to its name on edit: without this the pre-selected
+  // chip shows the raw stored id until the user opens the dropdown. Fetch the
+  // unfiltered first page ONCE when the field mounts with an unresolved value.
+  const preloadedRef = useRef(false);
+  useEffect(() => {
+    if (preloadedRef.current || !canFetch) return;
+    if (!selected || labelCache.current.has(selected)) return;
+    preloadedRef.current = true;
+    void load('');
+  }, [canFetch, selected, load]);
+
   const choose = (v: string, label?: string) => {
     if (label) labelCache.current.set(v, label);
     onChange(v);

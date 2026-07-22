@@ -61,6 +61,47 @@ describe('applyTemplateFieldMeta', () => {
     expect(picker.value).toEqual(['00g1']) // value untouched
   })
 
+  // The real bug: a group saved when `memberUserIds` was a free-text `tags` field
+  // reopened for edit after it became a `remote-multiselect` — the frozen type +
+  // label kept rendering the old tag box, so the live picker never appeared.
+  it('re-derives a stale field type + label from the current template', () => {
+    const staleSaved = [
+      {
+        id: 's1',
+        name: 'Rule 1',
+        fields: [
+          // saved under the OLD template: wrong type, title-cased fallback label,
+          // and no group tag.
+          {
+            id: 'f2',
+            key: 'groupIds',
+            label: 'Group Ids',
+            type: 'tags' as const,
+            value: ['00g1'],
+          },
+        ],
+      },
+    ]
+    const picker = applyTemplateFieldMeta(staleSaved, template)[0].fields[0]
+    expect(picker.type).toBe('remote-multiselect') // was 'tags'
+    expect(picker.label).toBe('Target Groups') // was 'Group Ids'
+    expect(picker.optionsSource).toBe('groups')
+    expect(picker.group).toBe('Rule') // group tag re-applied for item templates
+    expect(picker.value).toEqual(['00g1']) // user data preserved
+  })
+
+  it('leaves a saved field absent from the template untouched', () => {
+    const withExtra = [
+      {
+        id: 's1',
+        name: 'Rule 1',
+        fields: [{ id: 'fx', key: 'legacyOnly', label: 'Legacy', type: 'text' as const, value: 'keep' }],
+      },
+    ]
+    const merged = applyTemplateFieldMeta(withExtra, template)
+    expect(merged[0].fields[0]).toEqual(withExtra[0].fields[0])
+  })
+
   it('returns the sections unchanged when there is no template', () => {
     expect(applyTemplateFieldMeta(savedSections, null)).toBe(savedSections)
   })

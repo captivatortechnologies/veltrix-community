@@ -67,6 +67,18 @@ export const RemoteMultiSelectField: React.FC<FieldInputProps<string[]>> = ({
     return () => clearTimeout(t);
   }, [open, query, load]);
 
+  // Resolve saved selections to their names on edit: without this, pre-selected
+  // chips show the raw stored id until the user opens the dropdown. Fetch the
+  // unfiltered first page ONCE when the field mounts with unresolved values, so
+  // an edited config shows real labels immediately ("pull data on edit").
+  const preloadedRef = useRef(false);
+  useEffect(() => {
+    if (preloadedRef.current || !canFetch) return;
+    if (!selected.some((v) => !labelCache.current.has(v))) return;
+    preloadedRef.current = true;
+    void load('');
+  }, [canFetch, selected, load]);
+
   const toggle = (v: string, label?: string) => {
     if (label) labelCache.current.set(v, label);
     if (!multi) {
