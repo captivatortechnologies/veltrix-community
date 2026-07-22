@@ -4,15 +4,40 @@ import DriftDiffTable from '../components/DriftDiffTable'
 import type { DriftDiff } from '../api/pipelineApi'
 
 describe('DriftDiffTable', () => {
-  it('renders field / expected / actual / severity columns', () => {
+  it('renders field / previous / current / severity columns', () => {
     const diffs: DriftDiff[] = [
       { field: 'maxDataSizeMB', expected: 500, actual: 250, severity: 'critical' },
     ]
     render(<DriftDiffTable diffs={diffs} />)
+    expect(screen.getByText('Previous (approved)')).toBeTruthy()
+    expect(screen.getByText('Current (live)')).toBeTruthy()
     expect(screen.getByText('maxDataSizeMB')).toBeTruthy()
     expect(screen.getByText('500')).toBeTruthy()
     expect(screen.getByText('250')).toBeTruthy()
     expect(screen.getByText('critical')).toBeTruthy()
+  })
+
+  it('renders object/array values as JSON, not [object Object]', () => {
+    const diffs: DriftDiff[] = [
+      {
+        field: 'members',
+        expected: ['alice', 'bob'],
+        actual: { added: ['eve'] },
+        severity: 'warning',
+      },
+    ]
+    render(<DriftDiffTable diffs={diffs} />)
+    expect(screen.getByText('["alice","bob"]')).toBeTruthy()
+    expect(screen.getByText('{"added":["eve"]}')).toBeTruthy()
+    expect(screen.queryByText('[object Object]')).toBeNull()
+  })
+
+  it('shows explicit placeholders for empty / absent values', () => {
+    const diffs: DriftDiff[] = [
+      { field: 'description', expected: 'was set', actual: '', severity: 'warning' },
+    ]
+    render(<DriftDiffTable diffs={diffs} />)
+    expect(screen.getByText('(empty)')).toBeTruthy()
   })
 
   it('shows the actor name and formatted timestamp when attribution is present', () => {

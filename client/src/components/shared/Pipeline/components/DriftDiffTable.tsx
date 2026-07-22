@@ -16,8 +16,26 @@ function formatWhen(at?: string): string {
 }
 
 /**
- * Field / Expected / Actual / Severity / Changed-by table for a drift record's
- * diffs. Shared by DriftAlert (the standalone Drift page) and the configuration
+ * Render a drift value readably: objects/arrays as compact JSON (not
+ * "[object Object]"), empty/absent as an explicit placeholder, primitives as-is.
+ * Both the previous (approved) and current (live) values pass through this so the
+ * "what changed" comparison is always legible.
+ */
+function formatValue(v: unknown): string {
+  if (v === null || v === undefined) return '(none)'
+  if (typeof v === 'string') return v === '' ? '(empty)' : v
+  if (typeof v === 'boolean' || typeof v === 'number') return String(v)
+  try {
+    return JSON.stringify(v)
+  } catch {
+    return String(v)
+  }
+}
+
+/**
+ * Field / Previous (approved) / Current (live) / Severity / Changed-by table for a
+ * drift record's diffs — an explicit previous-vs-current comparison of exactly what
+ * changed. Shared by DriftAlert (the standalone Drift page) and the configuration
  * details modal's Drift tab so both surfaces stay visually consistent.
  *
  * "Changed by" surfaces the best-effort actor attribution the server may attach
@@ -30,8 +48,8 @@ export const DriftDiffTable: React.FC<DriftDiffTableProps> = ({ diffs, className
       <thead>
         <tr className="text-gray-500 dark:text-gray-400">
           <th className="text-left py-1 pr-3 font-medium">Field</th>
-          <th className="text-left py-1 pr-3 font-medium">Expected</th>
-          <th className="text-left py-1 pr-3 font-medium">Actual</th>
+          <th className="text-left py-1 pr-3 font-medium">Previous (approved)</th>
+          <th className="text-left py-1 pr-3 font-medium">Current (live)</th>
           <th className="text-left py-1 pr-3 font-medium">Severity</th>
           <th className="text-left py-1 font-medium">Changed by</th>
         </tr>
@@ -43,12 +61,12 @@ export const DriftDiffTable: React.FC<DriftDiffTableProps> = ({ diffs, className
           const when = formatWhen(actor?.at)
           return (
             <tr key={i}>
-              <td className="py-1.5 pr-3 text-gray-700 dark:text-gray-300 font-mono">{diff.field}</td>
-              <td className="py-1.5 pr-3 text-green-600 dark:text-green-400 font-mono">
-                {String(diff.expected)}
+              <td className="py-1.5 pr-3 text-gray-700 dark:text-gray-300 font-mono align-top">{diff.field}</td>
+              <td className="py-1.5 pr-3 text-green-700 dark:text-green-400 font-mono align-top whitespace-pre-wrap break-words max-w-xs">
+                {formatValue(diff.expected)}
               </td>
-              <td className="py-1.5 pr-3 text-red-600 dark:text-red-400 font-mono">
-                {String(diff.actual)}
+              <td className="py-1.5 pr-3 text-red-600 dark:text-red-400 font-mono align-top whitespace-pre-wrap break-words max-w-xs">
+                {formatValue(diff.actual)}
               </td>
               <td className="py-1.5 pr-3">
                 <span className={severityStyle.textColor}>{diff.severity}</span>
