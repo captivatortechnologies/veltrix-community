@@ -378,16 +378,36 @@ describe('AppShell sidebar sub-groups', () => {
     expect(screen.getByRole('link', { name: 'Brands' })).toBeInTheDocument()
   })
 
-  it('keeps every config item reachable as an icon when collapsed, regardless of group', () => {
+  it('collapses each config sub-group into one representative tile, not one icon per item', () => {
     window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, '1')
     renderGroupedShell('/config/policies')
     const rail = screen.getByRole('navigation', { name: 'EDR navigation' })
-    // Icon-only rail: no disclosure buttons, but every item across both sub-groups
-    // is present as an icon link (the collapsed rail is not gated by open state).
-    expect(within(rail).queryByRole('button', { name: 'Access' })).not.toBeInTheDocument()
+    // One button per sub-group...
+    expect(within(rail).getByRole('button', { name: 'Expand Access' })).toBeInTheDocument()
+    expect(within(rail).getByRole('button', { name: 'Expand Branding' })).toBeInTheDocument()
+    // ...not one icon link per configuration type inside them.
     for (const name of ['Policies', 'Rules', 'Brands', 'Domains']) {
-      expect(within(rail).getByRole('link', { name })).toBeInTheDocument()
+      expect(within(rail).queryByRole('link', { name })).not.toBeInTheDocument()
     }
+  })
+
+  it('expands the rail and opens the clicked sub-group from its collapsed tile', () => {
+    window.localStorage.setItem(SIDEBAR_COLLAPSED_KEY, '1')
+    renderGroupedShell('/config/policies')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Expand Branding' }))
+
+    // The rail un-collapses into the full labelled sidebar...
+    expect(screen.getByRole('button', { name: 'Collapse navigation' })).toBeInTheDocument()
+    expect(window.localStorage.getItem(SIDEBAR_COLLAPSED_KEY)).toBe('0')
+    // ...with the clicked group open and its items visible, even though it
+    // wasn't the group holding the active item.
+    expect(screen.getByRole('button', { name: 'Branding' })).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('link', { name: 'Brands' })).toHaveAttribute(
+      'href',
+      '/apps/edr/config/brands',
+    )
+    expect(window.localStorage.getItem('veltrix:appNavGroup:edr:Branding')).toBe('1')
   })
 })
 

@@ -47,6 +47,18 @@ import {
   Tag,
   Filter,
   Eye,
+  ShieldAlert,
+  ShieldCheck,
+  KeyRound,
+  ScrollText,
+  Fingerprint,
+  UserCog,
+  ScanLine,
+  Boxes,
+  Route,
+  Wrench,
+  Bot,
+  AppWindow,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -120,6 +132,68 @@ const APP_PAGE_ICONS: Record<string, LucideIcon> = {
 export function resolveAppPageIcon(iconName?: string): LucideIcon | null {
   if (!iconName) return null;
   return APP_PAGE_ICONS[iconName.trim().toLowerCase()] ?? null;
+}
+
+/**
+ * Keyword -> icon rules for a configuration-type GROUP label (the manifest's
+ * `group` field on an `AppConfigurationTypeManifest`, e.g. "WAF & Security",
+ * "Zero Trust · Access", "Policies & Rules" - see shared/types/app.ts). Apps
+ * invent these labels freely, so there is no fixed enum to key off of; this
+ * is a small, generic heuristic over the label text instead.
+ *
+ * Order matters: rules are checked top to bottom and the FIRST match wins, so
+ * more specific terms are listed before broader ones. This lets a compound
+ * label like "Zero Trust · Gateway" resolve on its more specific "gateway"
+ * term rather than the broader "zero trust" rule further down, while "Zero
+ * Trust · Access" (no "gateway") still falls through to that broader rule.
+ * Extend this list as new group names ship across the marketplace; it is
+ * intentionally over- rather than under-inclusive so an unfamiliar group
+ * still lands on a plausible icon instead of the generic fallback.
+ */
+const CONFIG_GROUP_ICON_RULES: Array<[RegExp, LucideIcon]> = [
+  [/\bgateway\b|\btraffic\b|\bforwarding\b/, Route],
+  [/\bdlp\b/, ShieldAlert],
+  [/\bwaf\b|\bfirewall\b|\bsecurity\b/, ShieldAlert],
+  [/\bzero\s*trust\b|\baccess\s*control\b|\biam\b/, ShieldCheck],
+  [/\bsecrets?\b|\bcredentials?\b/, Lock],
+  [/\bauthenticat\w*|\bauth\b|\bsso\b|\bmfa\b/, KeyRound],
+  [/\bauthorization\b|\bpolic(?:y|ies)\b|\brules?\b|\blists?\b/, ScrollText],
+  [/\bidentit(?:y|ies)\b/, Fingerprint],
+  [/\bdirector(?:y|ies)\b|\busers?\b/, Users],
+  [/\bobjects?\b/, Boxes],
+  [/\bassets?\b/, Package],
+  [/\bnetwork\b/, Network],
+  [/\bintegrations?\b|\bhooks?\b|\bconnectors?\b/, Plug],
+  [/\bapplications?\b|\bapps?\b/, AppWindow],
+  [/\bprofile\b|\bschema\b/, UserCog],
+  [/\bbrand(?:ing)?\b|\bnotifications?\b/, Bell],
+  [/\bscan(?:ning)?\b/, ScanLine],
+  [/\bfindings?\b|\bvulnerabilit\w*\b/, AlertTriangle],
+  [/\bdata\b/, Database],
+  [/\bsystem\b|\badministration\b|\bsettings?\b/, Settings],
+  [/\borganization\b/, Building],
+  [/\bagents?\b/, Bot],
+  [/\binfrastructure\b|\bservers?\b/, Server],
+  [/\bzone\b/, Globe],
+  [/\boperations?\b/, Wrench],
+];
+
+/** Generic fallback when no keyword rule matches - "a group of things", never a bare letter. */
+const DEFAULT_CONFIG_GROUP_ICON: LucideIcon = Folder;
+
+/**
+ * Resolve a configuration-type group label to a representative Lucide icon,
+ * for the collapsed sidebar rail (see `AppShell`'s `CollapsedNavGroupTile`).
+ * Pure and total: every input - including an unrecognized group name - maps
+ * to a real icon component, never `null`, so a collapsed group's rail tile
+ * is never a bare letter and never a stack of its members' own icons.
+ */
+export function resolveConfigGroupIcon(label: string): LucideIcon {
+  const normalized = label.toLowerCase();
+  for (const [pattern, Icon] of CONFIG_GROUP_ICON_RULES) {
+    if (pattern.test(normalized)) return Icon;
+  }
+  return DEFAULT_CONFIG_GROUP_ICON;
 }
 
 // Deterministic palette for initials badges, keyed by a stable seed (app id)

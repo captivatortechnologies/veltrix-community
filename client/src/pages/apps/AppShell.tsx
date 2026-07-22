@@ -21,7 +21,7 @@ import type { AppPageDeclaration } from '../../../../shared/types/app'
 import { Badge } from '../../components/shared/Badge'
 import { ToastProvider } from '../../components/shared/Toast'
 import { ConfirmationDialogProvider } from '../../components/shared/ConfirmationDialog'
-import { resolveAppPageIcon } from '../../components/ui/sidebar/sidebarIcons'
+import { resolveAppPageIcon, resolveConfigGroupIcon } from '../../components/ui/sidebar/sidebarIcons'
 
 /** Platform neutral accent (indigo-600) used when an app declares no brand color. */
 export const PLATFORM_NEUTRAL_ACCENT = '#4f46e5'
@@ -782,20 +782,66 @@ const CollapsedNavLink: React.FC<{
   </li>
 )
 
-/** A labelled cluster of items for the collapsed rail (label drives the a11y grouping only). */
+/**
+ * A cluster of items for the collapsed rail, separated from its neighbors by a
+ * thin divider. When `label` is set the cluster is a manifest-declared config
+ * sub-group (e.g. "WAF & Security") and renders as ONE representative tile
+ * instead of one icon per member — a sub-group can hold many configuration
+ * types, and stacking every one of them as its own icon in a 56px rail reads
+ * as noise with no way to tell which icon belongs to which group. Absent for
+ * Pages, Settings, and ungrouped configuration types, which keep the original
+ * one-icon-per-item rendering.
+ */
 interface CollapsedNavGroup {
   key: string
   items: AppNavItem[]
+  label?: string
+}
+
+/**
+ * One collapsed-rail tile standing in for an ENTIRE configuration sub-group.
+ * A `<button>`, not a `<Link>` — clicking it doesn't navigate anywhere itself,
+ * it hands off to `onExpand` which un-collapses the rail into the full
+ * sidebar AND opens this specific sub-group, so the user lands with the
+ * group they clicked already showing its items (see `expandConfigGroup` in
+ * {@link AppShell}). The icon is derived from the group's name via
+ * `resolveConfigGroupIcon` — never a bare letter, never a stack of the
+ * group's own item icons.
+ */
+const CollapsedNavGroupTile: React.FC<{
+  label: string
+  active: boolean
+  onExpand: () => void
+}> = ({ label, active, onExpand }) => {
+  const Icon = resolveConfigGroupIcon(label)
+  return (
+    <button
+      type="button"
+      onClick={onExpand}
+      title={`Expand ${label}`}
+      aria-label={`Expand ${label}`}
+      className={`flex h-9 w-9 items-center justify-center rounded-md border-l-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+        active
+          ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-gray-100'
+          : 'border-transparent text-gray-500 hover:bg-gray-50 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700/40 dark:hover:text-gray-300'
+      }`}
+      style={active ? { borderLeftColor: 'var(--veltrix-app-primary)' } : undefined}
+    >
+      <Icon size={18} aria-hidden="true" />
+    </button>
+  )
 }
 
 /**
  * Icon-only navigation rail — the collapsed form of both the full sidebar layout
- * and the tab layout's sub-nav. Renders one icon per item, grouped with a thin
- * divider between groups (the uppercase section headings are dropped for width,
- * so the divider is what preserves the Pages / Configurations / Settings
- * separation). Scrolls vertically for config-heavy apps. An optional `topSlot`
- * hosts the expand toggle when the rail owns its own toggle (the tab sub-nav);
- * the full sidebar layout keeps its toggle in the persistent header instead.
+ * and the tab layout's sub-nav. Renders one icon per item for unlabelled
+ * clusters (Pages, Settings, ungrouped Configurations), or one representative
+ * tile per labelled config sub-group — see {@link CollapsedNavGroup} — with a
+ * thin divider between clusters (the uppercase section headings are dropped
+ * for width, so the divider is what preserves the separation). Scrolls
+ * vertically for config-heavy apps. An optional `topSlot` hosts the expand
+ * toggle when the rail owns its own toggle (the tab sub-nav); the full
+ * sidebar layout keeps its toggle in the persistent header instead.
  */
 const CollapsedNavRail: React.FC<{
   app: EnabledApp
@@ -803,7 +849,9 @@ const CollapsedNavRail: React.FC<{
   activePath: string | null
   ariaLabel: string
   topSlot?: React.ReactNode
-}> = ({ app, groups, activePath, ariaLabel, topSlot }) => {
+  /** Expands the rail and opens the named sub-group; omitted clusters have no labelled groups. */
+  onExpandGroup?: (label: string) => void
+}> = ({ app, groups, activePath, ariaLabel, topSlot, onExpandGroup }) => {
   const nonEmpty = groups.filter((group) => group.items.length > 0)
   return (
     <nav
@@ -814,16 +862,26 @@ const CollapsedNavRail: React.FC<{
       {nonEmpty.map((group, index) => (
         <React.Fragment key={group.key}>
           {index > 0 && <hr className="mx-2 my-0.5 border-gray-200 dark:border-gray-700" />}
-          <ul className="flex flex-col items-center gap-1 px-2">
-            {group.items.map((item) => (
-              <CollapsedNavLink
-                key={navItemKey(item)}
-                app={app}
-                item={item}
-                active={isNavItemActive(item, activePath)}
+          {group.label ? (
+            <div className="flex justify-center px-2">
+              <CollapsedNavGroupTile
+                label={group.label}
+                active={group.items.some((item) => isNavItemActive(item, activePath))}
+                onExpand={() => onExpandGroup?.(group.label as string)}
               />
-            ))}
-          </ul>
+            </div>
+          ) : (
+            <ul className="flex flex-col items-center gap-1 px-2">
+              {group.items.map((item) => (
+                <CollapsedNavLink
+                  key={navItemKey(item)}
+                  app={app}
+                  item={item}
+                  active={isNavItemActive(item, activePath)}
+                />
+              ))}
+            </ul>
+          )}
         </React.Fragment>
       ))}
     </nav>
@@ -844,23 +902,27 @@ const TabsSubNavSidebar: React.FC<{
   activePath: string | null
   collapsed: boolean
   onToggle: () => void
-}> = ({ app, group, activePath, collapsed, onToggle }) => {
+  onExpandGroup: (label: string) => void
+}> = ({ app, group, activePath, collapsed, onToggle, onExpandGroup }) => {
   const toggleClasses =
     'rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:text-gray-500 dark:hover:bg-gray-700 dark:hover:text-gray-300'
 
   if (collapsed) {
-    // A thin icon rail: the expand toggle on top, then one icon per group member
-    // so the items stay reachable (and their active state visible) without the
-    // full labelled width.
+    // A thin icon rail: the expand toggle on top, then either one icon per
+    // ungrouped member or one representative tile per labelled sub-group, so
+    // items stay reachable (and their active state visible) without the full
+    // labelled width.
     return (
       <CollapsedNavRail
         app={app}
         groups={splitSubGroups(group.items).map((sub) => ({
           key: sub.label ?? group.label,
           items: sub.items,
+          label: sub.label ?? undefined,
         }))}
         activePath={activePath}
         ariaLabel={`${group.label} sub-navigation`}
+        onExpandGroup={onExpandGroup}
         topSlot={
           <div className="flex justify-center px-2 pb-0.5">
             <button
@@ -924,6 +986,21 @@ export const AppShell: React.FC<AppShellProps> = ({ app, navItems, activePath, c
   // re-renders the shell — `children` keep the same identity and are never
   // remounted, preserving any in-page form state across a collapse/expand.
   const [collapsed, toggleCollapsed] = useSidebarCollapsed()
+  // Clicking a config sub-group's collapsed rail tile (CollapsedNavGroupTile)
+  // must land the user on that group already open, not just on an expanded-
+  // but-still-fully-collapsed sub-group. SidebarSubGroup reads its open/closed
+  // preference from localStorage on mount (see readNavGroupOpen), so writing
+  // the preference here — synchronously, before the collapse state flips —
+  // guarantees it's already "open" by the time SidebarSubGroup mounts fresh
+  // in the newly-expanded sidebar. Shared by both nav layouts: the embedded
+  // sidebar's own collapsed rail, and the tab layout's collapsed sub-nav.
+  const expandConfigGroup = React.useCallback(
+    (label: string) => {
+      writeNavGroupOpen(navGroupKey(app.appId, label), true)
+      toggleCollapsed()
+    },
+    [app.appId, toggleCollapsed],
+  )
   // Tabs layout: the active nav group's items (e.g. the configuration types under
   // "Configurations") render as a labelled LEFT sub-nav sidebar beside the
   // surface, rather than an overflowing horizontal strip. Undefined in the
@@ -943,6 +1020,7 @@ export const AppShell: React.FC<AppShellProps> = ({ app, navItems, activePath, c
     ...splitSubGroups(configItems).map((group) => ({
       key: group.label ? `config:${group.label}` : 'config',
       items: group.items,
+      label: group.label ?? undefined,
     })),
     { key: 'settings', items: settingsItems },
   ]
@@ -970,6 +1048,7 @@ export const AppShell: React.FC<AppShellProps> = ({ app, navItems, activePath, c
                     groups={collapsedSidebarGroups}
                     activePath={activePath}
                     ariaLabel={`${app.name} navigation`}
+                    onExpandGroup={expandConfigGroup}
                   />
                 ) : (
                   <AppSidebar app={app} navItems={navItems} activePath={activePath} />
@@ -988,6 +1067,7 @@ export const AppShell: React.FC<AppShellProps> = ({ app, navItems, activePath, c
                     activePath={activePath}
                     collapsed={collapsed}
                     onToggle={toggleCollapsed}
+                    onExpandGroup={expandConfigGroup}
                   />
                 )}
                 <div className="min-h-full flex-1">{children}</div>
