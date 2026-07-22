@@ -53,6 +53,7 @@ import { AppShell, buildAppNavItems } from './AppShell'
 import { FilterBar, SortSelect, Pagination } from '@/components/shared'
 import { ReviewsDrawer } from './reviews/ReviewsDrawer'
 import { ConfigDetailsModal } from './ConfigDetailsModal'
+import { Modal } from '@/components/shared/Modal/Modal'
 import {
   validateCanvas,
   deployCanvas,
@@ -203,6 +204,7 @@ const AppPipelinePage: React.FC = () => {
 
   // Approval dialog
   const [approvalConfig, setApprovalConfig] = useState<ConfigurationCanvasListItem | null>(null)
+  const [deployError, setDeployError] = useState<{ name: string; message: string } | null>(null)
 
   // Reviews drawer (GitHub-PR-style review surface) + per-config approval summaries.
   const [reviewsConfig, setReviewsConfig] = useState<ConfigurationCanvasListItem | null>(null)
@@ -483,8 +485,16 @@ const AppPipelinePage: React.FC = () => {
         const { deploymentId } = await deployCanvas(config.id, environmentId)
         toast.info('Deployment started…')
         const status = await pollDeployment(deploymentId)
-        if (status?.status === 'DEPLOYED') toast.success('Deployment succeeded.')
-        else if (status) toast.error(`Deployment ${(STATUS_LABEL[status.status] ?? status.status).toLowerCase()}.`)
+        if (status?.status === 'DEPLOYED') {
+          toast.success('Deployment succeeded.')
+        } else if (status) {
+          setDeployError({
+            name: config.name,
+            message:
+              status.error ||
+              `Deployment ${(STATUS_LABEL[status.status] ?? status.status).toLowerCase()}.`,
+          })
+        }
         await fetchConfigurations()
       } catch (err) {
         toast.error(err instanceof Error ? err.message : 'Deployment failed')
@@ -963,6 +973,33 @@ const AppPipelinePage: React.FC = () => {
         onLinkTicket={handleLinkTicket}
         deployBlockedReason={deployBlockedReason}
       />
+
+      {/* Deploy-failure modal — dismissable; the reason is also on the config's
+          badge and in Review History. */}
+      <Modal
+        isOpen={deployError !== null}
+        onClose={() => setDeployError(null)}
+        title="Deployment failed"
+        subtitle={
+          deployError ? (
+            <span className="text-xs text-gray-500 dark:text-gray-400">{deployError.name}</span>
+          ) : undefined
+        }
+        size="md"
+      >
+        {deployError && (
+          <div className="space-y-3">
+            <div className="rounded-md border border-red-200 bg-red-50 p-3 dark:border-red-900/50 dark:bg-red-900/20">
+              <p className="whitespace-pre-wrap break-words text-sm text-red-700 dark:text-red-300">
+                {deployError.message}
+              </p>
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              This reason is also shown on the configuration and recorded in its Review History.
+            </p>
+          </div>
+        )}
+      </Modal>
     </AppShell>
   )
 }

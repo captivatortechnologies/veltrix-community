@@ -458,7 +458,7 @@ export class PipelineService {
   // GET deployment status
   // ------------------------------------------------------------------
   async getDeploymentStatus(deploymentId: string) {
-    return this.db.deployment.findUniqueOrThrow({
+    const deployment = await this.db.deployment.findUniqueOrThrow({
       where: { id: deploymentId },
       include: {
         logs: { orderBy: { timestamp: 'desc' }, take: 50 },
@@ -467,6 +467,12 @@ export class PipelineService {
         triggeredBy: { select: { id: true, name: true, email: true } },
       },
     })
+    // Surface the most recent error-log line as a top-level `error` so callers
+    // (the deploy poll → failure modal) get the reason WHY, not just "FAILED".
+    // Strip the internal "Deployment failed: " prefix the orchestrator adds.
+    const errorLog = deployment.logs.find((l) => l.level === 'error')
+    const error = errorLog ? errorLog.message.replace(/^Deployment failed:\s*/i, '') : null
+    return { ...deployment, error }
   }
 
   // ------------------------------------------------------------------

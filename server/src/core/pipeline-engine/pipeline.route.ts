@@ -41,6 +41,7 @@ const deploymentSchema = {
       type: 'string',
       enum: ['QUEUED', 'IN_PROGRESS', 'HEALTH_CHECKING', 'PAUSED', 'SUCCEEDED', 'FAILED', 'ROLLING_BACK', 'ROLLED_BACK'],
     },
+    error: { type: ['string', 'null'] },
     strategy: { type: 'string', enum: ['DIRECT', 'CANARY', 'BLUE_GREEN', 'ROLLING'] },
     healthScore: { type: 'number' },
     errorRate: { type: 'number' },
