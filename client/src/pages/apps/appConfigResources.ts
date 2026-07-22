@@ -111,7 +111,9 @@ export interface DeploymentStatus {
 }
 
 /** Statuses at which polling a deployment can stop. */
-export const TERMINAL_DEPLOYMENT_STATUSES = ['DEPLOYED', 'FAILED', 'ROLLED_BACK', 'CANCELLED']
+// Must match the server's DeploymentStatus enum: the SUCCESS terminal is
+// SUCCEEDED (NOT "DEPLOYED", which is a canvas status, not a deployment status).
+export const TERMINAL_DEPLOYMENT_STATUSES = ['SUCCEEDED', 'FAILED', 'ROLLED_BACK']
 
 /** POST /api/pipeline/canvas/:id/validate — requires the canvas to be persisted. */
 export async function validateCanvas(canvasId: string): Promise<CanvasValidationResult> {

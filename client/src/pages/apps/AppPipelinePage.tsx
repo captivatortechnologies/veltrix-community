@@ -485,7 +485,7 @@ const AppPipelinePage: React.FC = () => {
         const { deploymentId } = await deployCanvas(config.id, environmentId)
         toast.info('Deployment started…')
         const status = await pollDeployment(deploymentId)
-        if (status?.status === 'DEPLOYED') {
+        if (status?.status === 'SUCCEEDED') {
           toast.success('Deployment succeeded.')
         } else if (status) {
           setDeployError({
