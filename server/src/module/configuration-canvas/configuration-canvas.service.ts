@@ -497,6 +497,10 @@ export const configurationCanvasService = {
       return canvasHistory.id;
     });
 
+    // Captured inside the diff below and reused for the linked-ticket note so the
+    // ticket says WHAT changed, not just "edited".
+    let changedFieldsForNote: string[] = [];
+
     // Log to central configuration history for VersionControlPanel
     try {
       // Convert existing sections to a simpler format for diff
@@ -558,6 +562,8 @@ export const configurationCanvasService = {
           }
         }
       }
+
+      changedFieldsForNote = changedFields;
 
       // Only create/update history entry if there are actual changes
       if (changedFields.length > 0) {
@@ -650,7 +656,14 @@ export const configurationCanvasService = {
     }
 
     if (resetForReapproval) {
-      reflectTicketActivity(id, customerId, `Configuration "${existing.name}" edited — reset to draft, re-approval required`);
+      const changes = changedFieldsForNote.length
+        ? ` Changed: ${changedFieldsForNote.join(', ')}.`
+        : '';
+      reflectTicketActivity(
+        id,
+        customerId,
+        `Configuration "${existing.name}" edited — reset to draft, re-approval required.${changes}`,
+      );
     }
 
     return this.getById(id, customerId);
@@ -1409,7 +1422,7 @@ export const configurationCanvasService = {
       }
     }
 
-    return prisma.configurationCanvasComment.create({
+    const comment = await prisma.configurationCanvasComment.create({
       data: {
         canvasId: id,
         historyId: resolvedHistoryId,
@@ -1421,6 +1434,15 @@ export const configurationCanvasService = {
         user: { select: { id: true, name: true, email: true } },
       },
     });
+
+    // Reflect the review Discussion comment onto any linked change/issue ticket,
+    // same best-effort seam as the other lifecycle actions, so the ticket carries
+    // the full audit trail. Truncated so a long comment can't bloat the work note.
+    const author = comment.user?.name || comment.user?.email || 'A reviewer';
+    const snippet = body.length > 500 ? `${body.slice(0, 500)}…` : body;
+    reflectTicketActivity(id, customerId, `Review comment by ${author}: ${snippet}`);
+
+    return comment;
   },
 
   /**
