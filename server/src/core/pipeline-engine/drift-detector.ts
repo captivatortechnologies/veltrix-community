@@ -172,10 +172,22 @@ export class DriftDetector {
             })
         const credential = rawCredential ? decryptCredentialSecrets(rawCredential) : null
 
-        // Look up default connectivity provider for this customer
-        const provider = await this.db.connectivityProvider.findFirst({
-          where: { customerId: component.customerId, isDefault: true, isEnabled: true },
-        })
+        // Resolve this server's connectivity provider — its explicit choice
+        // (component.connectivityProviderId) first, else the tenant default —
+        // mirroring deploy so drift is checked over the same path.
+        const provider =
+          (component.connectivityProviderId
+            ? await this.db.connectivityProvider.findFirst({
+                where: {
+                  id: component.connectivityProviderId,
+                  customerId: component.customerId,
+                  isEnabled: true,
+                },
+              })
+            : null) ??
+          (await this.db.connectivityProvider.findFirst({
+            where: { customerId: component.customerId, isDefault: true, isEnabled: true },
+          }))
 
         // Drift detection runs as a scheduled job, not a live user action —
         // `user` is the tenant's first platform admin (found above) or

@@ -553,12 +553,26 @@ export class DeploymentOrchestrator {
       : null
     const credential = rawCredential ? decryptCredentialSecrets(rawCredential) : null
 
-    // Look up the customer's default connectivity provider
+    // Resolve the connectivity provider for THIS server: honour the server's
+    // explicit choice (component.connectivityProviderId — BYO) first, falling
+    // back to the tenant's default provider only when none is set. (This
+    // previously always used the tenant default, so the per-server picker was
+    // ignored at deploy time.)
     let connectivityProviderRef: ConnectivityProviderRef | null = null
     if (component) {
-      const provider = await this.db.connectivityProvider.findFirst({
-        where: { customerId: component.customerId, isDefault: true, isEnabled: true },
-      })
+      const provider =
+        (component.connectivityProviderId
+          ? await this.db.connectivityProvider.findFirst({
+              where: {
+                id: component.connectivityProviderId,
+                customerId: component.customerId,
+                isEnabled: true,
+              },
+            })
+          : null) ??
+        (await this.db.connectivityProvider.findFirst({
+          where: { customerId: component.customerId, isDefault: true, isEnabled: true },
+        }))
       if (provider) {
         // Decrypt sensitive config fields so pipeline handlers receive real credentials
         const rawConfig = (provider.config ?? {}) as Record<string, unknown>
