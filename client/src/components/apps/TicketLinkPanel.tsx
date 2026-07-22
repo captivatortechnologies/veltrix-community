@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { Link as RouterLink } from 'react-router-dom'
-import { Ticket as TicketIcon, Plus, ExternalLink, Trash2, Loader2 } from 'lucide-react'
+import { Ticket as TicketIcon, Plus, ExternalLink, Trash2, Loader2, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/shared/Button'
 import { Badge, type BadgeVariant } from '@/components/shared/Badge'
 import { EmptyState } from '@/components/shared/EmptyState'
@@ -57,6 +57,13 @@ function statusVariant(status: string | null): BadgeVariant {
   return 'info'
 }
 
+/** A ticket already in a terminal state — the "Close ticket" action is hidden. */
+function isTerminalStatus(status: string | null): boolean {
+  if (!status) return false
+  const s = status.toLowerCase()
+  return ['closed', 'solved', 'resolved', 'complete', 'cancel'].some((k) => s.includes(k))
+}
+
 /**
  * Lists a configuration canvas's linked change/issue tickets, and lets the
  * user create a new ticket (in a configured provider connection) or link an
@@ -77,6 +84,7 @@ export const TicketLinkPanel: React.FC<TicketLinkPanelProps> = ({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [unlinkingId, setUnlinkingId] = useState<string | null>(null)
+  const [closingId, setClosingId] = useState<string | null>(null)
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [mode, setMode] = useState<DialogMode>('existing')
@@ -160,6 +168,31 @@ export const TicketLinkPanel: React.FC<TicketLinkPanelProps> = ({
       setSubmitting(false)
     }
   }, [mode, canvasId, connectionId, summary, description, ticketType, linkType, externalRef, toast, load])
+
+  const handleClose = useCallback(
+    async (link: ConfigurationTicketLinkDTO) => {
+      const ref = link.externalKey || link.externalId
+      const confirmed = await confirm({
+        title: 'Close ticket',
+        message: `Close ${ref} in ${PROVIDER_LABEL[link.provider] ?? link.provider}? This resolves the ticket in your ticketing system.`,
+        confirmText: 'Close ticket',
+        cancelText: 'Cancel',
+        variant: 'info',
+      })
+      if (!confirmed) return
+      setClosingId(link.id)
+      try {
+        await ticketLinkApi.close(link.id)
+        toast.success('Ticket closed.')
+        await load()
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Failed to close ticket')
+      } finally {
+        setClosingId(null)
+      }
+    },
+    [confirm, toast, load],
+  )
 
   const handleUnlink = useCallback(
     async (link: ConfigurationTicketLinkDTO) => {
@@ -252,19 +285,36 @@ export const TicketLinkPanel: React.FC<TicketLinkPanelProps> = ({
                   <p className="truncate text-sm text-gray-500 dark:text-gray-400">{link.title}</p>
                 )}
               </div>
-              <button
-                onClick={() => void handleUnlink(link)}
-                disabled={unlinkingId === link.id}
-                title="Remove link"
-                aria-label={`Remove link to ${link.externalKey || link.externalId}`}
-                className="flex-shrink-0 rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-50 dark:text-gray-500 dark:hover:bg-red-900/20 dark:hover:text-red-400"
-              >
-                {unlinkingId === link.id ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Trash2 className="h-4 w-4" />
+              <div className="flex flex-shrink-0 items-center gap-1">
+                {!isTerminalStatus(link.status) && (
+                  <button
+                    onClick={() => void handleClose(link)}
+                    disabled={closingId === link.id || unlinkingId === link.id}
+                    title="Close ticket"
+                    aria-label={`Close ticket ${link.externalKey || link.externalId}`}
+                    className="rounded p-1.5 text-gray-400 hover:bg-green-50 hover:text-green-600 disabled:opacity-50 dark:text-gray-500 dark:hover:bg-green-900/20 dark:hover:text-green-400"
+                  >
+                    {closingId === link.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="h-4 w-4" />
+                    )}
+                  </button>
                 )}
-              </button>
+                <button
+                  onClick={() => void handleUnlink(link)}
+                  disabled={unlinkingId === link.id || closingId === link.id}
+                  title="Remove link"
+                  aria-label={`Remove link to ${link.externalKey || link.externalId}`}
+                  className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-50 dark:text-gray-500 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                >
+                  {unlinkingId === link.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
             </li>
           ))}
         </ul>

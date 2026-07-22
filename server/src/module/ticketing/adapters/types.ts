@@ -126,6 +126,21 @@ export interface TicketProvider {
     transition: TicketStatusTransition,
     ticketType?: string | null,
   ): Promise<void>
+
+  /**
+   * Optional: transition the ticket to a resolved/closed state. Invoked ONLY by
+   * the explicit "Close ticket" action in the configuration view — deploy never
+   * calls this, closing a change/issue ticket is a manual decision. `ticketType`
+   * targets the right provider table (incident vs change_request…). Returns the
+   * ticket's new normalized status (e.g. "solved"/"closed") so the caller can
+   * update the link badge without an extra round-trip.
+   */
+  closeTicket?(
+    ctx: TicketProviderContext,
+    externalId: string,
+    ticketType?: string | null,
+    note?: string,
+  ): Promise<{ status?: string | null }>
 }
 
 // --- Small shared helpers for adapters ---------------------------------

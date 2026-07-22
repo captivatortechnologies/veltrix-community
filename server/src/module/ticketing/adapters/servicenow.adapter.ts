@@ -177,10 +177,47 @@ export class ServiceNowAdapter implements TicketProvider {
     transition: TicketStatusTransition,
     ticketType?: string | null,
   ): Promise<void> {
-    // A safe, config-agnostic default: record the outcome as a work note.
-    // TODO(ticketing): optionally advance `state`/`close_code` per config.stateMap
-    // (e.g. deploy_succeeded -> Implement/Review) once the tenant's workflow is known.
+    // A safe, config-agnostic default: record the outcome as a work note ONLY —
+    // never advance the ticket state. A successful deploy does not close the
+    // ticket; closing is an explicit user action (see closeTicket).
     await this.addComment(ctx, externalId, formatTransition(transition), ticketType)
+  }
+
+  async closeTicket(
+    ctx: TicketProviderContext,
+    externalId: string,
+    ticketType?: string | null,
+    note?: string,
+  ): Promise<{ status?: string | null }> {
+    const table = this.resolveTableForHint(ctx, ticketType)
+    const closeNotes = note ?? 'Closed from Veltrix.'
+    // ServiceNow's state model is instance-specific, so start from the OOB default
+    // for the table and let the tenant override it via the connection config
+    // (config.closeStates[table] = { state, close_code }). state is set directly
+    // through the Table API, which bypasses the UI's guided-flow ordering.
+    const payload = this.closePayloadFor(ctx, table, closeNotes)
+    const res = await this.request(ctx, 'PATCH', `/api/now/table/${table}/${encodeURIComponent(externalId)}`, payload)
+    if (!res.ok) throw new Error(`ServiceNow close failed (${res.status}): ${await safeText(res)}`)
+    return { status: 'Closed' }
+  }
+
+  /** OOB close payload for a table, overridable via config.closeStates[table]. */
+  private closePayloadFor(
+    ctx: TicketProviderContext,
+    table: string,
+    closeNotes: string,
+  ): Record<string, unknown> {
+    const defaults: Record<string, { state: string; close_code?: string }> = {
+      incident: { state: '7', close_code: 'Solved (Permanently)' }, // 7 = Closed
+      change_request: { state: '3', close_code: 'successful' }, // 3 = Closed
+      problem: { state: '4' }, // 4 = Closed (legacy OOB)
+      task: { state: '3' }, // 3 = Closed Complete
+    }
+    const overrides = (ctx.config.closeStates as Record<string, { state?: string; close_code?: string }> | undefined) ?? {}
+    const chosen = { ...(defaults[table] ?? { state: '3' }), ...(overrides[table] ?? {}) }
+    const payload: Record<string, unknown> = { state: chosen.state, close_notes: closeNotes }
+    if (chosen.close_code) payload.close_code = chosen.close_code
+    return payload
   }
 
   // --- internals -------------------------------------------------------

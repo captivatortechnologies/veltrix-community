@@ -70,6 +70,15 @@ export const ticketLinkApi = {
       throw new Error(getApiErrorMessage(err, 'Failed to remove ticket link'))
     }
   },
+
+  close: async (linkId: string): Promise<ConfigurationTicketLinkDTO> => {
+    try {
+      const res = await api.post<ConfigurationTicketLinkDTO>(`/ticket-links/${linkId}/close`)
+      return res.data
+    } catch (err) {
+      throw new Error(getApiErrorMessage(err, 'Failed to close ticket'))
+    }
+  },
 }
 
 export default ticketLinkApi

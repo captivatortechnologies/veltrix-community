@@ -137,16 +137,33 @@ export class ZendeskAdapter implements TicketProvider {
     transition: TicketStatusTransition,
     _ticketType?: string | null,
   ): Promise<void> {
-    // Record the outcome as a private note; optionally solve on success.
-    const status = transition.outcome === 'deploy_succeeded' ? 'solved' : undefined
-    // TODO(ticketing): make the target status configurable per config.statusMap.
+    // Record the deploy outcome as a private note ONLY — never transition the
+    // ticket's status. A successful deploy does not close the ticket; closing is
+    // an explicit user action (see closeTicket / the config view "Close ticket").
     const res = await this.request(ctx, 'PUT', `/api/v2/tickets/${encodeURIComponent(externalId)}.json`, {
-      ticket: {
-        comment: { body: formatTransition(transition), public: false },
-        ...(status ? { status } : {}),
-      },
+      ticket: { comment: { body: formatTransition(transition), public: false } },
     })
     if (!res.ok) throw new Error(`Zendesk status update failed (${res.status}).`)
+  }
+
+  async closeTicket(
+    ctx: TicketProviderContext,
+    externalId: string,
+    _ticketType?: string | null,
+    note?: string,
+  ): Promise<{ status?: string | null }> {
+    // "solved" is the terminal agent action in Zendesk's workflow (new -> open ->
+    // pending -> solved); the system moves solved tickets to "closed" itself. Add
+    // a private note so the ticket records who/what closed it.
+    const status = 'solved'
+    const res = await this.request(ctx, 'PUT', `/api/v2/tickets/${encodeURIComponent(externalId)}.json`, {
+      ticket: {
+        status,
+        comment: { body: `[Veltrix] ${note ?? 'Ticket closed from Veltrix.'}`, public: false },
+      },
+    })
+    if (!res.ok) throw new Error(`Zendesk close failed (${res.status}).`)
+    return { status }
   }
 
   // --- internals -------------------------------------------------------

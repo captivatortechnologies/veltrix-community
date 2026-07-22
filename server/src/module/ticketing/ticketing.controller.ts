@@ -183,4 +183,21 @@ export const ticketingController = {
       }
     }
   },
+
+  closeLink: async (request: FastifyRequest, reply: FastifyReply) => {
+    const customerId = requireCustomer(request, reply)
+    if (!customerId) return
+    const { linkId } = request.params as { linkId: string }
+    try {
+      reply.send(await ticketingService.closeLink(linkId, customerId))
+    } catch (error) {
+      if (error instanceof Error) {
+        if (NOT_FOUND.test(error.message)) reply.status(404).send({ error: error.message })
+        else reply.status(400).send({ error: error.message })
+      } else {
+        loggerService.error('Error closing ticket:', error)
+        reply.status(500).send({ error: 'Failed to close ticket' })
+      }
+    }
+  },
 }

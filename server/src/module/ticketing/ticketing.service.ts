@@ -394,6 +394,34 @@ export const ticketingService = {
     return { message: 'Ticket link removed' }
   },
 
+  /**
+   * Explicitly close the external ticket for a link (the config view's "Close
+   * ticket" action). The deploy lifecycle NEVER closes tickets — this is the only
+   * path that transitions a ticket to a resolved/closed state, and it is always
+   * user-initiated. Persists the new status onto the link so the badge updates.
+   */
+  async closeLink(linkId: string, customerId: string): Promise<ConfigurationTicketLinkDTO> {
+    const link = await prisma.configurationTicketLink.findFirst({ where: { id: linkId, customerId } })
+    if (!link) throw new Error('Ticket link not found')
+    if (!link.connectionId) throw new Error('This ticket link has no connection, so it cannot be closed from Veltrix.')
+
+    const row = await prisma.ticketingConnection.findFirst({ where: { id: link.connectionId, customerId } })
+    if (!row) throw new Error('The ticketing connection for this link was not found.')
+    if (!row.isEnabled) throw new Error('The ticketing connection for this link is disabled.')
+
+    const adapter = getTicketProvider(row.provider)
+    if (!adapter.closeTicket) throw new Error(`Closing a ticket is not supported for ${row.provider}.`)
+
+    const ctx = await buildProviderContext(row)
+    const result = await adapter.closeTicket(ctx, link.externalId, link.ticketType, 'Closed from Veltrix.')
+
+    const updated = await prisma.configurationTicketLink.update({
+      where: { id: linkId },
+      data: { status: result?.status ?? 'closed' },
+    })
+    return toLinkDTO(updated)
+  },
+
   // --- Change/issue management: deploy lifecycle hook ------------------
 
   /**

@@ -165,6 +165,17 @@ export async function ticketingRoutes(fastify: FastifyInstance) {
     },
     handler: ticketingController.unlink,
   })
+
+  fastify.post('/ticket-links/:linkId/close', {
+    preHandler: [verifyToken, hasPermission('configuration-canvas', 'write')],
+    schema: {
+      tags: ['ticketing'],
+      summary: 'Close the external ticket for a link (explicit user action)',
+      params: linkIdParams,
+      response: { 200: ticketLinkResponseSchema, 400: errorSchema, 404: errorSchema, 500: errorSchema },
+    },
+    handler: ticketingController.closeLink,
+  })
 }
 
 export default ticketingRoutes

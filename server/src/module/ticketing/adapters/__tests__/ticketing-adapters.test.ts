@@ -150,6 +150,52 @@ describe('ServiceNowAdapter', () => {
       await adapter.addComment(ctx, 'sysid123', 'note')
       expect(String(fetchMock.mock.calls[0][0])).toContain('/api/now/table/change_request/sysid123')
     })
+
+    it('updateStatus only work-notes — a successful deploy never changes state', async () => {
+      const fetchMock = jest.spyOn(global, 'fetch').mockResolvedValue(ok())
+      await adapter.updateStatus(ctx, 'sysid123', { outcome: 'deploy_succeeded' }, 'incident')
+      const body = JSON.parse(String((fetchMock.mock.calls[0][1] as RequestInit).body))
+      expect(body.work_notes).toBeTruthy()
+      expect(body.state).toBeUndefined() // no state transition on deploy
+    })
+
+    it('closeTicket sets the closed state + close fields on the ticket table', async () => {
+      const fetchMock = jest.spyOn(global, 'fetch').mockResolvedValue(ok())
+      const res = await adapter.closeTicket(ctx, 'sysid123', 'incident')
+      expect(String(fetchMock.mock.calls[0][0])).toContain('/api/now/table/incident/sysid123')
+      const body = JSON.parse(String((fetchMock.mock.calls[0][1] as RequestInit).body))
+      expect(body.state).toBe('7') // Closed
+      expect(body.close_code).toBe('Solved (Permanently)')
+      expect(body.close_notes).toBeTruthy()
+      expect(res.status).toBe('Closed')
+    })
+  })
+})
+
+describe('ZendeskAdapter status transitions', () => {
+  const adapter = new ZendeskAdapter()
+  const ctx = {
+    instanceUrl: 'https://acme.zendesk.com',
+    auth: { kind: 'apiToken', email: 'a@b.c', apiToken: 't' } as TicketAuth,
+    config: {},
+  }
+  const ok = (): Response => ({ ok: true, status: 200, json: async () => ({}) } as unknown as Response)
+  afterEach(() => jest.restoreAllMocks())
+
+  it('updateStatus records a private note but does NOT solve on deploy success', async () => {
+    const fetchMock = jest.spyOn(global, 'fetch').mockResolvedValue(ok())
+    await adapter.updateStatus(ctx, '42', { outcome: 'deploy_succeeded' })
+    const body = JSON.parse(String((fetchMock.mock.calls[0][1] as RequestInit).body))
+    expect(body.ticket.status).toBeUndefined() // deploy no longer auto-closes
+    expect(body.ticket.comment).toBeTruthy()
+  })
+
+  it('closeTicket solves the ticket on explicit close', async () => {
+    const fetchMock = jest.spyOn(global, 'fetch').mockResolvedValue(ok())
+    const res = await adapter.closeTicket(ctx, '42')
+    const body = JSON.parse(String((fetchMock.mock.calls[0][1] as RequestInit).body))
+    expect(body.ticket.status).toBe('solved')
+    expect(res.status).toBe('solved')
   })
 })
 
