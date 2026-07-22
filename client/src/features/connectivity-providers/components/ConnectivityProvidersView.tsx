@@ -14,6 +14,7 @@ import {
 import type { ConnectivityProvider, ProviderType } from '@/services/connectivityProviderApi'
 import { connectivityProviderApi } from '@/services/connectivityProviderApi'
 import { useConfirmDialog } from '@/components/shared/ConfirmationDialog'
+import { useToast } from '@/components/shared/Toast'
 import {
   PROVIDER_SCHEMAS,
   PROVIDER_CATEGORIES,
@@ -245,6 +246,7 @@ const ProviderCard: React.FC<ProviderCardProps> = ({
 
 const ConnectivityProvidersView: React.FC = () => {
   const { confirm } = useConfirmDialog()
+  const toast = useToast()
   const [providers, setProviders] = useState<ConnectivityProvider[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -324,10 +326,17 @@ const ConnectivityProvidersView: React.FC = () => {
   const handleTest = async (provider: ConnectivityProvider) => {
     setTestingId(provider.id)
     try {
-      await connectivityProviderApi.testConnection(provider.id)
+      const result = await connectivityProviderApi.testConnection(provider.id)
       await fetchProviders() // Refresh to get updated status
+      // Surface the outcome — otherwise a quick silent refetch looks like nothing
+      // happened whether the test passed or failed.
+      if (result.success) {
+        toast.success(result.message || `${provider.name} is reachable.`)
+      } else {
+        toast.error(result.message || `${provider.name} connection test failed.`)
+      }
     } catch (err) {
-      console.error('Test connection failed:', err)
+      toast.error(err instanceof Error ? err.message : `Failed to test ${provider.name}.`)
     } finally {
       setTestingId(null)
     }
