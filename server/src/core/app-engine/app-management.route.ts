@@ -988,6 +988,39 @@ export async function appManagementRoutes(fastify: FastifyInstance) {
   })
 
   // ------------------------------------------------------------------
+  // GET /:appId/meta — the app's own metadata for its Overview page (every
+  // installed app's client bundle fetches this). Returns the app basics + a
+  // summary of its configuration types (id / name / description / target
+  // component types), all derived from the loaded manifest. Read-only.
+  // ------------------------------------------------------------------
+  fastify.get('/:appId/meta', {
+    preHandler: [verifyToken, hasPermission('apps', 'read')],
+    handler: async (
+      request: FastifyRequest<{ Params: { appId: string } }>,
+      reply: FastifyReply,
+    ) => {
+      const { appId } = request.params
+      const loaded = getAppRegistry().getLoadedApp(appId)
+      if (!loaded) {
+        return reply.status(404).send({ error: `App "${appId}" is not installed` })
+      }
+      const { manifest } = loaded
+      reply.send({
+        appId: manifest.id,
+        name: manifest.name,
+        version: manifest.version,
+        configurationTypes: (manifest.pipeline?.configurationTypes ?? []).map((ct) => ({
+          id: ct.id,
+          name: ct.name,
+          description: ct.description,
+          group: ct.group,
+          componentTypes: ct.targets?.componentTypes ?? [],
+        })),
+      })
+    },
+  })
+
+  // ------------------------------------------------------------------
   // GET /:appId/config-options — live options for `remote-multiselect` config
   // fields. Resolves the same connection deploy uses (decrypted credential +
   // component) for the config type and runs the app's `options` provider, so a
