@@ -12,6 +12,7 @@ import type { FastifyInstance } from 'fastify'
 import prisma from '../db'
 import { AppRegistry } from './app-engine/app-registry'
 import { registerAppRoutes } from './app-engine/app-route-registrar'
+import { startMarketplaceCatalogAutoRefresh } from './app-engine/marketplace-catalog'
 import { JobRunner } from './job-runner'
 import { PipelineService } from './pipeline-engine/pipeline.service'
 import { DeploymentOrchestrator } from './pipeline-engine/deployment.orchestrator'
@@ -100,6 +101,13 @@ export async function initializePlatform(): Promise<void> {
 
   // 1. Create AppRegistry
   appRegistry = new AppRegistry(prisma, appsDir)
+
+  // 1b. Marketplace catalog — single-sourced from the apps repo's published
+  // catalog.json, fetched now + refreshed periodically (best-effort; falls back
+  // to the built-in offline catalog until/if the fetch succeeds).
+  if (isFeatureEnabled('platform.marketplace')) {
+    startMarketplaceCatalogAutoRefresh()
+  }
 
   // 2. Handler resolver - connects pipeline engine to app registry
   const getHandlers = (appId: string, configTypeId: string) => {

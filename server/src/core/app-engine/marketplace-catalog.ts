@@ -1,24 +1,39 @@
 // ========================================================================
 // Marketplace Catalog
 //
-// Static registry of marketplace apps available for installation.
-// Acts as a lightweight discovery layer for the app store UI.
+// The catalog is SINGLE-SOURCED from the community apps repo's published
+// `catalog/catalog.json` (auto-generated per app release — see veltrix-apps'
+// deploy-catalog workflow), fetched at runtime and refreshed periodically, so
+// the app store always reflects the real releases without patching this file on
+// every app version bump.
 //
-// In the future this could be backed by a remote API or database, but
-// for now it is a hardcoded catalog. Apps with available: true and a
-// downloadUrl can be auto-installed from the marketplace. Apps with
-// available: false are "coming soon" placeholders.
+// The hardcoded FALLBACK_CATALOG below is only an OFFLINE safety net: it serves
+// until the first fetch succeeds and whenever the remote catalog is unreachable
+// (air-gapped install, GitHub down). It may be stale — the remote catalog is
+// authoritative. Apps with available: true and a downloadUrl can be
+// auto-installed; available: false are "coming soon" placeholders.
 //
-// The community-apps GitHub repo backing the installable entries below is
-// configurable via VELTRIX_APPS_REPO (default: the public veltrix-apps repo
-// under this project's own GitHub org) rather than hardcoded to any single
-// operator's fork — self-hosters who maintain their own apps repo/catalog
-// fork can point this at it without patching source.
+// Config (all optional, sensible defaults):
+//   VELTRIX_APPS_REPO   `owner/repo` of the apps catalog (manifests + releases).
+//   VELTRIX_CATALOG_URL explicit catalog.json URL (overrides the derived one) —
+//                       point self-hosters at their own fork/mirror.
+//   MARKETPLACE_CATALOG_REFRESH_MINUTES background refresh cadence (default 30).
 // ========================================================================
 
 /** `owner/repo` slug for the community apps catalog (manifests + release packages). */
-const APPS_REPO = process.env.VELTRIX_APPS_REPO || 'veltrix-community/veltrix-apps'
+const APPS_REPO = process.env.VELTRIX_APPS_REPO || 'captivatortechnologies/veltrix-apps'
 const APPS_REPO_URL = `https://github.com/${APPS_REPO}`
+
+/**
+ * URL of the published catalog.json. Defaults to the raw file on the apps repo's
+ * default branch; override with VELTRIX_CATALOG_URL for a fork/mirror/Pages host.
+ */
+const CATALOG_URL =
+  process.env.VELTRIX_CATALOG_URL ||
+  `https://raw.githubusercontent.com/${APPS_REPO}/main/catalog/catalog.json`
+
+const REFRESH_MINUTES = Number(process.env.MARKETPLACE_CATALOG_REFRESH_MINUTES) || 30
+const FETCH_TIMEOUT_MS = 8000
 
 export interface MarketplaceEntry {
   /** Unique slug that matches the app's manifest id (e.g. 'crowdstrike-edr') */
@@ -55,15 +70,19 @@ export interface MarketplaceEntry {
   releaseNotes?: string
   /** ISO-8601 timestamp the current `version` was published, when known. */
   releasedAt?: string
+  /** SHA-256 of the release package, from the catalog builder (integrity check). */
+  sha256?: string
+  /** Size of the release package in bytes, from the catalog builder. */
+  sizeBytes?: number
 }
 
 // ------------------------------------------------------------------
-// Seed data
-// Splunk Enterprise is the first installable app (available: true).
-// Remaining entries are placeholders until integration packages ship.
+// Offline fallback catalog — served only until the first successful remote
+// fetch and whenever catalog.json is unreachable. May be stale; the remote
+// catalog is authoritative. Keep entries minimal.
 // ------------------------------------------------------------------
 
-const CATALOG: MarketplaceEntry[] = [
+const FALLBACK_CATALOG: MarketplaceEntry[] = [
   {
     appId: 'splunk-enterprise',
     name: 'Splunk Enterprise',
@@ -202,7 +221,110 @@ const CATALOG: MarketplaceEntry[] = [
 ]
 
 // ------------------------------------------------------------------
-// Catalog API
+// Live catalog cache — populated by refreshMarketplaceCatalog() from the remote
+// catalog.json. Accessors are SYNC + pure and read `liveCatalog ?? FALLBACK`,
+// so the app store surfaces the remote catalog when loaded and degrades to the
+// offline fallback otherwise. No consumer had to change.
+// ------------------------------------------------------------------
+
+let liveCatalog: MarketplaceEntry[] | null = null
+let inFlight: Promise<void> | null = null
+
+function currentCatalog(): MarketplaceEntry[] {
+  return liveCatalog ?? FALLBACK_CATALOG
+}
+
+/** Test-only: drop the live cache so accessors fall back to FALLBACK_CATALOG. */
+export function __resetMarketplaceCatalogForTests(): void {
+  liveCatalog = null
+  inFlight = null
+}
+
+/** Coerce one raw catalog.json entry into a MarketplaceEntry, or null if invalid. */
+function toEntry(raw: unknown): MarketplaceEntry | null {
+  if (!raw || typeof raw !== 'object') return null
+  const r = raw as Record<string, unknown>
+  const appId = typeof r.appId === 'string' ? r.appId : null
+  const name = typeof r.name === 'string' ? r.name : null
+  const version = typeof r.version === 'string' ? r.version : null
+  if (!appId || !name || !version) return null // the three fields every consumer relies on
+  const str = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined)
+  return {
+    appId,
+    name,
+    version,
+    vendor: str(r.vendor) ?? 'Unknown',
+    description: str(r.description) ?? '',
+    category: str(r.category) ?? 'OTHER',
+    icon: str(r.icon),
+    logo: str(r.logo),
+    logoDark: str(r.logoDark),
+    license: str(r.license),
+    homepage: str(r.homepage),
+    available: r.available === true,
+    tags: Array.isArray(r.tags) ? r.tags.filter((t): t is string => typeof t === 'string') : undefined,
+    downloadUrl: str(r.downloadUrl),
+    releaseNotes: str(r.releaseNotes),
+    releasedAt: str(r.releasedAt),
+    sha256: str(r.sha256),
+    sizeBytes: typeof r.sizeBytes === 'number' ? r.sizeBytes : undefined,
+  }
+}
+
+/**
+ * Fetch the published catalog.json and swap it into the live cache. Best-effort:
+ * never throws — on any failure (network, non-200, malformed JSON, zero valid
+ * entries) it logs a warning and leaves the current cache (or fallback) in place.
+ * Concurrent callers share a single in-flight request.
+ */
+export async function refreshMarketplaceCatalog(): Promise<void> {
+  if (inFlight) return inFlight
+  inFlight = (async () => {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
+    try {
+      const res = await fetch(CATALOG_URL, {
+        signal: controller.signal,
+        headers: { accept: 'application/json' },
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const body = (await res.json()) as { apps?: unknown }
+      const rawApps = Array.isArray(body?.apps) ? body.apps : []
+      const mapped = rawApps.map(toEntry).filter((e): e is MarketplaceEntry => e !== null)
+      if (mapped.length === 0) throw new Error('catalog.json contained no valid entries')
+      liveCatalog = mapped
+      // eslint-disable-next-line no-console
+      console.log(`[marketplace] catalog loaded: ${mapped.length} apps from ${CATALOG_URL}`)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[marketplace] catalog refresh failed (${msg}); serving ${
+          liveCatalog ? 'last-good' : 'offline fallback'
+        } catalog from ${CATALOG_URL}`,
+      )
+    } finally {
+      clearTimeout(timer)
+      inFlight = null
+    }
+  })()
+  return inFlight
+}
+
+/**
+ * Kick off the initial fetch and a periodic background refresh. Call once at
+ * boot. The interval is unref'd so it never keeps the process alive. Returns a
+ * stop function.
+ */
+export function startMarketplaceCatalogAutoRefresh(): () => void {
+  void refreshMarketplaceCatalog()
+  const handle = setInterval(() => void refreshMarketplaceCatalog(), REFRESH_MINUTES * 60_000)
+  handle.unref?.()
+  return () => clearInterval(handle)
+}
+
+// ------------------------------------------------------------------
+// Catalog API (unchanged shape — sync + pure, reads the live-or-fallback catalog)
 // ------------------------------------------------------------------
 
 export const marketplaceCatalog = {
@@ -210,7 +332,7 @@ export const marketplaceCatalog = {
    * Return every entry in the catalog.
    */
   getAll(): MarketplaceEntry[] {
-    return CATALOG
+    return currentCatalog()
   },
 
   /**
@@ -218,7 +340,7 @@ export const marketplaceCatalog = {
    * Returns null when no match is found.
    */
   getById(appId: string): MarketplaceEntry | null {
-    return CATALOG.find((entry) => entry.appId === appId) ?? null
+    return currentCatalog().find((entry) => entry.appId === appId) ?? null
   },
 
   /**
@@ -227,9 +349,10 @@ export const marketplaceCatalog = {
    */
   search(query: string): MarketplaceEntry[] {
     const term = query.trim().toLowerCase()
-    if (!term) return CATALOG
+    const catalog = currentCatalog()
+    if (!term) return catalog
 
-    return CATALOG.filter((entry) => {
+    return catalog.filter((entry) => {
       const haystack = [
         entry.name,
         entry.vendor,
@@ -250,6 +373,6 @@ export const marketplaceCatalog = {
    */
   getByCategory(category: string): MarketplaceEntry[] {
     const normalized = category.trim().toUpperCase()
-    return CATALOG.filter((entry) => entry.category.toUpperCase() === normalized)
+    return currentCatalog().filter((entry) => entry.category.toUpperCase() === normalized)
   },
 }
