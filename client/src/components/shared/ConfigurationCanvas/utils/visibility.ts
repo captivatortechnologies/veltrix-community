@@ -42,6 +42,13 @@ export function isFieldVisible(
   const cond = field.visibleWhen;
   if (!cond || !cond.field) return true;
   const actual = siblingValues[cond.field];
+  // `includes`: the sibling is multi-value (multiselect / tags → an array). Visible
+  // when its value contains the scalar; falls back to equality for a single value.
+  if (cond.includes !== undefined) {
+    return Array.isArray(actual)
+      ? actual.some((v) => scalarEquals(v, cond.includes))
+      : scalarEquals(actual, cond.includes);
+  }
   if (Array.isArray(cond.in)) return cond.in.some((expected) => scalarEquals(actual, expected));
   if (cond.equals !== undefined) return scalarEquals(actual, cond.equals);
   return true;

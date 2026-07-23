@@ -107,6 +107,12 @@ export interface FieldVisibilityCondition {
   equals?: string | number | boolean;
   /** Visible when the sibling value is one of these scalars. */
   in?: Array<string | number | boolean>;
+  /**
+   * Visible when the sibling's value CONTAINS this scalar — for a multi-value
+   * sibling (multiselect / tags, whose value is an array). Falls back to scalar
+   * equality when the sibling holds a single value.
+   */
+  includes?: string | number | boolean;
 }
 
 /**

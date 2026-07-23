@@ -33,6 +33,16 @@ describe('isFieldVisible', () => {
     expect(isFieldVisible(f, { mode: 'guided' })).toBe(false);
   });
 
+  it('honors includes against a multi-value (array) sibling', () => {
+    const f = { visibleWhen: { field: 'targetTypes', includes: 'cluster-manager' } };
+    expect(isFieldVisible(f, { targetTypes: ['indexer', 'cluster-manager'] })).toBe(true);
+    expect(isFieldVisible(f, { targetTypes: ['indexer', 'search-head'] })).toBe(false);
+    expect(isFieldVisible(f, { targetTypes: [] })).toBe(false);
+    // Falls back to scalar equality when the sibling holds a single value.
+    expect(isFieldVisible(f, { targetTypes: 'cluster-manager' })).toBe(true);
+    expect(isFieldVisible(f, { targetTypes: 'indexer' })).toBe(false);
+  });
+
   it('hides when the referenced sibling has no value', () => {
     expect(isFieldVisible({ visibleWhen: { field: 'mode', equals: 'json' } }, {})).toBe(false);
     expect(isFieldVisible({ visibleWhen: { field: 'mode', in: ['json'] } }, {})).toBe(false);

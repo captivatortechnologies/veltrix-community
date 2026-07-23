@@ -34,6 +34,8 @@ export const ConfigurationCanvasFieldSchema = z.object({
       field: z.string().min(1),
       equals: z.union([z.string(), z.number(), z.boolean()]).optional(),
       in: z.array(z.union([z.string(), z.number(), z.boolean()])).optional(),
+      // Sibling holds a multi-value (multiselect/tags); visible when it contains this.
+      includes: z.union([z.string(), z.number(), z.boolean()]).optional(),
     })
     .optional(),
   // For a `keyvalue` field: keys are read-only labels, only values are edited.
