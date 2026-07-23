@@ -80,6 +80,27 @@ describe('component.route — authorization (R6)', () => {
     expect(prisma.component.create).not.toHaveBeenCalled()
   })
 
+  it('persists webPort on create for an authorized user', async () => {
+    mockQueryRaw.mockResolvedValue([{ id: 'p1', resource: 'all', action: 'all', roleId: 'role-no-perms', appId: null }])
+    ;(prisma.component.create as jest.Mock).mockResolvedValue({
+      id: 'c1', type: ['server'], hostname: 'h1', port: '8089', webPort: '8000', domains: [], ipRanges: [], tags: [],
+    })
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/components/',
+      payload: {
+        type: ['server'], hostname: 'h1', port: '8089', webPort: '8000',
+        toolId: '00000000-0000-0000-0000-000000000001',
+      },
+    })
+
+    expect(res.statusCode).toBe(201)
+    expect(prisma.component.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ webPort: '8000' }) }),
+    )
+  })
+
   it('allows GET / for an unrestricted admin (all:all) — the happy path still works', async () => {
     // Note: component routes also run ensureCustomerMatch as a blanket hook
     // with no :customerId URL param, so a non-admin role can only reach the

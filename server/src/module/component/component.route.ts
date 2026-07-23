@@ -28,6 +28,7 @@ const createComponentSchema = {
     type: { type: 'array', items: { type: 'string' }, minItems: 1 }, // Expect non-empty array of strings
     hostname: { type: 'string' },
     port: { type: 'string' },
+    webPort: { type: 'string', nullable: true },
     toolId: { type: 'string', format: 'uuid' },
     tagIds: {
       type: 'array',
@@ -52,6 +53,7 @@ export const componentSchema = {
     type: { type: 'array', items: { type: 'string' } },
     hostname: { type: 'string' },
     port: { type: 'string' },
+    webPort: { type: 'string', nullable: true },
     domains: { type: 'array', items: { type: 'string' } },
     ipRanges: { type: 'array', items: { type: 'string' } },
     connectivityProviderId: { type: 'string', nullable: true },
@@ -154,6 +156,7 @@ export async function componentRoutes(fastify: FastifyInstance) {
           type: { type: 'array', items: { type: 'string' }, minItems: 1 },
           hostname: { type: 'string' },
           port: { type: 'string' },
+          webPort: { type: 'string', nullable: true },
           tagIds: {
             type: 'array',
             items: { type: 'string', format: 'uuid' },

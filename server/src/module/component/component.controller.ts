@@ -63,6 +63,7 @@ class ComponentController {
       type: string[]; // Expect an array of strings
       hostname: string;
       port: string;
+      webPort?: string | null; // Optional secondary service port (e.g. Splunk Web 8000)
       toolId: string;
       tagIds?: string[];
       domains?: string[]; // Inventory: DNS names this target is reachable at
@@ -87,6 +88,7 @@ class ComponentController {
           type: componentData.type, // Save the array directly
           hostname: componentData.hostname,
           port: componentData.port,
+          webPort: componentData.webPort ?? null,
           domains: componentData.domains ?? [],
           ipRanges: componentData.ipRanges ?? [],
           toolId: componentData.toolId,
@@ -135,6 +137,7 @@ class ComponentController {
       type?: string[];
       hostname?: string;
       port?: string;
+      webPort?: string | null;
       tagIds?: string[];
       domains?: string[];
       ipRanges?: string[];
@@ -159,6 +162,7 @@ class ComponentController {
       if (updateData.type) data.type = updateData.type;
       if (updateData.hostname) data.hostname = updateData.hostname;
       if (updateData.port) data.port = updateData.port;
+      if (updateData.webPort !== undefined) data.webPort = updateData.webPort;
       if (updateData.domains !== undefined) data.domains = updateData.domains;
       if (updateData.ipRanges !== undefined) data.ipRanges = updateData.ipRanges;
       if (updateData.credentialId !== undefined) data.credentialId = updateData.credentialId;
