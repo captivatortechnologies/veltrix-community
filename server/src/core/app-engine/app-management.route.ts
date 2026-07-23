@@ -14,7 +14,8 @@ import { checkTenantQuota } from '../../middlewares/tenant-ownership.middleware'
 import { loggerService } from '../../module/logger/logger.service'
 import { getAppRegistry } from '../platform-bootstrap'
 import { validatePackageBuffer, extractPackage, MAX_PACKAGE_SIZE } from './app-packager'
-import { marketplaceCatalog } from './marketplace-catalog'
+import { marketplaceCatalog, type MarketplaceEntry } from './marketplace-catalog'
+import { createHash } from 'crypto'
 import { validateDownloadUrl } from './url-validator'
 import { downloadAppPackage } from './app-downloader'
 import { registerAppClientBundleRoute } from './app-client-bundle.route'
@@ -94,6 +95,27 @@ function logVettingResult(appId: string, vetting: VetResult): void {
     `App vetting ${status} for "${appId}": ${vetting.errors.length} error(s), ${vetting.warnings.length} warning(s)`,
     { appId, status, errorCount: vetting.errors.length, warningCount: vetting.warnings.length },
   )
+}
+
+/**
+ * A downloaded package is a TRUSTED first-party app when its bytes match the
+ * `sha256` the (operator-configured) marketplace catalog published for it. That
+ * proves it's exactly what the catalog vendor released, so it does not need the
+ * APAV auto-vetting — which exists to screen UNTRUSTED sideloaded / CUSTOM
+ * uploads, not the official signed catalog. A missing/mismatched checksum is NOT
+ * trusted and falls through to full vetting.
+ */
+function isTrustedCatalogPackage(buffer: Buffer, catalogEntry?: MarketplaceEntry | null): boolean {
+  const expected = catalogEntry?.sha256
+  if (!expected) return false
+  const actual = createHash('sha256').update(buffer).digest('hex')
+  const ok = actual.toLowerCase() === expected.toLowerCase()
+  if (!ok) {
+    loggerService.warn(
+      `[install] "${catalogEntry?.appId}" package sha256 mismatch (catalog ${expected.slice(0, 12)}…, got ${actual.slice(0, 12)}…) — treating as untrusted, will vet`,
+    )
+  }
+  return ok
 }
 
 export async function appManagementRoutes(fastify: FastifyInstance) {
@@ -782,17 +804,26 @@ export async function appManagementRoutes(fastify: FastifyInstance) {
             const { buffer, filename } = await downloadAppPackage(catalogEntry.downloadUrl)
             await validatePackageBuffer(buffer, filename)
             const appDir = path.join(registry.getAppsDir(), appId)
+            const trusted = isTrustedCatalogPackage(buffer, catalogEntry)
             await extractPackage(buffer, filename, appDir)
 
-            const vetting = await vetApp(appDir)
-            logVettingResult(appId, vetting)
-            if (vetting.errors.length > 0) {
-              return reply.status(422).send({
-                status: 'REJECTED',
-                appId,
-                errors: vetting.errors,
-                warnings: vetting.warnings,
-              })
+            // Trusted first-party catalog packages (sha256-verified) skip the
+            // untrusted-upload auto-vetting; everything else is vetted.
+            if (trusted) {
+              loggerService.info(
+                `[upgrade] "${appId}": package sha256 matches the catalog — trusted first-party app, skipping auto-vetting`,
+              )
+            } else {
+              const vetting = await vetApp(appDir)
+              logVettingResult(appId, vetting)
+              if (vetting.errors.length > 0) {
+                return reply.status(422).send({
+                  status: 'REJECTED',
+                  appId,
+                  errors: vetting.errors,
+                  warnings: vetting.warnings,
+                })
+              }
             }
 
             // Re-register: refreshes App.version + reloads the app's code. This
@@ -1143,6 +1174,8 @@ export async function appManagementRoutes(fastify: FastifyInstance) {
         // Tracks whether THIS request extracted the package, so rejection
         // cleanup never deletes a pre-existing (e.g. built-in) directory.
         let freshlyExtracted = false
+        // Official first-party catalog package (bytes match the catalog sha256).
+        let trusted = false
 
         // Check if it exists on disk already (built-in or previously uploaded)
         if (!fs.existsSync(path.join(appDir, 'manifest.yaml'))) {
@@ -1152,6 +1185,7 @@ export async function appManagementRoutes(fastify: FastifyInstance) {
             try {
               const { buffer, filename } = await downloadAppPackage(catalogEntry.downloadUrl)
               await validatePackageBuffer(buffer, filename)
+              trusted = isTrustedCatalogPackage(buffer, catalogEntry)
               await extractPackage(buffer, filename, appDir)
               freshlyExtracted = true
             } catch (dlError) {
@@ -1167,20 +1201,28 @@ export async function appManagementRoutes(fastify: FastifyInstance) {
           }
         }
 
-        // APAV-style vetting: the platform validates the package itself and
-        // refuses to install anything with errors.
-        const vetting = await vetApp(appDir)
-        logVettingResult(appId, vetting)
-        if (vetting.errors.length > 0) {
-          if (freshlyExtracted && fs.existsSync(appDir)) {
-            fs.rmSync(appDir, { recursive: true, force: true })
+        // APAV-style vetting for UNTRUSTED packages — the platform validates the
+        // package itself and refuses to install anything with errors. A trusted
+        // first-party catalog package (sha256-verified above) skips it.
+        let vetting: VetResult | null = null
+        if (trusted) {
+          loggerService.info(
+            `[install] "${appId}": package sha256 matches the catalog — trusted first-party app, skipping auto-vetting`,
+          )
+        } else {
+          vetting = await vetApp(appDir)
+          logVettingResult(appId, vetting)
+          if (vetting.errors.length > 0) {
+            if (freshlyExtracted && fs.existsSync(appDir)) {
+              fs.rmSync(appDir, { recursive: true, force: true })
+            }
+            return reply.status(422).send({
+              status: 'REJECTED',
+              appId,
+              errors: vetting.errors,
+              warnings: vetting.warnings,
+            })
           }
-          return reply.status(422).send({
-            status: 'REJECTED',
-            appId,
-            errors: vetting.errors,
-            warnings: vetting.warnings,
-          })
         }
 
         await registry.install(appId, 'MARKETPLACE')
@@ -1188,7 +1230,7 @@ export async function appManagementRoutes(fastify: FastifyInstance) {
         reply.send({
           message: `App "${appId}" installed successfully`,
           appId,
-          vetting: { status: 'APPROVED', warnings: vetting.warnings },
+          vetting: { status: 'APPROVED', warnings: vetting?.warnings ?? [] },
         })
       } catch (error) {
         loggerService.error('Error installing app:', error)
