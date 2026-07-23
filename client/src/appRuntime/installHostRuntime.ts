@@ -360,6 +360,7 @@ interface RawComponent {
   port?: string
   webPort?: string | null
   sshUser?: string | null
+  splunkHome?: string | null
   type?: string[]
   domains?: string[]
   ipRanges?: string[]
@@ -375,6 +376,7 @@ function toInventoryItem(raw: RawComponent) {
     port: raw.port ?? undefined,
     webPort: raw.webPort ?? null,
     sshUser: raw.sshUser ?? null,
+    splunkHome: raw.splunkHome ?? null,
     type: Array.isArray(raw.type) ? raw.type : undefined,
     domains: Array.isArray(raw.domains) ? raw.domains : [],
     ipRanges: Array.isArray(raw.ipRanges) ? raw.ipRanges : [],

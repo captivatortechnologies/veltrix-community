@@ -83,21 +83,21 @@ describe('component.route — authorization (R6)', () => {
   it('persists webPort + sshUser on create for an authorized user', async () => {
     mockQueryRaw.mockResolvedValue([{ id: 'p1', resource: 'all', action: 'all', roleId: 'role-no-perms', appId: null }])
     ;(prisma.component.create as jest.Mock).mockResolvedValue({
-      id: 'c1', type: ['server'], hostname: 'h1', port: '8089', webPort: '8000', sshUser: 'root', domains: [], ipRanges: [], tags: [],
+      id: 'c1', type: ['server'], hostname: 'h1', port: '8089', webPort: '8000', sshUser: 'root', splunkHome: '/opt/splunk', domains: [], ipRanges: [], tags: [],
     })
 
     const res = await app.inject({
       method: 'POST',
       url: '/api/components/',
       payload: {
-        type: ['server'], hostname: 'h1', port: '8089', webPort: '8000', sshUser: 'root',
+        type: ['server'], hostname: 'h1', port: '8089', webPort: '8000', sshUser: 'root', splunkHome: '/opt/splunk',
         toolId: '00000000-0000-0000-0000-000000000001',
       },
     })
 
     expect(res.statusCode).toBe(201)
     expect(prisma.component.create).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ webPort: '8000', sshUser: 'root' }) }),
+      expect.objectContaining({ data: expect.objectContaining({ webPort: '8000', sshUser: 'root', splunkHome: '/opt/splunk' }) }),
     )
   })
 

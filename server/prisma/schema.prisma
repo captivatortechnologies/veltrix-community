@@ -393,6 +393,9 @@ model Component {
   // Optional OS login user for SSH to this target (e.g. "root", "ubuntu") — the
   // shell account, distinct from any application/API credential on the connection.
   sshUser                String?
+  // Optional $SPLUNK_HOME on the target (e.g. "/opt/splunk", "/opt/splunkforwarder").
+  // When set, overrides auto-detection for staging-dir deploys.
+  splunkHome             String?
   // Inventory: additional deployment-target addressing beyond a single
   // hostname/port — DNS names and IP/CIDR ranges a config can be deployed to.
   domains                String[]               @default([])
