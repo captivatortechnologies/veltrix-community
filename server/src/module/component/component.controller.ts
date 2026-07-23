@@ -64,6 +64,7 @@ class ComponentController {
       hostname: string;
       port: string;
       webPort?: string | null; // Optional secondary service port (e.g. Splunk Web 8000)
+      sshUser?: string | null; // Optional OS login user for SSH (e.g. "root")
       toolId: string;
       tagIds?: string[];
       domains?: string[]; // Inventory: DNS names this target is reachable at
@@ -89,6 +90,7 @@ class ComponentController {
           hostname: componentData.hostname,
           port: componentData.port,
           webPort: componentData.webPort ?? null,
+          sshUser: componentData.sshUser ?? null,
           domains: componentData.domains ?? [],
           ipRanges: componentData.ipRanges ?? [],
           toolId: componentData.toolId,
@@ -138,6 +140,7 @@ class ComponentController {
       hostname?: string;
       port?: string;
       webPort?: string | null;
+      sshUser?: string | null;
       tagIds?: string[];
       domains?: string[];
       ipRanges?: string[];
@@ -163,6 +166,7 @@ class ComponentController {
       if (updateData.hostname) data.hostname = updateData.hostname;
       if (updateData.port) data.port = updateData.port;
       if (updateData.webPort !== undefined) data.webPort = updateData.webPort;
+      if (updateData.sshUser !== undefined) data.sshUser = updateData.sshUser;
       if (updateData.domains !== undefined) data.domains = updateData.domains;
       if (updateData.ipRanges !== undefined) data.ipRanges = updateData.ipRanges;
       if (updateData.credentialId !== undefined) data.credentialId = updateData.credentialId;

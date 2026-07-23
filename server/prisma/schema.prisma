@@ -390,6 +390,9 @@ model Component {
   // Optional secondary service port on the same target — e.g. an access server's
   // web UI (Splunk Web on 8000) alongside the primary management/API `port` (8089).
   webPort                String?
+  // Optional OS login user for SSH to this target (e.g. "root", "ubuntu") — the
+  // shell account, distinct from any application/API credential on the connection.
+  sshUser                String?
   // Inventory: additional deployment-target addressing beyond a single
   // hostname/port — DNS names and IP/CIDR ranges a config can be deployed to.
   domains                String[]               @default([])
