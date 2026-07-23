@@ -39,6 +39,11 @@ services:
     environment:
       DATABASE_URL: postgresql://veltrix:${POSTGRES_PASSWORD:-veltrix}@db:5432/veltrix
       REDIS_URL: redis://redis:6379
+    volumes:
+      # Persist marketplace-installed apps across restarts. The image ships this
+      # dir owned by the non-root runtime user, so the fresh volume inherits that
+      # ownership (installs write without EACCES).
+      - apps_data:/app/apps
     depends_on:
       db:
         condition: service_healthy
@@ -66,3 +71,4 @@ services:
 volumes:
   db_data:
   redis_data:
+  apps_data:

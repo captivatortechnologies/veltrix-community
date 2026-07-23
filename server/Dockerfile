@@ -74,6 +74,13 @@ COPY --from=builder --chown=nodejs:nodejs /app/server/package.json ./
 # so the file sink doesn't EACCES (stdout logging works regardless).
 RUN mkdir -p /var/log/veltrix-server && chown -R nodejs:nodejs /var/log/veltrix-server
 
+# Marketplace-installed apps are unpacked into ./apps (cwd is /app) at runtime.
+# No apps are bundled in the image — the store installs everything — so the
+# non-root user MUST own this directory or `mkdir /app/apps/<appId>` EACCESes.
+# Mount a named volume here (see docker-compose.yml) to persist installs across
+# container restarts; the volume inherits this nodejs ownership on first use.
+RUN mkdir -p /app/apps && chown -R nodejs:nodejs /app/apps
+
 USER nodejs
 
 EXPOSE 5000
