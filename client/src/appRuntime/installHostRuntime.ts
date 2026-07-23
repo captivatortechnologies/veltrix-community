@@ -208,11 +208,28 @@ export const AppContext = React.createContext<AppContextValue | null>(null)
 // authFetch — same token source as appService.getAuthHeaders
 // ---------------------------------------------------------------------------
 
+/** Read a non-httpOnly cookie value by name (for the CSRF double-submit token). */
+function readCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const match = document.cookie.match(new RegExp('(?:^|; )' + escaped + '=([^;]*)'))
+  return match ? decodeURIComponent(match[1]) : null
+}
+
 export function authFetch(input: string, init?: RequestInit): Promise<Response> {
   const token = localStorage.getItem('token') || sessionStorage.getItem('token')
   const headers = new Headers(init?.headers)
   if (token) {
     headers.set('Authorization', `Bearer ${token}`)
+  }
+  // Echo the XSRF-TOKEN cookie in the X-XSRF-TOKEN header so an app's
+  // state-changing calls (POST/PUT/PATCH/DELETE — e.g. a ZTNA enrollment or a
+  // connection test) pass the platform's double-submit CSRF check. Mirrors the
+  // platform axios interceptor; GET/HEAD are exempt server-side so they skip it.
+  const method = (init?.method ?? 'GET').toUpperCase()
+  if (method !== 'GET' && method !== 'HEAD' && !headers.has('X-XSRF-TOKEN')) {
+    const xsrf = readCookie('XSRF-TOKEN')
+    if (xsrf) headers.set('X-XSRF-TOKEN', xsrf)
   }
   return fetch(input, { ...init, headers })
 }
