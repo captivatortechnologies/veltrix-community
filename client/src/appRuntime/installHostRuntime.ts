@@ -323,7 +323,15 @@ function asArray<T>(data: unknown): T[] {
 // --- Tools + Inventory (platform components) ---
 
 async function resolveTool(name: string): Promise<{ id: string; name: string } | null> {
-  const res = await authFetch('/api/tools')
+  // MUST filter server-side by name: /api/tools is paginated (default 20, ordered
+  // by createdAt), so with enough apps installed a real tool whose row falls to a
+  // later page is missed by a bare first-page fetch — surfacing a false
+  // "No <app> tool found — install the app first" on the Access Servers / Add
+  // connection dialogs for an app that IS installed. (This host-runtime copy is
+  // what app pages importing `@veltrixsecops/app-sdk/client` use — keep it in sync
+  // with the SDK's own resolveTool.) `search` is a case-insensitive contains match,
+  // so we still exact-match on the result.
+  const res = await authFetch(`/api/tools?search=${encodeURIComponent(name)}&limit=100`)
   if (!res.ok) throw await sdkApiError(res)
   const tools = asArray<{ id: string; name: string }>(await res.json())
   return tools.find((tool) => tool.name === name) ?? null
