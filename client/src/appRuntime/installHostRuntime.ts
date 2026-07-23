@@ -542,10 +542,14 @@ async function removeCredential(id: string): Promise<void> {
 async function testConnection(
   appId: string,
   credentialId: string,
+  opts: { endpoint?: string } = {},
 ): Promise<{ ok: boolean; message: string; details?: string[]; latencyMs?: number }> {
+  const endpoint = typeof opts.endpoint === 'string' ? opts.endpoint.trim() : ''
   const res = await authFetch(
     `/api/apps/${encodeURIComponent(appId)}/connections/${encodeURIComponent(credentialId)}/test`,
-    { method: 'POST' },
+    endpoint
+      ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint }) }
+      : { method: 'POST' },
   )
   if (!res.ok) {
     const err = await sdkApiError(res)

@@ -936,10 +936,20 @@ export async function appManagementRoutes(fastify: FastifyInstance) {
 
       const settings = (installation?.settings as Record<string, unknown>) ?? {}
 
+      // An optional endpoint override lets a caller test against a specific host
+      // instead of the credential's stored endpoint — e.g. an Access Server whose
+      // reachable address (tailnet IP + management port) lives on the component.
+      // Both the credential and the override are scoped to the caller's own tenant.
+      const testBody = (request.body ?? {}) as { endpoint?: unknown }
+      const overrideEndpoint =
+        typeof testBody.endpoint === 'string' && testBody.endpoint.trim().length > 0
+          ? testBody.endpoint.trim()
+          : null
+
       const context = {
         appId,
         customerId,
-        endpoint: raw.endpoint ?? null,
+        endpoint: overrideEndpoint ?? raw.endpoint ?? null,
         credential: {
           id: credential.id,
           name: credential.name,
@@ -948,7 +958,7 @@ export async function appManagementRoutes(fastify: FastifyInstance) {
           apiToken: credential.apiToken ?? null,
           certificate: (credential as { certificate?: string | null }).certificate ?? null,
         },
-        component: null,
+        component: overrideEndpoint ? { hostname: overrideEndpoint } : null,
         connectivity: null,
         connectivityProvider: null,
         settings,
