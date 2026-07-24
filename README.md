@@ -36,14 +36,16 @@ Veltrix is the control plane that answers that. The same mandatory pipeline that
 governs human changes governs AI‑authored ones:
 
 - **AI proposes, humans approve.** Agents author changes through the API with
-  scoped keys — but nothing deploys until a named person approves the actual
-  diff, not a summary of it.
+  role-bound keys — the same create → validate → submit-for-approval → deploy
+  flow the UI drives — but nothing deploys until a named person approves the
+  actual diff, not a summary of it.
 - **Blast radius stays contained.** Even approved changes roll out progressively,
   with canary steps, health checks, and automatic rollback — so a bad config is
   caught at 10% of the fleet, not 100%.
 - **Drift is a tripwire.** If an agent (or anyone) edits a tool outside the
-  pipeline, drift detection flags the delta against the last approved state and
-  can alert on critical changes.
+  pipeline, drift detection flags the delta against the last approved state — on
+  a configurable schedule (a tenant-wide default with per-app overrides) or
+  on demand — and can alert on critical changes.
 - **Everything has provenance.** Who or what proposed a change, who approved it,
   what deployed, and what it replaced are all recorded — ready for incident
   forensics and audits.
@@ -58,7 +60,7 @@ in the Community Edition — it's the product, not an enterprise add‑on.
 | Pipeline engine (validate → approve → deploy → drift) | Billing, subscriptions, usage metering, trials |
 | App / plugin engine + SDKs (JS / npm / Python) | Multi‑tenant SaaS isolation |
 | Configuration Canvas + version control + approvals | Platform‑admin & MSSP operator portals |
-| RBAC, auth (local + optional OAuth/OIDC), API keys | BYOL billing, managed cloud provisioning |
+| RBAC, auth (local + optional OAuth/OIDC), role-bound API keys (drive the pipeline via API/CLI) | BYOL billing, managed cloud provisioning |
 | React shared component library / design system | — |
 | Docker Compose + Helm self‑host, core docs | — |
 
