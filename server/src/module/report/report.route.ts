@@ -1,6 +1,9 @@
 import { FastifyInstance } from 'fastify';
 import { reportController } from './report.controller';
-import { verifyToken, hasPermission } from '../../middlewares/authMiddleware';
+import { hasPermission } from '../../middlewares/authMiddleware';
+// MCP/API-key access (2026-07-23): reports accept a portal JWT or a role-bound
+// API key; the report:read RBAC gate applies identically to both.
+import { verifyAuthOrApiKey } from '../../middlewares/apiKeyMiddleware';
 import { extractCustomerId } from '../../middlewares/customerMiddleware';
 
 /**
@@ -11,7 +14,7 @@ import { extractCustomerId } from '../../middlewares/customerMiddleware';
  * aggregated payload passes through Fastify serialization unmodified.
  */
 export async function reportRoutes(fastify: FastifyInstance) {
-  const preHandler = [verifyToken, extractCustomerId, hasPermission('report', 'read')];
+  const preHandler = [verifyAuthOrApiKey, extractCustomerId, hasPermission('report', 'read')];
 
   fastify.get('/audit-logs', {
     schema: { tags: ['reports'], summary: 'Tenant audit-logs report (unified activity feed)' },
