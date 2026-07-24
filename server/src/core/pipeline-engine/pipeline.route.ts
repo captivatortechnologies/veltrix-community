@@ -1,6 +1,10 @@
 import { FastifyInstance } from 'fastify'
 import { pipelineController } from './pipeline.controller'
-import { verifyToken, hasPermission } from '../../middlewares/authMiddleware'
+import { hasPermission } from '../../middlewares/authMiddleware'
+// MCP/API-key access (2026-07-23): pipeline routes accept a portal JWT or
+// a role-bound API key (verifyAuthOrApiKey). RBAC, ownership guards, tenant
+// rate limits and quotas are unchanged and apply identically to both.
+import { verifyAuthOrApiKey } from '../../middlewares/apiKeyMiddleware'
 import {
   ensureCanvasOwnership,
   ensureDeploymentOwnership,
@@ -72,7 +76,7 @@ export async function pipelineRoutes(fastify: FastifyInstance) {
   // Validate a canvas
   // @ts-ignore
   fastify.post('/canvas/:id/validate', {
-    preHandler: [verifyToken, hasPermission('configuration-canvas', 'write'), ensureCanvasOwnership, tenantPipelineRateLimit(30)],
+    preHandler: [verifyAuthOrApiKey, hasPermission('configuration-canvas', 'write'), ensureCanvasOwnership, tenantPipelineRateLimit(30)],
     schema: {
       tags: ['pipeline'],
       summary: 'Validate canvas',
@@ -119,7 +123,7 @@ export async function pipelineRoutes(fastify: FastifyInstance) {
   // Deploy a canvas
   // @ts-ignore
   fastify.post('/canvas/:id/deploy', {
-    preHandler: [verifyToken, hasPermission('configuration-canvas', 'write'), ensureCanvasOwnership, tenantPipelineRateLimit(30)],
+    preHandler: [verifyAuthOrApiKey, hasPermission('configuration-canvas', 'write'), ensureCanvasOwnership, tenantPipelineRateLimit(30)],
     schema: {
       tags: ['pipeline'],
       summary: 'Deploy canvas',
@@ -152,7 +156,7 @@ export async function pipelineRoutes(fastify: FastifyInstance) {
   // Get deployments for a canvas
   // @ts-ignore
   fastify.get('/canvas/:id/deployments', {
-    preHandler: [verifyToken, hasPermission('configuration-canvas', 'read'), ensureCanvasOwnership],
+    preHandler: [verifyAuthOrApiKey, hasPermission('configuration-canvas', 'read'), ensureCanvasOwnership],
     schema: {
       tags: ['pipeline'],
       summary: 'List canvas deployments',
@@ -179,7 +183,7 @@ export async function pipelineRoutes(fastify: FastifyInstance) {
   // Get deployment status
   // @ts-ignore
   fastify.get('/deployments/:deploymentId', {
-    preHandler: [verifyToken, hasPermission('configuration-canvas', 'read')],
+    preHandler: [verifyAuthOrApiKey, hasPermission('configuration-canvas', 'read')],
     schema: {
       tags: ['pipeline'],
       summary: 'Get deployment status',
@@ -198,7 +202,7 @@ export async function pipelineRoutes(fastify: FastifyInstance) {
   // Rollback a deployment
   // @ts-ignore
   fastify.post('/deployments/:deploymentId/rollback', {
-    preHandler: [verifyToken, hasPermission('configuration-canvas', 'write'), ensureDeploymentOwnership, tenantPipelineRateLimit(30)],
+    preHandler: [verifyAuthOrApiKey, hasPermission('configuration-canvas', 'write'), ensureDeploymentOwnership, tenantPipelineRateLimit(30)],
     schema: {
       tags: ['pipeline'],
       summary: 'Rollback deployment',
@@ -230,7 +234,7 @@ export async function pipelineRoutes(fastify: FastifyInstance) {
   // Pause a deployment
   // @ts-ignore
   fastify.post('/deployments/:deploymentId/pause', {
-    preHandler: [verifyToken, hasPermission('configuration-canvas', 'write')],
+    preHandler: [verifyAuthOrApiKey, hasPermission('configuration-canvas', 'write')],
     schema: {
       tags: ['pipeline'],
       summary: 'Pause deployment',
@@ -249,7 +253,7 @@ export async function pipelineRoutes(fastify: FastifyInstance) {
   // Resume a deployment
   // @ts-ignore
   fastify.post('/deployments/:deploymentId/resume', {
-    preHandler: [verifyToken, hasPermission('configuration-canvas', 'write')],
+    preHandler: [verifyAuthOrApiKey, hasPermission('configuration-canvas', 'write')],
     schema: {
       tags: ['pipeline'],
       summary: 'Resume deployment',
@@ -269,7 +273,7 @@ export async function pipelineRoutes(fastify: FastifyInstance) {
   // Promote a deployment to next environment
   // @ts-ignore
   fastify.post('/deployments/:deploymentId/promote', {
-    preHandler: [verifyToken, hasPermission('configuration-canvas', 'write')],
+    preHandler: [verifyAuthOrApiKey, hasPermission('configuration-canvas', 'write')],
     schema: {
       tags: ['pipeline'],
       summary: 'Promote deployment',
@@ -303,7 +307,7 @@ export async function pipelineRoutes(fastify: FastifyInstance) {
   // Pipeline summary (dashboard stats)
   // @ts-ignore
   fastify.get('/summary', {
-    preHandler: [verifyToken, hasPermission('configuration-canvas', 'read')],
+    preHandler: [verifyAuthOrApiKey, hasPermission('configuration-canvas', 'read')],
     schema: {
       tags: ['pipeline'],
       summary: 'Pipeline summary',
@@ -332,7 +336,7 @@ export async function pipelineRoutes(fastify: FastifyInstance) {
   // Get environment deployment matrix
   // @ts-ignore
   fastify.get('/environment-matrix', {
-    preHandler: [verifyToken, hasPermission('configuration-canvas', 'read')],
+    preHandler: [verifyAuthOrApiKey, hasPermission('configuration-canvas', 'read')],
     schema: {
       tags: ['pipeline'],
       summary: 'Environment matrix',
@@ -407,7 +411,7 @@ export async function pipelineRoutes(fastify: FastifyInstance) {
   // Get drift records
   // @ts-ignore
   fastify.get('/drift', {
-    preHandler: [verifyToken, hasPermission('configuration-canvas', 'read')],
+    preHandler: [verifyAuthOrApiKey, hasPermission('configuration-canvas', 'read')],
     schema: {
       tags: ['pipeline'],
       summary: 'List drift records',
@@ -478,7 +482,7 @@ export async function pipelineRoutes(fastify: FastifyInstance) {
   // Resolve a drift record
   // @ts-ignore
   fastify.post('/drift/:driftId/resolve', {
-    preHandler: [verifyToken, hasPermission('configuration-canvas', 'write'), ensureDriftOwnership],
+    preHandler: [verifyAuthOrApiKey, hasPermission('configuration-canvas', 'write'), ensureDriftOwnership],
     schema: {
       tags: ['pipeline'],
       summary: 'Resolve drift',
@@ -518,7 +522,7 @@ export async function pipelineRoutes(fastify: FastifyInstance) {
   // Run drift detection on demand ("Check drift now")
   // @ts-ignore
   fastify.post('/drift/detect', {
-    preHandler: [verifyToken, hasPermission('configuration-canvas', 'read')],
+    preHandler: [verifyAuthOrApiKey, hasPermission('configuration-canvas', 'read')],
     schema: {
       tags: ['pipeline'],
       summary: 'Run drift detection on demand',
@@ -535,7 +539,7 @@ export async function pipelineRoutes(fastify: FastifyInstance) {
 
   // Drift-check schedule: the tenant default + per-app overrides (Settings).
   fastify.get('/drift/schedule', {
-    preHandler: [verifyToken, hasPermission('configuration-canvas', 'read')],
+    preHandler: [verifyAuthOrApiKey, hasPermission('configuration-canvas', 'read')],
     schema: {
       tags: ['pipeline'],
       summary: 'Get the tenant + per-app drift-check schedule',
@@ -546,7 +550,7 @@ export async function pipelineRoutes(fastify: FastifyInstance) {
   })
 
   fastify.put('/drift/schedule', {
-    preHandler: [verifyToken, hasPermission('configuration-canvas', 'write')],
+    preHandler: [verifyAuthOrApiKey, hasPermission('configuration-canvas', 'write')],
     schema: {
       tags: ['pipeline'],
       summary: 'Set the tenant default or a per-app drift-check frequency',
@@ -565,7 +569,7 @@ export async function pipelineRoutes(fastify: FastifyInstance) {
   })
 
   fastify.delete('/drift/schedule/:appId', {
-    preHandler: [verifyToken, hasPermission('configuration-canvas', 'write')],
+    preHandler: [verifyAuthOrApiKey, hasPermission('configuration-canvas', 'write')],
     schema: {
       tags: ['pipeline'],
       summary: 'Clear a per-app drift-check override (revert to the tenant default)',
@@ -579,7 +583,7 @@ export async function pipelineRoutes(fastify: FastifyInstance) {
   // Drift records for one configuration (config view modal Drift tab)
   // @ts-ignore
   fastify.get('/configuration-canvas/:canvasId/drift', {
-    preHandler: [verifyToken, hasPermission('configuration-canvas', 'read')],
+    preHandler: [verifyAuthOrApiKey, hasPermission('configuration-canvas', 'read')],
     schema: {
       tags: ['pipeline'],
       summary: 'List drift records for a configuration',
@@ -597,7 +601,7 @@ export async function pipelineRoutes(fastify: FastifyInstance) {
   // On-demand drift check for one configuration, then return its records
   // @ts-ignore
   fastify.post('/configuration-canvas/:canvasId/drift/check', {
-    preHandler: [verifyToken, hasPermission('configuration-canvas', 'read')],
+    preHandler: [verifyAuthOrApiKey, hasPermission('configuration-canvas', 'read')],
     schema: {
       tags: ['pipeline'],
       summary: 'Check a configuration for drift on demand',

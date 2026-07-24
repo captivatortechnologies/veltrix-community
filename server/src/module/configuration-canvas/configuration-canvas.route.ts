@@ -1,6 +1,9 @@
 import { FastifyInstance } from 'fastify';
 import { configurationCanvasController } from './configuration-canvas.controller';
-import { verifyToken, hasPermission } from '../../middlewares/authMiddleware';
+import { hasPermission } from '../../middlewares/authMiddleware';
+// MCP/API-key access (2026-07-23): configuration-canvas routes accept a portal
+// JWT or a role-bound API key; RBAC applies identically to both.
+import { verifyAuthOrApiKey } from '../../middlewares/apiKeyMiddleware';
 // URGENT security fix (2026-07-11): every single-record canvas route is now
 // additionally app-scoped (resolved from the canvas's toolType) rather than
 // gated only by the flat platform configuration-canvas:read/write grant —
@@ -242,7 +245,7 @@ export async function configurationCanvasRoutes(fastify: FastifyInstance) {
   // app-config-template.route.ts precedent, which is also single-record.
   // @ts-ignore - Suppressing TypeScript errors for middleware type compatibility
   fastify.get('/', {
-    preHandler: [verifyToken, hasPermission('configuration-canvas', 'read')],
+    preHandler: [verifyAuthOrApiKey, hasPermission('configuration-canvas', 'read')],
     schema: {
       tags: ['configuration-canvas'],
       summary: 'List configuration canvases',
@@ -276,7 +279,7 @@ export async function configurationCanvasRoutes(fastify: FastifyInstance) {
   // Get a single configuration canvas
   // @ts-ignore
   fastify.get('/:id', {
-    preHandler: [verifyToken, ensureCanvasPermission('read')],
+    preHandler: [verifyAuthOrApiKey, ensureCanvasPermission('read')],
     schema: {
       tags: ['configuration-canvas'],
       summary: 'Get configuration canvas',
@@ -297,7 +300,7 @@ export async function configurationCanvasRoutes(fastify: FastifyInstance) {
   // Create a new configuration canvas
   // @ts-ignore
   fastify.post('/', {
-    preHandler: [verifyToken, ensureCanvasCreatePermission],
+    preHandler: [verifyAuthOrApiKey, ensureCanvasCreatePermission],
     schema: {
       tags: ['configuration-canvas'],
       summary: 'Create configuration canvas',
@@ -318,7 +321,7 @@ export async function configurationCanvasRoutes(fastify: FastifyInstance) {
   // Update a configuration canvas
   // @ts-ignore
   fastify.put('/:id', {
-    preHandler: [verifyToken, ensureCanvasPermission('write')],
+    preHandler: [verifyAuthOrApiKey, ensureCanvasPermission('write')],
     schema: {
       tags: ['configuration-canvas'],
       summary: 'Update configuration canvas',
@@ -341,7 +344,7 @@ export async function configurationCanvasRoutes(fastify: FastifyInstance) {
   // Delete a configuration canvas
   // @ts-ignore
   fastify.delete('/:id', {
-    preHandler: [verifyToken, ensureCanvasPermission('write')],
+    preHandler: [verifyAuthOrApiKey, ensureCanvasPermission('write')],
     schema: {
       tags: ['configuration-canvas'],
       summary: 'Delete configuration canvas',
@@ -368,7 +371,7 @@ export async function configurationCanvasRoutes(fastify: FastifyInstance) {
   // Update canvas status (for approval workflow)
   // @ts-ignore
   fastify.patch('/:id/status', {
-    preHandler: [verifyToken, ensureCanvasPermission('write')],
+    preHandler: [verifyAuthOrApiKey, ensureCanvasPermission('write')],
     schema: {
       tags: ['configuration-canvas'],
       summary: 'Update canvas status',
@@ -391,7 +394,7 @@ export async function configurationCanvasRoutes(fastify: FastifyInstance) {
   // Get canvas history
   // @ts-ignore
   fastify.get('/:id/history', {
-    preHandler: [verifyToken, ensureCanvasPermission('read')],
+    preHandler: [verifyAuthOrApiKey, ensureCanvasPermission('read')],
     schema: {
       tags: ['configuration-canvas'],
       summary: 'Get canvas history',
@@ -440,7 +443,7 @@ export async function configurationCanvasRoutes(fastify: FastifyInstance) {
   // Duplicate a canvas
   // @ts-ignore
   fastify.post('/:id/duplicate', {
-    preHandler: [verifyToken, ensureCanvasPermission('write')],
+    preHandler: [verifyAuthOrApiKey, ensureCanvasPermission('write')],
     schema: {
       tags: ['configuration-canvas'],
       summary: 'Duplicate canvas',
@@ -462,7 +465,7 @@ export async function configurationCanvasRoutes(fastify: FastifyInstance) {
   // Export canvas as JSON
   // @ts-ignore
   fastify.get('/:id/export', {
-    preHandler: [verifyToken, ensureCanvasPermission('read')],
+    preHandler: [verifyAuthOrApiKey, ensureCanvasPermission('read')],
     schema: {
       tags: ['configuration-canvas'],
       summary: 'Export canvas',
@@ -494,7 +497,7 @@ export async function configurationCanvasRoutes(fastify: FastifyInstance) {
   // Get a specific version (history entry)
   // @ts-ignore
   fastify.get('/:id/versions/:historyId', {
-    preHandler: [verifyToken, ensureCanvasPermission('read')],
+    preHandler: [verifyAuthOrApiKey, ensureCanvasPermission('read')],
     schema: {
       tags: ['configuration-canvas'],
       summary: 'Get version',
@@ -515,7 +518,7 @@ export async function configurationCanvasRoutes(fastify: FastifyInstance) {
   // Restore canvas to a previous version
   // @ts-ignore
   fastify.post('/:id/versions/:historyId/restore', {
-    preHandler: [verifyToken, ensureCanvasPermission('write')],
+    preHandler: [verifyAuthOrApiKey, ensureCanvasPermission('write')],
     schema: {
       tags: ['configuration-canvas'],
       summary: 'Restore version',
@@ -537,7 +540,7 @@ export async function configurationCanvasRoutes(fastify: FastifyInstance) {
   // Compare two versions
   // @ts-ignore
   fastify.get('/:id/compare', {
-    preHandler: [verifyToken, ensureCanvasPermission('read')],
+    preHandler: [verifyAuthOrApiKey, ensureCanvasPermission('read')],
     schema: {
       tags: ['configuration-canvas'],
       summary: 'Compare versions',
@@ -599,7 +602,7 @@ export async function configurationCanvasRoutes(fastify: FastifyInstance) {
   // Add a label to a version
   // @ts-ignore
   fastify.patch('/:id/versions/:historyId/label', {
-    preHandler: [verifyToken, ensureCanvasPermission('write')],
+    preHandler: [verifyAuthOrApiKey, ensureCanvasPermission('write')],
     schema: {
       tags: ['configuration-canvas'],
       summary: 'Label version',
@@ -623,7 +626,7 @@ export async function configurationCanvasRoutes(fastify: FastifyInstance) {
   // Submit canvas for approval with designated approvers
   // @ts-ignore
   fastify.post('/:id/submit-for-approval', {
-    preHandler: [verifyToken, ensureCanvasPermission('write')],
+    preHandler: [verifyAuthOrApiKey, ensureCanvasPermission('write')],
     schema: {
       tags: ['configuration-canvas'],
       summary: 'Submit for approval',
@@ -666,7 +669,7 @@ export async function configurationCanvasRoutes(fastify: FastifyInstance) {
   // Get approval status for a canvas
   // @ts-ignore
   fastify.get('/:id/approvals', {
-    preHandler: [verifyToken, ensureCanvasPermission('read')],
+    preHandler: [verifyAuthOrApiKey, ensureCanvasPermission('read')],
     schema: {
       tags: ['configuration-canvas'],
       summary: 'Get approvals',
@@ -734,7 +737,7 @@ export async function configurationCanvasRoutes(fastify: FastifyInstance) {
   // Approve a canvas (by current user as approver)
   // @ts-ignore
   fastify.post('/:id/approve', {
-    preHandler: [verifyToken, ensureCanvasPermission('write')],
+    preHandler: [verifyAuthOrApiKey, ensureCanvasPermission('write')],
     schema: {
       tags: ['configuration-canvas'],
       summary: 'Approve canvas',
@@ -773,7 +776,7 @@ export async function configurationCanvasRoutes(fastify: FastifyInstance) {
   // Reject a canvas (by current user as approver)
   // @ts-ignore
   fastify.post('/:id/reject', {
-    preHandler: [verifyToken, ensureCanvasPermission('write')],
+    preHandler: [verifyAuthOrApiKey, ensureCanvasPermission('write')],
     schema: {
       tags: ['configuration-canvas'],
       summary: 'Reject canvas',
@@ -851,7 +854,7 @@ export async function configurationCanvasRoutes(fastify: FastifyInstance) {
   // Get threaded review comments for a canvas
   // @ts-ignore
   fastify.get('/:id/comments', {
-    preHandler: [verifyToken, ensureCanvasPermission('read')],
+    preHandler: [verifyAuthOrApiKey, ensureCanvasPermission('read')],
     schema: {
       tags: ['configuration-canvas'],
       summary: 'Get review comments',
@@ -878,7 +881,7 @@ export async function configurationCanvasRoutes(fastify: FastifyInstance) {
   // Add a review comment
   // @ts-ignore
   fastify.post('/:id/comments', {
-    preHandler: [verifyToken, ensureCanvasPermission('write')],
+    preHandler: [verifyAuthOrApiKey, ensureCanvasPermission('write')],
     schema: {
       tags: ['configuration-canvas'],
       summary: 'Add review comment',
@@ -909,7 +912,7 @@ export async function configurationCanvasRoutes(fastify: FastifyInstance) {
   // Update a review comment (body and/or resolved)
   // @ts-ignore
   fastify.patch('/:id/comments/:commentId', {
-    preHandler: [verifyToken, ensureCanvasPermission('write')],
+    preHandler: [verifyAuthOrApiKey, ensureCanvasPermission('write')],
     schema: {
       tags: ['configuration-canvas'],
       summary: 'Update review comment',
@@ -938,7 +941,7 @@ export async function configurationCanvasRoutes(fastify: FastifyInstance) {
   // Delete a review comment
   // @ts-ignore
   fastify.delete('/:id/comments/:commentId', {
-    preHandler: [verifyToken, ensureCanvasPermission('write')],
+    preHandler: [verifyAuthOrApiKey, ensureCanvasPermission('write')],
     schema: {
       tags: ['configuration-canvas'],
       summary: 'Delete review comment',

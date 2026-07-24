@@ -1,6 +1,9 @@
 import { FastifyInstance } from 'fastify';
 import { environmentController } from './environment.controller';
-import { verifyToken, hasPermission } from '../../middlewares/authMiddleware';
+import { hasPermission } from '../../middlewares/authMiddleware';
+// MCP/API-key access (2026-07-23): environment routes accept a portal JWT or a
+// role-bound API key; RBAC applies identically to both.
+import { verifyAuthOrApiKey } from '../../middlewares/apiKeyMiddleware';
 
 // Environments are pipeline-scoped, so they reuse the pipeline permission
 // resource ('configuration-canvas') rather than the raw 'tag' resource.
@@ -71,7 +74,7 @@ export async function environmentRoutes(fastify: FastifyInstance) {
   // List environments
   // @ts-ignore - middleware type compatibility
   fastify.get('/', {
-    preHandler: [verifyToken, hasPermission(PERMISSION_RESOURCE, 'read')],
+    preHandler: [verifyAuthOrApiKey, hasPermission(PERMISSION_RESOURCE, 'read')],
     schema: {
       tags: ['environments'],
       summary: 'List environments',
@@ -90,7 +93,7 @@ export async function environmentRoutes(fastify: FastifyInstance) {
   // Create environment
   // @ts-ignore - middleware type compatibility
   fastify.post('/', {
-    preHandler: [verifyToken, hasPermission(PERMISSION_RESOURCE, 'write')],
+    preHandler: [verifyAuthOrApiKey, hasPermission(PERMISSION_RESOURCE, 'write')],
     schema: {
       tags: ['environments'],
       summary: 'Create environment',
@@ -111,7 +114,7 @@ export async function environmentRoutes(fastify: FastifyInstance) {
   // Update environment (name / owner)
   // @ts-ignore - middleware type compatibility
   fastify.put('/:id', {
-    preHandler: [verifyToken, hasPermission(PERMISSION_RESOURCE, 'write')],
+    preHandler: [verifyAuthOrApiKey, hasPermission(PERMISSION_RESOURCE, 'write')],
     schema: {
       tags: ['environments'],
       summary: 'Update environment',
@@ -134,7 +137,7 @@ export async function environmentRoutes(fastify: FastifyInstance) {
   // Delete environment
   // @ts-ignore - middleware type compatibility
   fastify.delete('/:id', {
-    preHandler: [verifyToken, hasPermission(PERMISSION_RESOURCE, 'write')],
+    preHandler: [verifyAuthOrApiKey, hasPermission(PERMISSION_RESOURCE, 'write')],
     schema: {
       tags: ['environments'],
       summary: 'Delete environment',
@@ -155,7 +158,7 @@ export async function environmentRoutes(fastify: FastifyInstance) {
   // Get global deployment policy
   // @ts-ignore - middleware type compatibility
   fastify.get('/:id/policy', {
-    preHandler: [verifyToken, hasPermission(PERMISSION_RESOURCE, 'read')],
+    preHandler: [verifyAuthOrApiKey, hasPermission(PERMISSION_RESOURCE, 'read')],
     schema: {
       tags: ['environments'],
       summary: 'Get environment policy',
@@ -175,7 +178,7 @@ export async function environmentRoutes(fastify: FastifyInstance) {
   // Upsert global deployment policy
   // @ts-ignore - middleware type compatibility
   fastify.put('/:id/policy', {
-    preHandler: [verifyToken, hasPermission(PERMISSION_RESOURCE, 'write')],
+    preHandler: [verifyAuthOrApiKey, hasPermission(PERMISSION_RESOURCE, 'write')],
     schema: {
       tags: ['environments'],
       summary: 'Update environment policy',

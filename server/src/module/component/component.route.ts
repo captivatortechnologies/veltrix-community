@@ -1,6 +1,9 @@
 import { FastifyInstance } from 'fastify';
 import { componentController } from './component.controller';
-import { verifyToken, ensureCustomerMatch, hasPermission } from '../../middlewares/authMiddleware';
+import { ensureCustomerMatch, hasPermission } from '../../middlewares/authMiddleware';
+// MCP/API-key access (2026-07-23): component routes accept a portal JWT or a
+// role-bound API key; RBAC applies identically to both.
+import { verifyAuthOrApiKey } from '../../middlewares/apiKeyMiddleware';
 import { cacheMiddleware, invalidateCacheMiddleware } from '../../middlewares/cache.middleware';
 import { checkTenantQuota } from '../../middlewares/tenant-isolation.middleware';
 
@@ -91,7 +94,7 @@ export const componentSchema = {
 
 export async function componentRoutes(fastify: FastifyInstance) {
   // Apply authentication and customer matching middleware
-  fastify.addHook('preHandler', verifyToken);
+  fastify.addHook('preHandler', verifyAuthOrApiKey);
   fastify.addHook('preHandler', ensureCustomerMatch); // Ensure requests are scoped to the customer
 
   // Get all components for the current customer

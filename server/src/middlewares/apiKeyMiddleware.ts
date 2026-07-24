@@ -1,6 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { apiKeyService } from '../module/api-key/api-key.service';
 import { loggerService } from '../module/logger/logger.service';
+import prisma from '../db';
 
 /**
  * Middleware to verify API keys for authentication
@@ -10,6 +11,60 @@ import { loggerService } from '../module/logger/logger.service';
 interface ApiKeyQueryParams {
   customerId?: string;
   [key: string]: any;
+}
+
+// Attribution for API-key writes. Several write paths persist the acting user
+// into NON-NULLABLE FKs (ConfigurationCanvas.createdById, Deployment.triggeredById),
+// so the former fixed synthetic UUID (which has no User row) broke every such
+// write with an FK violation. Each tenant instead gets one lazily-provisioned,
+// non-loginable "API Integration" user (isActive:false, no UserPassword row,
+// reserved email) that all of the tenant's API-key actions are attributed to.
+const API_KEY_ACTOR_NAME = 'API Integration';
+const API_KEY_ACTOR_EMAIL_SUFFIX = '.apikey.system.veltrix.internal';
+const apiKeyActorCache = new Map<string, string>(); // customerId -> User.id
+
+export function apiKeyActorEmail(customerId: string): string {
+  return `api-integration@${customerId}${API_KEY_ACTOR_EMAIL_SUFFIX}`;
+}
+
+export async function resolveApiKeyActorUser(customerId: string, roleId: string): Promise<string> {
+  const cached = apiKeyActorCache.get(customerId);
+  if (cached) return cached;
+
+  const email = apiKeyActorEmail(customerId);
+  try {
+    // upsert with an empty update: idempotent under concurrent first requests.
+    // The row's roleId is attribution metadata only — authorization always comes
+    // from request.user.roleId (the key's bound role), never from this row.
+    const actor = await prisma.user.upsert({
+      where: { email },
+      update: {},
+      create: {
+        email,
+        name: API_KEY_ACTOR_NAME,
+        customerId,
+        roleId,
+        isActive: false,
+        authProvider: 'API_KEY',
+      },
+    });
+    apiKeyActorCache.set(customerId, actor.id);
+    return actor.id;
+  } catch (error) {
+    // Unique-race fallback: another request created the row between our upsert's
+    // internal read and write. Re-read before giving up.
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing) {
+      apiKeyActorCache.set(customerId, existing.id);
+      return existing.id;
+    }
+    throw error;
+  }
+}
+
+/** Test hook — clears the in-memory actor cache. */
+export function __clearApiKeyActorCache(): void {
+  apiKeyActorCache.clear();
 }
 
 export const verifyApiKey = async (request: FastifyRequest<{ Querystring: ApiKeyQueryParams }>, reply: FastifyReply) => {
@@ -64,10 +119,13 @@ export const verifyApiKey = async (request: FastifyRequest<{ Querystring: ApiKey
     const LEGACY_API_KEY_ROLE_ID = '00000000-0000-4000-a000-000000000001';
     const effectiveRoleId = keyDetails.roleId || LEGACY_API_KEY_ROLE_ID;
 
+    // Resolve the tenant's API-actor user so write paths with non-nullable
+    // user FKs (createdById / triggeredById) attribute to a real row.
+    const actorUserId = await resolveApiKeyActorUser(keyDetails.customerId, effectiveRoleId);
+
     // Set up user and customer context for downstream handlers
     (request as any).user = {
-      // Use a fixed ID for API key based authentication
-      id: '00000000-0000-4000-a000-000000000002', // API key user ID
+      id: actorUserId,
       customerId: keyDetails.customerId,
       roleId: effectiveRoleId,
       apiKey: true,

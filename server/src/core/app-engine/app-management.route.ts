@@ -9,7 +9,10 @@ import * as fs from 'fs'
 import * as path from 'path'
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
 import prisma from '../../db'
-import { verifyToken, hasPermission } from '../../middlewares/authMiddleware'
+import { hasPermission } from '../../middlewares/authMiddleware'
+// MCP/API-key access (2026-07-23): app-management routes accept a portal JWT or
+// a role-bound API key; RBAC applies identically to both.
+import { verifyAuthOrApiKey } from '../../middlewares/apiKeyMiddleware'
 import { checkTenantQuota } from '../../middlewares/tenant-ownership.middleware'
 import { loggerService } from '../../module/logger/logger.service'
 import { getAppRegistry } from '../platform-bootstrap'
@@ -138,7 +141,7 @@ export async function appManagementRoutes(fastify: FastifyInstance) {
   // List all available apps with installation status for the customer
   // @ts-ignore
   fastify.get('/', {
-    preHandler: [verifyToken],
+    preHandler: [verifyAuthOrApiKey],
     schema: {
       tags: ['apps'],
       summary: 'List apps',
@@ -237,7 +240,7 @@ export async function appManagementRoutes(fastify: FastifyInstance) {
   // Get enabled apps for the current customer (lightweight, for app loader)
   // @ts-ignore
   fastify.get('/enabled', {
-    preHandler: [verifyToken],
+    preHandler: [verifyAuthOrApiKey],
     schema: {
       tags: ['apps'],
       summary: 'List enabled apps',
@@ -418,7 +421,7 @@ export async function appManagementRoutes(fastify: FastifyInstance) {
   // without touching this route.
   // @ts-ignore
   fastify.post('/:appId/enable', {
-    preHandler: [verifyToken, hasPermission('apps', 'write'), checkTenantQuota('apps')],
+    preHandler: [verifyAuthOrApiKey, hasPermission('apps', 'write'), checkTenantQuota('apps')],
     schema: {
       tags: ['apps'],
       summary: 'Enable app',
@@ -462,7 +465,7 @@ export async function appManagementRoutes(fastify: FastifyInstance) {
   // Disable an app for the customer
   // @ts-ignore
   fastify.post('/:appId/disable', {
-    preHandler: [verifyToken, hasPermission('apps', 'write')],
+    preHandler: [verifyAuthOrApiKey, hasPermission('apps', 'write')],
     schema: {
       tags: ['apps'],
       summary: 'Disable app',
@@ -504,7 +507,7 @@ export async function appManagementRoutes(fastify: FastifyInstance) {
   // Get app detail
   // @ts-ignore
   fastify.get('/:appId', {
-    preHandler: [verifyToken],
+    preHandler: [verifyAuthOrApiKey],
     schema: {
       tags: ['apps'],
       summary: 'Get app details',
@@ -621,7 +624,7 @@ export async function appManagementRoutes(fastify: FastifyInstance) {
 
   // @ts-ignore
   fastify.get('/marketplace', {
-    preHandler: [verifyToken],
+    preHandler: [verifyAuthOrApiKey],
     schema: {
       tags: ['apps'],
       summary: 'Browse marketplace',
@@ -680,7 +683,7 @@ export async function appManagementRoutes(fastify: FastifyInstance) {
 
   // @ts-ignore
   fastify.get('/:appId/version', {
-    preHandler: [verifyToken, hasPermission('apps', 'read')],
+    preHandler: [verifyAuthOrApiKey, hasPermission('apps', 'read')],
     schema: {
       tags: ['apps'],
       summary: 'Get app version status',
@@ -729,7 +732,7 @@ export async function appManagementRoutes(fastify: FastifyInstance) {
 
   // @ts-ignore
   fastify.post('/:appId/upgrade', {
-    preHandler: [verifyToken, hasPermission('apps', 'write')],
+    preHandler: [verifyAuthOrApiKey, hasPermission('apps', 'write')],
     schema: {
       tags: ['apps'],
       summary: 'Upgrade app for this tenant',
@@ -907,7 +910,7 @@ export async function appManagementRoutes(fastify: FastifyInstance) {
   // test handler report "not supported".
   // ------------------------------------------------------------------
   fastify.post('/:appId/connections/:credentialId/test', {
-    preHandler: [verifyToken, hasPermission('apps', 'read')],
+    preHandler: [verifyAuthOrApiKey, hasPermission('apps', 'read')],
     handler: async (
       request: FastifyRequest<{ Params: { appId: string; credentialId: string } }>,
       reply: FastifyReply,
@@ -994,7 +997,7 @@ export async function appManagementRoutes(fastify: FastifyInstance) {
   // component types), all derived from the loaded manifest. Read-only.
   // ------------------------------------------------------------------
   fastify.get('/:appId/meta', {
-    preHandler: [verifyToken, hasPermission('apps', 'read')],
+    preHandler: [verifyAuthOrApiKey, hasPermission('apps', 'read')],
     handler: async (
       request: FastifyRequest<{ Params: { appId: string } }>,
       reply: FastifyReply,
@@ -1028,7 +1031,7 @@ export async function appManagementRoutes(fastify: FastifyInstance) {
   // name→id. Read-only; returns { options: [{ value, label, description? }] }.
   // ------------------------------------------------------------------
   fastify.get('/:appId/config-options', {
-    preHandler: [verifyToken, hasPermission('apps', 'read')],
+    preHandler: [verifyAuthOrApiKey, hasPermission('apps', 'read')],
     handler: async (
       request: FastifyRequest<{
         Params: { appId: string }
@@ -1093,7 +1096,7 @@ export async function appManagementRoutes(fastify: FastifyInstance) {
   // never returned). Apps without a matching operation report "not supported".
   // ------------------------------------------------------------------
   fastify.post('/:appId/operations/:operationId', {
-    preHandler: [verifyToken, hasPermission('apps', 'write')],
+    preHandler: [verifyAuthOrApiKey, hasPermission('apps', 'write')],
     handler: async (
       request: FastifyRequest<{
         Params: { appId: string; operationId: string }
@@ -1171,7 +1174,7 @@ export async function appManagementRoutes(fastify: FastifyInstance) {
 
   // @ts-ignore
   fastify.post('/:appId/install', {
-    preHandler: [verifyToken, hasPermission('apps', 'write')],
+    preHandler: [verifyAuthOrApiKey, hasPermission('apps', 'write')],
     schema: {
       tags: ['apps'],
       summary: 'Install app',
@@ -1289,7 +1292,7 @@ export async function appManagementRoutes(fastify: FastifyInstance) {
 
   // @ts-ignore
   fastify.delete('/:appId', {
-    preHandler: [verifyToken, hasPermission('apps', 'write')],
+    preHandler: [verifyAuthOrApiKey, hasPermission('apps', 'write')],
     schema: {
       tags: ['apps'],
       summary: 'Uninstall app',
@@ -1349,7 +1352,7 @@ export async function appManagementRoutes(fastify: FastifyInstance) {
 
   // @ts-ignore
   fastify.post('/upload', {
-    preHandler: [verifyToken, hasPermission('apps', 'write')],
+    preHandler: [verifyAuthOrApiKey, hasPermission('apps', 'write')],
     schema: {
       tags: ['apps'],
       summary: 'Upload custom app',
@@ -1449,7 +1452,7 @@ export async function appManagementRoutes(fastify: FastifyInstance) {
 
   // @ts-ignore
   fastify.post('/install-from-url', {
-    preHandler: [verifyToken, hasPermission('apps', 'write')],
+    preHandler: [verifyAuthOrApiKey, hasPermission('apps', 'write')],
     schema: {
       tags: ['apps'],
       summary: 'Install app from URL',
@@ -1563,7 +1566,7 @@ export async function appManagementRoutes(fastify: FastifyInstance) {
 
   // @ts-ignore
   fastify.get('/:appId/settings', {
-    preHandler: [verifyToken],
+    preHandler: [verifyAuthOrApiKey],
     schema: {
       tags: ['apps'],
       summary: 'Get app settings',
@@ -1626,7 +1629,7 @@ export async function appManagementRoutes(fastify: FastifyInstance) {
 
   // @ts-ignore
   fastify.put('/:appId/settings', {
-    preHandler: [verifyToken, hasPermission('apps', 'write')],
+    preHandler: [verifyAuthOrApiKey, hasPermission('apps', 'write')],
     schema: {
       tags: ['apps'],
       summary: 'Update app settings',
