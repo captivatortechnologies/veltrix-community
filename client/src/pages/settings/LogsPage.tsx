@@ -44,7 +44,7 @@ const LogsPage: React.FC = () => {
             onClick={() => setActiveTab('system-logs')}
             className={`py-2 px-1 border-b-2 text-sm font-medium ${
               activeTab === 'system-logs'
-                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                ? 'border-amber-500 text-amber-700 dark:text-amber-400'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
             }`}
           >
@@ -54,7 +54,7 @@ const LogsPage: React.FC = () => {
             onClick={() => setActiveTab('log-settings')}
             className={`py-2 px-1 border-b-2 text-sm font-medium ${
               activeTab === 'log-settings'
-                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                ? 'border-amber-500 text-amber-700 dark:text-amber-400'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
             }`}
           >
@@ -64,7 +64,7 @@ const LogsPage: React.FC = () => {
             onClick={() => setActiveTab('log-forwarding')}
             className={`py-2 px-1 border-b-2 text-sm font-medium ${
               activeTab === 'log-forwarding'
-                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                ? 'border-amber-500 text-amber-700 dark:text-amber-400'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
             }`}
           >

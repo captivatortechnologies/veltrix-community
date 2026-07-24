@@ -32,9 +32,9 @@ export const DRIFT_SEVERITY_CONFIG: Record<DriftSeverity, DriftSeverityStyle> = 
   },
   info: {
     icon: Info,
-    bgColor: 'bg-blue-50 dark:bg-blue-900/20',
-    textColor: 'text-blue-700 dark:text-blue-300',
-    borderColor: 'border-blue-200 dark:border-blue-800',
+    bgColor: 'bg-orange-50 dark:bg-orange-900/20',
+    textColor: 'text-orange-700 dark:text-orange-300',
+    borderColor: 'border-orange-200 dark:border-orange-800',
     label: 'Info',
   },
 }

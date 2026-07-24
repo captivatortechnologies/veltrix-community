@@ -88,7 +88,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
     <button
       type="button"
       onClick={() => setIsCollapsed(!isCollapsed)}
-      className="flex-shrink-0 rounded-full border border-white/20 bg-blue-600 p-1 text-white shadow-md hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-800"
+      className="flex-shrink-0 rounded-full border border-white/20 bg-amber-600 p-1 text-amber-950 shadow-md hover:bg-amber-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-800"
       aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
       aria-pressed={isCollapsed}
     >
@@ -114,7 +114,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
     >
       {/* Sidebar Header */}
       <div className={`flex items-center border-b border-gray-700 py-5 ${isCollapsed ? 'justify-center' : 'px-4'}`}>
-        <Shield className="h-8 w-8 text-blue-500" aria-hidden="true" />
+        <Shield className="h-8 w-8 text-amber-600" aria-hidden="true" />
         {!isCollapsed && (
           <div className="ml-2 flex flex-col leading-tight">
             <span className="text-xl font-semibold">{brand.name}</span>

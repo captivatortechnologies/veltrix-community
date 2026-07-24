@@ -98,7 +98,7 @@ describe('VersionControlPanel', () => {
       );
 
       const historyTab = screen.getByText('History').closest('button');
-      expect(historyTab).toHaveClass('border-blue-600');
+      expect(historyTab).toHaveClass('border-amber-600');
     });
 
     it('should default to approvals tab when defaultTab is approvals', () => {
@@ -114,7 +114,7 @@ describe('VersionControlPanel', () => {
       // Find the tab button (not the h3 header)
       const approvalsTab = screen.getAllByText('Pending Approvals')
         .find(el => el.closest('button'));
-      expect(approvalsTab?.closest('button')).toHaveClass('border-blue-600');
+      expect(approvalsTab?.closest('button')).toHaveClass('border-amber-600');
     });
 
     it('should switch tabs when clicked', () => {
@@ -129,7 +129,7 @@ describe('VersionControlPanel', () => {
       const approvalsTab = screen.getByText('Pending Approvals').closest('button');
       fireEvent.click(approvalsTab!);
 
-      expect(approvalsTab).toHaveClass('border-blue-600');
+      expect(approvalsTab).toHaveClass('border-amber-600');
     });
 
     it('should not show tabs when only timeline is enabled', () => {

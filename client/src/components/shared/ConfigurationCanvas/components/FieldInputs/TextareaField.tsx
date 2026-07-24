@@ -26,7 +26,7 @@ export const TextareaField: React.FC<FieldInputProps<string>> = ({
         border rounded-md
         placeholder-gray-400
         resize-y
-        focus:ring-2 focus:ring-blue-500 focus:border-transparent
+        focus:ring-2 focus:ring-amber-500 focus:border-transparent
         disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:cursor-not-allowed
         ${error
           ? 'border-red-300 dark:border-red-600 focus:ring-red-500'

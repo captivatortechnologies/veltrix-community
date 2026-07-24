@@ -91,7 +91,7 @@ export const TwoFactorSection: React.FC<TwoFactorSectionProps> = ({ enabled, onS
   const codeInputClasses =
     'block w-40 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm ' +
     'placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-gray-900 ' +
-    'dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500';
+    'dark:text-white focus:outline-none focus:ring-amber-500 focus:border-amber-500';
 
   return (
     <div className="mb-6" data-testid="two-factor-section">
@@ -116,7 +116,7 @@ export const TwoFactorSection: React.FC<TwoFactorSectionProps> = ({ enabled, onS
             type="button"
             onClick={handleStartSetup}
             disabled={isBusy}
-            className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-md text-sm font-medium disabled:opacity-50"
+            className="bg-amber-600 text-amber-950 hover:bg-amber-700 px-4 py-2 rounded-md text-sm font-medium disabled:opacity-50"
           >
             Set up
           </button>
@@ -139,7 +139,7 @@ export const TwoFactorSection: React.FC<TwoFactorSectionProps> = ({ enabled, onS
               <button
                 type="button"
                 onClick={handleCopyUri}
-                className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400"
+                className="inline-flex items-center gap-1 text-xs font-medium text-amber-700 hover:text-amber-600 dark:text-amber-400"
               >
                 {copied ? <Check size={12} aria-hidden="true" /> : <Copy size={12} aria-hidden="true" />}
                 {copied ? 'Copied' : 'Copy'}
@@ -177,7 +177,7 @@ export const TwoFactorSection: React.FC<TwoFactorSectionProps> = ({ enabled, onS
             <button
               type="submit"
               disabled={isBusy || verifyCode.trim().length < 6}
-              className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-md text-sm font-medium disabled:opacity-50"
+              className="bg-amber-600 text-amber-950 hover:bg-amber-700 px-4 py-2 rounded-md text-sm font-medium disabled:opacity-50"
             >
               Verify &amp; enable
             </button>

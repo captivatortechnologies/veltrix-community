@@ -86,7 +86,7 @@ function VersionFiltersComponent({
           <Filter className="h-4 w-4" />
           <span className="font-medium">Filters</span>
           {activeFilterCount > 0 && (
-            <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+            <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
               {activeFilterCount}
             </span>
           )}
@@ -115,7 +115,7 @@ function VersionFiltersComponent({
             placeholder="Search by entity name or message..."
             value={filters.searchTerm || ''}
             onChange={(e) => updateFilter('searchTerm', e.target.value || undefined)}
-            className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-amber-500 focus:border-transparent"
           />
         </div>
       </div>
@@ -136,7 +136,7 @@ function VersionFiltersComponent({
                   onClick={() => toggleArrayFilter('action', action)}
                   className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
                     filters.action?.includes(action)
-                      ? 'bg-blue-100 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700 text-blue-800 dark:text-blue-200'
+                      ? 'bg-amber-100 dark:bg-amber-900/30 border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200'
                       : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500'
                   }`}
                 >
@@ -160,7 +160,7 @@ function VersionFiltersComponent({
                     onClick={() => toggleArrayFilter('entityType', type)}
                     className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
                       filters.entityType?.includes(type)
-                        ? 'bg-blue-100 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700 text-blue-800 dark:text-blue-200'
+                        ? 'bg-amber-100 dark:bg-amber-900/30 border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200'
                         : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500'
                     }`}
                   >
@@ -183,7 +183,7 @@ function VersionFiltersComponent({
                   onClick={() => toggleArrayFilter('deployState', state)}
                   className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
                     filters.deployState?.includes(state)
-                      ? 'bg-blue-100 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700 text-blue-800 dark:text-blue-200'
+                      ? 'bg-amber-100 dark:bg-amber-900/30 border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200'
                       : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500'
                   }`}
                 >
@@ -204,7 +204,7 @@ function VersionFiltersComponent({
                 type="date"
                 value={filters.startDate || ''}
                 onChange={(e) => updateFilter('startDate', e.target.value || undefined)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-amber-500 focus:border-transparent"
               />
             </div>
             <div>
@@ -216,7 +216,7 @@ function VersionFiltersComponent({
                 type="date"
                 value={filters.endDate || ''}
                 onChange={(e) => updateFilter('endDate', e.target.value || undefined)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-amber-500 focus:border-transparent"
               />
             </div>
           </div>
@@ -231,7 +231,7 @@ function VersionFiltersComponent({
               <select
                 value={filters.userId || ''}
                 onChange={(e) => updateFilter('userId', e.target.value || undefined)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-amber-500 focus:border-transparent"
               >
                 <option value="">All users</option>
                 {availableUsers.map((user) => (

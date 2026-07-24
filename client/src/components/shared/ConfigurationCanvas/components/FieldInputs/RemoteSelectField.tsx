@@ -90,13 +90,13 @@ export const RemoteSelectField: React.FC<FieldInputProps<string>> = ({
     <div className={className}>
       {selected && (
         <div className="flex flex-wrap gap-1.5 mb-2">
-          <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 rounded-full">
+          <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 rounded-full">
             {labelFor(selected)}
             {!disabled && (
               <button
                 type="button"
                 onClick={clear}
-                className="hover:bg-blue-200 dark:hover:bg-blue-800 rounded-full p-0.5"
+                className="hover:bg-amber-200 dark:hover:bg-amber-800 rounded-full p-0.5"
                 aria-label="Clear selection"
               >
                 <X className="w-3 h-3" />
@@ -152,7 +152,7 @@ export const RemoteSelectField: React.FC<FieldInputProps<string>> = ({
                       onClick={() => choose(opt.value, opt.label)}
                       disabled={disabled}
                       className={`flex w-full items-center gap-2 px-3 py-2 text-left cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 ${
-                        isSel ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                        isSel ? 'bg-amber-50 dark:bg-amber-900/20' : ''
                       } ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}
                     >
                       <span className="text-sm text-gray-900 dark:text-white">{opt.label}</span>

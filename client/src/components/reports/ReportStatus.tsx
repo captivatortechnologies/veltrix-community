@@ -46,7 +46,7 @@ export const ReportStatus: React.FC<ReportStatusProps> = ({
           <button
             type="button"
             onClick={onRetry}
-            className="mt-4 inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            className="mt-4 inline-flex items-center gap-2 rounded-md bg-amber-600 px-4 py-2 text-sm font-medium text-amber-950 hover:bg-amber-700"
           >
             <RefreshCw className="w-4 h-4" /> Retry
           </button>

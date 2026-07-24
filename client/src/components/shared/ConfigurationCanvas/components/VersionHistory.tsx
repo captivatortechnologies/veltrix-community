@@ -70,7 +70,7 @@ interface VersionHistoryProps {
 // Action badge colors
 const ACTION_COLORS: Record<string, { bg: string; text: string }> = {
   CREATED: { bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-700 dark:text-green-300' },
-  UPDATED: { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-300' },
+  UPDATED: { bg: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-700 dark:text-amber-300' },
   APPROVED: { bg: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-700 dark:text-emerald-300' },
   REJECTED: { bg: 'bg-red-100 dark:bg-red-900/30', text: 'text-red-700 dark:text-red-300' },
   DEPLOYED: { bg: 'bg-purple-100 dark:bg-purple-900/30', text: 'text-purple-700 dark:text-purple-300' },
@@ -212,7 +212,7 @@ export const VersionHistory: React.FC<VersionHistoryProps> = ({
               <button
                 onClick={handleCompare}
                 disabled={selectedVersions.length !== 2 || isComparing}
-                className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-1 px-3 py-1.5 bg-amber-600 text-amber-950 text-sm rounded-md hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <GitCompare className="w-4 h-4" />
                 {isComparing ? 'Comparing...' : 'Compare'}
@@ -238,7 +238,7 @@ export const VersionHistory: React.FC<VersionHistoryProps> = ({
 
       {/* Compare mode hint */}
       {compareMode && selectedVersions.length < 2 && (
-        <div className="px-4 py-2 bg-blue-50 dark:bg-blue-900/20 text-sm text-blue-700 dark:text-blue-300">
+        <div className="px-4 py-2 bg-amber-50 dark:bg-amber-900/20 text-sm text-amber-700 dark:text-amber-300">
           Select {2 - selectedVersions.length} more version{selectedVersions.length === 0 ? 's' : ''} to compare
         </div>
       )}
@@ -268,7 +268,7 @@ export const VersionHistory: React.FC<VersionHistoryProps> = ({
               <Minus className="w-4 h-4" />
               {diff.removed} removed
             </span>
-            <span className="flex items-center gap-1 text-blue-600 dark:text-blue-400">
+            <span className="flex items-center gap-1 text-amber-700 dark:text-amber-400">
               <ArrowRight className="w-4 h-4" />
               {diff.modified} modified
             </span>
@@ -284,7 +284,7 @@ export const VersionHistory: React.FC<VersionHistoryProps> = ({
                     ? 'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-200'
                     : change.type === 'removed'
                     ? 'bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200'
-                    : 'bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200'
+                    : 'bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-200'
                 }`}
               >
                 <div className="font-mono text-xs">{change.path}</div>
@@ -317,7 +317,7 @@ export const VersionHistory: React.FC<VersionHistoryProps> = ({
               key={entry.id}
               className={`relative ${
                 compareMode && isSelected
-                  ? 'bg-blue-50 dark:bg-blue-900/20'
+                  ? 'bg-amber-50 dark:bg-amber-900/20'
                   : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
               }`}
               onClick={() => handleVersionSelect(entry.id)}
@@ -325,7 +325,7 @@ export const VersionHistory: React.FC<VersionHistoryProps> = ({
               {/* Timeline indicator */}
               <div className="absolute left-4 top-0 bottom-0 w-px bg-gray-200 dark:bg-gray-700" />
               <div className={`absolute left-[11px] top-4 w-3 h-3 rounded-full border-2 border-white dark:border-gray-800 ${
-                idx === 0 ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'
+                idx === 0 ? 'bg-amber-500' : 'bg-gray-300 dark:bg-gray-600'
               }`} />
 
               <div className="pl-10 pr-4 py-3">
@@ -335,7 +335,7 @@ export const VersionHistory: React.FC<VersionHistoryProps> = ({
                     {compareMode && (
                       <div className={`w-5 h-5 rounded border ${
                         isSelected
-                          ? 'bg-blue-500 border-blue-500'
+                          ? 'bg-amber-500 border-amber-500'
                           : 'border-gray-300 dark:border-gray-600'
                       } flex items-center justify-center`}>
                         {isSelected && <Check className="w-3 h-3 text-white" />}
@@ -366,7 +366,7 @@ export const VersionHistory: React.FC<VersionHistoryProps> = ({
                           handleRestore(entry.id);
                         }}
                         disabled={isRestoring}
-                        className="p-1 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400"
+                        className="p-1 text-gray-500 hover:text-amber-700 dark:text-gray-400 dark:hover:text-amber-400"
                         title="Restore to this version"
                       >
                         <RotateCcw className="w-4 h-4" />
@@ -467,7 +467,7 @@ export const VersionHistory: React.FC<VersionHistoryProps> = ({
       {/* Loading overlay */}
       {isLoading && (
         <div className="absolute inset-0 bg-white/50 dark:bg-gray-800/50 flex items-center justify-center">
-          <div className="animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full" />
+          <div className="animate-spin w-6 h-6 border-2 border-amber-500 border-t-transparent rounded-full" />
         </div>
       )}
     </div>

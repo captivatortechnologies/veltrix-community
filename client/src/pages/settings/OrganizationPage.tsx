@@ -87,7 +87,7 @@ const OrganizationPage: React.FC = () => {
         {!isEditing ? (
           <button
             onClick={() => setIsEditing(true)}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+            className="bg-amber-500 hover:bg-amber-600 text-amber-950 px-4 py-2 rounded"
           >
             Edit Information
           </button>
@@ -296,7 +296,7 @@ const OrganizationPage: React.FC = () => {
             <button
               type="submit"
               disabled={isSaving}
-              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded flex items-center"
+              className="bg-amber-500 hover:bg-amber-600 text-amber-950 px-4 py-2 rounded flex items-center"
             >
               {isSaving ? (
                 <>
@@ -330,7 +330,7 @@ const OrganizationPage: React.FC = () => {
             <div>
               <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Website</h3>
               <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                <a href={organization.website ?? undefined} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+                <a href={organization.website ?? undefined} target="_blank" rel="noopener noreferrer" className="text-amber-600 hover:underline">
                   {organization.website}
                 </a>
               </p>
@@ -344,7 +344,7 @@ const OrganizationPage: React.FC = () => {
             <div>
               <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Email</h3>
               <p className="mt-1 text-sm text-gray-900 dark:text-gray-100">
-                <a href={`mailto:${organization.email}`} className="text-blue-500 hover:underline">
+                <a href={`mailto:${organization.email}`} className="text-amber-600 hover:underline">
                   {organization.email}
                 </a>
               </p>

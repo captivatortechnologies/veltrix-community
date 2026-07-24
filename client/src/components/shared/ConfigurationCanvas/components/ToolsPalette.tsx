@@ -72,9 +72,9 @@ const DraggablePaletteItem: React.FC<{
         border border-gray-200 dark:border-gray-600
         rounded-md
         cursor-grab active:cursor-grabbing
-        hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20
+        hover:border-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20
         transition-colors
-        ${isDragging ? 'opacity-50 ring-2 ring-blue-500' : ''}
+        ${isDragging ? 'opacity-50 ring-2 ring-amber-500' : ''}
       `}
     >
       <GripVertical className="w-4 h-4 text-gray-400 flex-shrink-0" />
@@ -89,7 +89,7 @@ const DraggablePaletteItem: React.FC<{
         )}
       </div>
       {item.complexity === 'advanced' && (
-        <span className="px-1.5 py-0.5 text-xs font-medium text-orange-700 bg-orange-100 dark:text-orange-300 dark:bg-orange-900/30 rounded">
+        <span className="px-1.5 py-0.5 text-xs font-medium text-amber-700 bg-amber-100 dark:text-amber-300 dark:bg-amber-900/30 rounded">
           Adv
         </span>
       )}
@@ -418,7 +418,7 @@ export const ToolsPalette: React.FC<ToolsPaletteProps> = ({
               border border-gray-200 dark:border-gray-600
               rounded-md
               placeholder-gray-400
-              focus:ring-2 focus:ring-blue-500 focus:border-transparent
+              focus:ring-2 focus:ring-amber-500 focus:border-transparent
             "
           />
           {searchTerm && (
@@ -449,7 +449,7 @@ export const ToolsPalette: React.FC<ToolsPaletteProps> = ({
                     transition-colors
                     ${
                       categoryFilter === null
-                        ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                        ? 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300'
                         : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
                     }
                   `}
@@ -465,7 +465,7 @@ export const ToolsPalette: React.FC<ToolsPaletteProps> = ({
                       transition-colors
                       ${
                         categoryFilter === cat
-                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                          ? 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300'
                           : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
                       }
                     `}
@@ -490,7 +490,7 @@ export const ToolsPalette: React.FC<ToolsPaletteProps> = ({
                   transition-colors
                   ${
                     complexityFilter === null
-                      ? 'bg-blue-500 text-white'
+                      ? 'bg-amber-500 text-amber-950'
                       : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-600'
                   }
                 `}
@@ -505,7 +505,7 @@ export const ToolsPalette: React.FC<ToolsPaletteProps> = ({
                   transition-colors
                   ${
                     complexityFilter === 'basic'
-                      ? 'bg-blue-500 text-white'
+                      ? 'bg-amber-500 text-amber-950'
                       : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-600'
                   }
                 `}
@@ -520,7 +520,7 @@ export const ToolsPalette: React.FC<ToolsPaletteProps> = ({
                   transition-colors
                   ${
                     complexityFilter === 'advanced'
-                      ? 'bg-blue-500 text-white'
+                      ? 'bg-amber-500 text-amber-950'
                       : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-600'
                   }
                 `}
@@ -534,7 +534,7 @@ export const ToolsPalette: React.FC<ToolsPaletteProps> = ({
           {hasFilters && (
             <button
               onClick={clearFilters}
-              className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400"
+              className="text-xs text-amber-700 hover:text-amber-700 dark:text-amber-400"
             >
               Clear all filters
             </button>

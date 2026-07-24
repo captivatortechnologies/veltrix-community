@@ -232,7 +232,7 @@ export const ConfigDetailsModal: React.FC<ConfigDetailsModalProps> = ({
           {onSubmitApproval && config.status === 'DRAFT' && (
             <button
               onClick={act(onSubmitApproval)}
-              className={`${BTN} border border-orange-300 text-orange-700 hover:bg-orange-50 dark:border-orange-700 dark:text-orange-300`}
+              className={`${BTN} border border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-300`}
             >
               <Send className="h-4 w-4" /> Submit for approval
             </button>

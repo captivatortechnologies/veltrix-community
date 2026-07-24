@@ -144,9 +144,9 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
                   text-sm font-medium
                   text-gray-900 dark:text-white
                   bg-white dark:bg-gray-700
-                  border border-blue-500
+                  border border-amber-500
                   rounded-md
-                  focus:ring-2 focus:ring-blue-500 focus:outline-none
+                  focus:ring-2 focus:ring-amber-500 focus:outline-none
                   min-w-[150px] max-w-[300px]
                 "
                 placeholder="Enter configuration name"
@@ -343,8 +343,8 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
             className="
               flex items-center gap-2 px-4 py-2
               text-sm font-medium text-white
-              bg-orange-500 hover:bg-orange-600
-              disabled:bg-orange-300 disabled:cursor-not-allowed
+              bg-amber-500 hover:bg-amber-600
+              disabled:bg-amber-300 disabled:cursor-not-allowed
               rounded-md
               transition-colors
             "

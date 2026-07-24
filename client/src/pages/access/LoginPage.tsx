@@ -243,7 +243,7 @@ const LoginPage: React.FC = () => {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-amber-500 focus:border-amber-500"
                 placeholder="you@example.com"
               />
             </div>
@@ -252,10 +252,10 @@ const LoginPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="group relative w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="group relative w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-amber-950 bg-amber-600 hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <span className="absolute right-3 inset-y-0 flex items-center">
-                  <ArrowRight size={20} className="h-5 w-5 text-blue-300 group-hover:text-blue-200" />
+                  <ArrowRight size={20} className="h-5 w-5 text-amber-300 group-hover:text-amber-200" />
                 </span>
                 {isLoading ? 'Checking...' : 'Next'}
               </button>
@@ -313,7 +313,7 @@ const LoginPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setCurrentStep(LoginStep.EMAIL)}
-                  className="text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400"
+                  className="text-sm text-amber-700 hover:text-amber-600 dark:text-amber-400"
                 >
                   Change
                 </button>
@@ -336,7 +336,7 @@ const LoginPage: React.FC = () => {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-amber-500 focus:border-amber-500"
                   placeholder="••••••••"
                 />
                 <button
@@ -357,7 +357,7 @@ const LoginPage: React.FC = () => {
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="h-4 w-4 text-amber-700 focus:ring-amber-500 border-gray-300 rounded"
                 />
                 <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
                   Remember me
@@ -365,7 +365,7 @@ const LoginPage: React.FC = () => {
               </div>
               
               <div className="text-sm">
-                <Link to="/forgot-password" className="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300">
+                <Link to="/forgot-password" className="font-medium text-amber-700 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300">
                   Forgot password?
                 </Link>
               </div>
@@ -375,10 +375,10 @@ const LoginPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="group relative w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="group relative w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-amber-950 bg-amber-600 hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <span className="absolute left-0 inset-y-0 flex items-center pl-3">
-                  <LogIn size={20} className="h-5 w-5 text-blue-500 group-hover:text-blue-400" />
+                  <LogIn size={20} className="h-5 w-5 text-amber-600 group-hover:text-amber-400" />
                 </span>
                 {isLoading ? 'Signing in...' : 'Sign in'}
               </button>
@@ -410,7 +410,7 @@ const LoginPage: React.FC = () => {
                 placeholder="123456"
                 value={twoFactorCode}
                 onChange={(e) => setTwoFactorCode(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500 tracking-widest"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-amber-500 focus:border-amber-500 tracking-widest"
               />
             </div>
 
@@ -418,10 +418,10 @@ const LoginPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={isLoading || twoFactorCode.trim().length < 6}
-                className="group relative w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="group relative w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-amber-950 bg-amber-600 hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <span className="absolute left-0 inset-y-0 flex items-center pl-3">
-                  <LogIn size={20} className="h-5 w-5 text-blue-500 group-hover:text-blue-400" />
+                  <LogIn size={20} className="h-5 w-5 text-amber-600 group-hover:text-amber-400" />
                 </span>
                 {isLoading ? 'Verifying...' : 'Verify and sign in'}
               </button>
@@ -435,7 +435,7 @@ const LoginPage: React.FC = () => {
                   setTwoFactorCode('');
                   setCurrentStep(LoginStep.PASSWORD);
                 }}
-                className="text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400"
+                className="text-sm text-amber-700 hover:text-amber-600 dark:text-amber-400"
               >
                 ← Back to password
               </button>
@@ -454,7 +454,7 @@ const LoginPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setCurrentStep(LoginStep.EMAIL)}
-              className="mt-4 text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400"
+              className="mt-4 text-sm text-amber-700 hover:text-amber-600 dark:text-amber-400"
             >
               ← Back to email
             </button>
@@ -478,7 +478,7 @@ const LoginPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setCurrentStep(LoginStep.EMAIL)}
-              className="mt-4 text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400"
+              className="mt-4 text-sm text-amber-700 hover:text-amber-600 dark:text-amber-400"
             >
               ← Back to email
             </button>
@@ -502,7 +502,7 @@ const LoginPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setCurrentStep(LoginStep.EMAIL)}
-              className="mt-4 text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400"
+              className="mt-4 text-sm text-amber-700 hover:text-amber-600 dark:text-amber-400"
             >
               ← Back to email
             </button>
@@ -526,7 +526,7 @@ const LoginPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setCurrentStep(LoginStep.EMAIL)}
-              className="mt-4 text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400"
+              className="mt-4 text-sm text-amber-700 hover:text-amber-600 dark:text-amber-400"
             >
               ← Back to email
             </button>
@@ -572,7 +572,7 @@ const LoginPage: React.FC = () => {
         <div className="mt-6 text-center">
           <p className="text-sm text-gray-600 dark:text-gray-400">
             Don't have an account?{' '}
-            <Link to="/signup" className="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300">
+            <Link to="/signup" className="font-medium text-amber-700 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300">
               Sign up
             </Link>
           </p>

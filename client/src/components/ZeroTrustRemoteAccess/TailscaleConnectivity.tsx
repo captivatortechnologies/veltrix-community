@@ -622,7 +622,7 @@ tailscale up --ssh --accept-routes --authkey=${tailscaleKey}`
         
         {loading ? (
           <div className="flex justify-center py-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"></div>
           </div>
         ) : error ? (
           <div className="bg-red-50 dark:bg-red-900/30 border-l-4 border-red-500 p-4">
@@ -672,8 +672,8 @@ tailscale up --ssh --accept-routes --authkey=${tailscaleKey}`
             )}
           </div>
         ) : (
-          <div className="bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-500 p-4 mb-4">
-            <p className="text-blue-800 dark:text-blue-200">
+          <div className="bg-amber-50 dark:bg-amber-900/30 border-l-4 border-amber-500 p-4 mb-4">
+            <p className="text-amber-800 dark:text-amber-200">
               No connectivity configured for this component. Click "Create Connection" to set up secure remote access.
             </p>
           </div>
@@ -730,7 +730,7 @@ tailscale up --ssh --accept-routes --authkey=${tailscaleKey}`
                 await fetchConnectivity();
               }
             }}
-            className="inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none text-sm"
+            className="inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-amber-600 text-base font-medium text-amber-950 hover:bg-amber-700 focus:outline-none text-sm"
           >
             Refresh Connectivity
           </button>
@@ -739,7 +739,7 @@ tailscale up --ssh --accept-routes --authkey=${tailscaleKey}`
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none text-sm"
+            className="inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-amber-600 text-base font-medium text-amber-950 hover:bg-amber-700 focus:outline-none text-sm"
           >
             Close
           </button>

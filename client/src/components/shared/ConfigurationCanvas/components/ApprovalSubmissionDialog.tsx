@@ -180,7 +180,7 @@ export const ApprovalSubmissionDialog: React.FC<ApprovalSubmissionDialogProps> =
 
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-600"></div>
             </div>
           ) : (
             <>
@@ -242,12 +242,12 @@ export const ApprovalSubmissionDialog: React.FC<ApprovalSubmissionDialogProps> =
                       return user ? (
                         <span
                           key={approverId}
-                          className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm rounded-full"
+                          className="inline-flex items-center gap-1 px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-sm rounded-full"
                         >
                           {user.name}
                           <button
                             onClick={() => handleApproverToggle(approverId)}
-                            className="hover:text-blue-900 dark:hover:text-blue-100"
+                            className="hover:text-amber-900 dark:hover:text-amber-100"
                           >
                             <X className="w-3 h-3" />
                           </button>
@@ -268,7 +268,7 @@ export const ApprovalSubmissionDialog: React.FC<ApprovalSubmissionDialogProps> =
                               type="checkbox"
                               checked={selectedApprovers.includes(user.id)}
                               onChange={() => handleApproverToggle(user.id)}
-                              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                              className="h-4 w-4 text-amber-700 focus:ring-amber-500 border-gray-300 rounded"
                             />
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
@@ -327,7 +327,7 @@ export const ApprovalSubmissionDialog: React.FC<ApprovalSubmissionDialogProps> =
           <button
             onClick={handleSubmit}
             disabled={isSubmitting || selectedApprovers.length === 0 || selectedEnvironments.length === 0}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-4 py-2 bg-amber-600 text-amber-950 rounded-md hover:bg-amber-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {isSubmitting ? (
               <>

@@ -104,9 +104,9 @@ function statusBadgeClass(status: ConfigCanvasStatus): string {
     case 'VALIDATION_PENDING':
       return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300'
     case 'CHANGES_REQUESTED':
-      return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300'
+      return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
     case 'DEPLOYED':
-      return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+      return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
     case 'DEPLOYING':
     case 'DEPLOYMENT_QUEUED':
       return 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300'
@@ -1146,7 +1146,7 @@ const AppConfigTypeSurface: React.FC = () => {
                             <button
                               onClick={() => void handleEdit(config)}
                               title="Edit"
-                              className="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-blue-400"
+                              className="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-amber-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-amber-400"
                             >
                               <Edit2 className="h-4 w-4" />
                             </button>
@@ -1161,7 +1161,7 @@ const AppConfigTypeSurface: React.FC = () => {
                               <button
                                 onClick={() => setApprovalConfig(config)}
                                 title="Submit for approval"
-                                className="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-orange-600 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-orange-400"
+                                className="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-amber-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-amber-400"
                               >
                                 <Send className="h-4 w-4" />
                               </button>

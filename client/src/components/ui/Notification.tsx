@@ -36,7 +36,7 @@ export const Notification: React.FC<NotificationProps> = ({
       case 'warning':
         return 'bg-yellow-500 text-white';
       case 'info':
-        return 'bg-blue-500 text-white';
+        return 'bg-amber-500 text-amber-950';
       default:
         return 'bg-gray-500 text-white';
     }

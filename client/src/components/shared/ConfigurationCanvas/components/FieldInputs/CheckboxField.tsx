@@ -29,8 +29,8 @@ export const CheckboxField: React.FC<FieldInputProps<boolean>> = ({
           w-4 h-4
           rounded
           border-gray-300 dark:border-gray-600
-          text-blue-600
-          focus:ring-2 focus:ring-blue-500 focus:ring-offset-0
+          text-amber-700
+          focus:ring-2 focus:ring-amber-500 focus:ring-offset-0
           disabled:cursor-not-allowed
         "
       />

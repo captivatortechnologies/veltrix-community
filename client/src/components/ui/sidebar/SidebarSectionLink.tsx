@@ -22,7 +22,7 @@ export interface SidebarSectionLinkProps {
 }
 
 const focusRing =
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-800';
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-800';
 
 /**
  * A sidebar section heading that is also a real navigation link (e.g.
@@ -51,7 +51,7 @@ const SidebarSectionLink: React.FC<SidebarSectionLinkProps> = ({
         aria-label={name}
         aria-current={isActive ? 'page' : undefined}
         className={`group flex w-full items-center justify-center rounded-md px-2 py-2.5 transition-colors ${focusRing} ${
-          isActive ? 'bg-blue-700 text-white' : 'text-gray-400 hover:bg-gray-700/80 hover:text-white'
+          isActive ? 'bg-amber-700 text-amber-950' : 'text-gray-400 hover:bg-gray-700/80 hover:text-amber-950'
         }`}
       >
         <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center">{icon}</span>
@@ -70,7 +70,7 @@ const SidebarSectionLink: React.FC<SidebarSectionLinkProps> = ({
       to={to}
       aria-current={isActive ? 'page' : undefined}
       className={`block truncate rounded-md px-4 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider transition-colors ${focusRing} ${
-        isActive ? 'text-blue-400' : 'text-gray-500 hover:text-gray-300'
+        isActive ? 'text-amber-400' : 'text-gray-500 hover:text-gray-300'
       }`}
     >
       {label}

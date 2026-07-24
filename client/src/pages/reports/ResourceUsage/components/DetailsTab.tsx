@@ -66,7 +66,7 @@ const DetailsTab: React.FC<DetailsTabProps> = React.memo(({ filteredUsage }) => 
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      usage.resourceType === 'compute' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' :
+                      usage.resourceType === 'compute' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400' :
                       usage.resourceType === 'storage' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' :
                       usage.resourceType === 'network' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400' :
                       usage.resourceType === 'api' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400' :

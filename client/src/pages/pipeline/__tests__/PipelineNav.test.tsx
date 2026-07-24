@@ -21,13 +21,13 @@ describe('PipelineNav', () => {
   it('highlights the active tab based on route', () => {
     renderWithRouter('/pipeline')
     const dashboardLink = screen.getByText('Dashboard').closest('a')
-    expect(dashboardLink?.className).toContain('border-blue-600')
+    expect(dashboardLink?.className).toContain('border-amber-600')
   })
 
   it('highlights environments tab when on environments route', () => {
     renderWithRouter('/pipeline/environments')
     const envLink = screen.getByText('Environments').closest('a')
-    expect(envLink?.className).toContain('border-blue-600')
+    expect(envLink?.className).toContain('border-amber-600')
 
     const dashboardLink = screen.getByText('Dashboard').closest('a')
     expect(dashboardLink?.className).toContain('border-transparent')
@@ -36,7 +36,7 @@ describe('PipelineNav', () => {
   it('highlights drift tab when on drift route', () => {
     renderWithRouter('/pipeline/drift')
     const driftLink = screen.getByText('Drift').closest('a')
-    expect(driftLink?.className).toContain('border-blue-600')
+    expect(driftLink?.className).toContain('border-amber-600')
   })
 
   it('renders correct links', () => {

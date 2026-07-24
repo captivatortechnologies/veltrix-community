@@ -833,7 +833,7 @@ const AppPipelinePage: React.FC = () => {
                               <button
                                 onClick={() => handleEdit(config)}
                                 title="Edit"
-                                className="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-blue-400"
+                                className="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-amber-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-amber-400"
                               >
                                 <Edit2 className="h-4 w-4" />
                               </button>
@@ -848,7 +848,7 @@ const AppPipelinePage: React.FC = () => {
                                 <button
                                   onClick={() => setApprovalConfig(config)}
                                   title="Submit for approval"
-                                  className="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-orange-600 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-orange-400"
+                                  className="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-amber-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-amber-400"
                                 >
                                   <Send className="h-4 w-4" />
                                 </button>

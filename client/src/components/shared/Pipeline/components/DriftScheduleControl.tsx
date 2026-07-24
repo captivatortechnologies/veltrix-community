@@ -87,7 +87,7 @@ export default function DriftScheduleControl({ appId, appName, className }: Drif
         value={current}
         disabled={saving}
         onChange={(e) => handleChange(e.target.value)}
-        className="mt-1.5 block w-full max-w-xs rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-60 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+        className="mt-1.5 block w-full max-w-xs rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 disabled:opacity-60 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
       >
         {isPerApp && <option value={INHERIT}>Inherit tenant default ({FREQ_LABELS[schedule.tenantDefault]})</option>}
         {schedule.options.map((f) => (

@@ -23,10 +23,10 @@ export interface SidebarNavItemProps {
 
 const baseClasses =
   'group flex w-full items-center gap-3 rounded-md py-2.5 text-sm font-medium transition-colors ' +
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-800';
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-800';
 
 function stateClasses(isActive: boolean): string {
-  return isActive ? 'bg-blue-700 text-white' : 'text-gray-300 hover:bg-gray-700/80 hover:text-white';
+  return isActive ? 'bg-amber-700 text-amber-950' : 'text-gray-300 hover:bg-gray-700/80 hover:text-amber-950';
 }
 
 /**

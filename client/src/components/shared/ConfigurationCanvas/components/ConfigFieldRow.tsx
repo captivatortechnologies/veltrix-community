@@ -56,7 +56,7 @@ export const ConfigFieldRow: React.FC<ConfigFieldRowProps> = ({
         p-2
         rounded-md
         hover:bg-gray-50 dark:hover:bg-gray-700/50
-        ${isDragging ? 'opacity-50 bg-blue-50 dark:bg-blue-900/20' : ''}
+        ${isDragging ? 'opacity-50 bg-amber-50 dark:bg-amber-900/20' : ''}
         ${error ? 'bg-red-50 dark:bg-red-900/10' : ''}
       `}
     >

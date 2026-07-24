@@ -100,7 +100,7 @@ const DriftOverview: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <AlertTriangle className="w-7 h-7 text-orange-500" />
+          <AlertTriangle className="w-7 h-7 text-amber-600" />
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
               Configuration Drift
@@ -114,7 +114,7 @@ const DriftOverview: React.FC = () => {
           <button
             onClick={() => void handleCheckNow()}
             disabled={checking}
-            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-60 rounded-lg transition-colors"
+            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-amber-950 bg-amber-600 hover:bg-amber-700 disabled:opacity-60 rounded-lg transition-colors"
           >
             {checking ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -165,7 +165,7 @@ const DriftOverview: React.FC = () => {
               onClick={() => handleFilterChange(f)}
               className={`px-4 py-2 text-sm font-medium capitalize transition-colors ${
                 resolvedFilter === f
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-amber-600 text-amber-950'
                   : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-750'
               }`}
             >
@@ -183,7 +183,7 @@ const DriftOverview: React.FC = () => {
       {/* Drift Records */}
       {loading && !driftData ? (
         <div className="flex items-center justify-center h-48">
-          <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+          <Loader2 className="w-8 h-8 text-amber-600 animate-spin" />
         </div>
       ) : driftData && driftData.data.length > 0 ? (
         <div className="space-y-3">
@@ -261,11 +261,11 @@ const colorClasses = {
     label: 'text-yellow-600 dark:text-yellow-400',
   },
   blue: {
-    bg: 'bg-blue-50 dark:bg-blue-900/20',
-    border: 'border-blue-200 dark:border-blue-800',
-    icon: 'text-blue-500',
-    count: 'text-blue-700 dark:text-blue-300',
-    label: 'text-blue-600 dark:text-blue-400',
+    bg: 'bg-amber-50 dark:bg-amber-900/20',
+    border: 'border-amber-200 dark:border-amber-800',
+    icon: 'text-amber-600',
+    count: 'text-amber-700 dark:text-amber-300',
+    label: 'text-amber-700 dark:text-amber-400',
   },
 }
 

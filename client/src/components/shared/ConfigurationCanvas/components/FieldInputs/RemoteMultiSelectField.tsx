@@ -97,14 +97,14 @@ export const RemoteMultiSelectField: React.FC<FieldInputProps<string[]>> = ({
           {selected.map((v) => (
             <span
               key={v}
-              className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 rounded-full"
+              className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 rounded-full"
             >
               {labelFor(v)}
               {!disabled && (
                 <button
                   type="button"
                   onClick={() => remove(v)}
-                  className="hover:bg-blue-200 dark:hover:bg-blue-800 rounded-full p-0.5"
+                  className="hover:bg-amber-200 dark:hover:bg-amber-800 rounded-full p-0.5"
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -157,7 +157,7 @@ export const RemoteMultiSelectField: React.FC<FieldInputProps<string[]>> = ({
                     <label
                       key={opt.value}
                       className={`flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 ${
-                        isSel ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                        isSel ? 'bg-amber-50 dark:bg-amber-900/20' : ''
                       } ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}
                     >
                       <input
@@ -165,7 +165,7 @@ export const RemoteMultiSelectField: React.FC<FieldInputProps<string[]>> = ({
                         checked={isSel}
                         onChange={() => toggle(opt.value, opt.label)}
                         disabled={disabled}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        className="rounded border-gray-300 text-amber-700 focus:ring-amber-500"
                       />
                       <span className="text-sm text-gray-900 dark:text-white">{opt.label}</span>
                       {opt.description && (

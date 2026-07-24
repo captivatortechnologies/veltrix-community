@@ -44,7 +44,7 @@ const ActionsTab: React.FC<ActionsTabProps> = React.memo(({ actions }) => {
                   <div className="text-sm font-medium text-gray-900 dark:text-white">{action.username}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                  <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
                     {action.action.toUpperCase()}
                   </span>
                 </td>

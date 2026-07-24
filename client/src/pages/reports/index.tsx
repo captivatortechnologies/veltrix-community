@@ -27,7 +27,7 @@ const ReportsPage: React.FC = () => {
               to={category.path}
               className={`whitespace-nowrap py-3 px-4 border-b-2 font-medium text-sm ${
                 location.pathname === category.path
-                  ? 'border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-400'
+                  ? 'border-amber-500 text-amber-700 dark:border-amber-400 dark:text-amber-400'
                   : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
               }`}
             >

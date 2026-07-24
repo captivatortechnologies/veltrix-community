@@ -86,7 +86,7 @@ const Breadcrumbs: React.FC = () => {
       <Link
         to="/"
         aria-label="Home"
-        className="flex items-center rounded p-0.5 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 dark:hover:text-gray-200"
+        className="flex items-center rounded p-0.5 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 dark:hover:text-gray-200"
       >
         <Home size={14} aria-hidden="true" />
       </Link>
@@ -102,7 +102,7 @@ const Breadcrumbs: React.FC = () => {
             ) : (
               <Link
                 to={crumb.to}
-                className="rounded hover:text-gray-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 dark:hover:text-gray-200"
+                className="rounded hover:text-gray-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 dark:hover:text-gray-200"
               >
                 {crumb.label}
               </Link>

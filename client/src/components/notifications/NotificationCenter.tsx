@@ -26,8 +26,8 @@ const typeIcons: Record<NotificationType, string> = {
 
 const priorityBadgeClasses: Record<NotificationPriority, string> = {
   [NotificationPriority.LOW]: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300',
-  [NotificationPriority.MEDIUM]: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
-  [NotificationPriority.HIGH]: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
+  [NotificationPriority.MEDIUM]: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300',
+  [NotificationPriority.HIGH]: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300',
   [NotificationPriority.CRITICAL]: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
 };
 
@@ -54,7 +54,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
             Notifications
           </h2>
           {unreadCount > 0 && (
-            <span className="px-2 py-1 text-xs font-medium bg-blue-600 text-white rounded-full">
+            <span className="px-2 py-1 text-xs font-medium bg-amber-600 text-amber-950 rounded-full">
               {unreadCount}
             </span>
           )}
@@ -63,7 +63,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
           <button
             onClick={() => markAllAsRead()}
             disabled={unreadCount === 0}
-            className="text-sm text-blue-600 hover:text-blue-700 disabled:text-gray-400 disabled:cursor-not-allowed"
+            className="text-sm text-amber-700 hover:text-amber-700 disabled:text-gray-400 disabled:cursor-not-allowed"
           >
             Mark all read
           </button>
@@ -118,7 +118,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
       <div className="flex-1 overflow-y-auto">
         {isLoading ? (
           <div className="flex items-center justify-center h-32">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-600" />
           </div>
         ) : notifications.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-32 text-gray-500 dark:text-gray-400">
@@ -133,7 +133,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
               <div
                 key={notification.id}
                 className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer ${
-                  !notification.read ? 'bg-blue-50 dark:bg-blue-900/10' : ''
+                  !notification.read ? 'bg-amber-50 dark:bg-amber-900/10' : ''
                 }`}
                 onClick={() => handleNotificationClick(notification.id, notification.actionUrl)}
               >

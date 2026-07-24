@@ -52,7 +52,7 @@ export const TagsField: React.FC<FieldInputProps<string[]>> = ({
           cursor-text
           ${error
             ? 'border-red-300 dark:border-red-600'
-            : 'border-gray-300 dark:border-gray-600 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent'
+            : 'border-gray-300 dark:border-gray-600 focus-within:ring-2 focus-within:ring-amber-500 focus-within:border-transparent'
           }
           ${disabled ? 'bg-gray-100 dark:bg-gray-800 cursor-not-allowed' : ''}
         `}

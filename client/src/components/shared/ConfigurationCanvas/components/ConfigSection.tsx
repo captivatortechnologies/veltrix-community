@@ -171,7 +171,7 @@ export const ConfigSectionComponent: React.FC<ConfigSectionProps> = ({
         border border-gray-200 dark:border-gray-700
         rounded-lg
         shadow-sm
-        ${isDragging ? 'opacity-50 shadow-lg ring-2 ring-blue-500' : ''}
+        ${isDragging ? 'opacity-50 shadow-lg ring-2 ring-amber-500' : ''}
       `}
     >
       {/* Section Header */}
@@ -284,7 +284,7 @@ export const ConfigSectionComponent: React.FC<ConfigSectionProps> = ({
               {!readOnly && (
                 <button
                   onClick={() => setShowAddField(true)}
-                  className="ml-2 text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                  className="ml-2 text-amber-700 hover:text-amber-700 dark:text-amber-400"
                 >
                   Add one
                 </button>
@@ -325,14 +325,14 @@ export const ConfigSectionComponent: React.FC<ConfigSectionProps> = ({
                   placeholder="Key (e.g., maxDataSize)"
                   value={newFieldKey}
                   onChange={(e) => setNewFieldKey(e.target.value)}
-                  className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                 />
                 <input
                   type="text"
                   placeholder="Label (optional)"
                   value={newFieldLabel}
                   onChange={(e) => setNewFieldLabel(e.target.value)}
-                  className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="flex-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                 />
               </div>
               <div className="flex justify-end gap-2 mt-3">
@@ -349,7 +349,7 @@ export const ConfigSectionComponent: React.FC<ConfigSectionProps> = ({
                 <button
                   onClick={handleAddField}
                   disabled={!newFieldKey.trim()}
-                  className="px-3 py-1.5 text-sm text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed rounded-md"
+                  className="px-3 py-1.5 text-sm text-amber-950 bg-amber-600 hover:bg-amber-700 disabled:bg-amber-300 disabled:cursor-not-allowed rounded-md"
                 >
                   Add Field
                 </button>

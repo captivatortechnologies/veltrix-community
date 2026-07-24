@@ -167,8 +167,8 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
         min-h-[400px]
         rounded-lg
         transition-all duration-200
-        ${isDraggingPaletteItem ? 'ring-2 ring-dashed ring-blue-300 dark:ring-blue-600 bg-blue-50/50 dark:bg-blue-900/10' : ''}
-        ${showDropHighlight ? 'ring-blue-500 dark:ring-blue-400 bg-blue-100 dark:bg-blue-900/30' : ''}
+        ${isDraggingPaletteItem ? 'ring-2 ring-dashed ring-amber-300 dark:ring-amber-600 bg-amber-50/50 dark:bg-amber-900/10' : ''}
+        ${showDropHighlight ? 'ring-amber-500 dark:ring-amber-400 bg-amber-100 dark:bg-amber-900/30' : ''}
         ${className}
       `}
     >
@@ -240,7 +240,7 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
                           ) : (
                             <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
                           )}
-                          <FileText className="w-4 h-4 text-blue-500 dark:text-blue-400 flex-shrink-0" />
+                          <FileText className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
                           <span className="text-sm font-semibold text-gray-800 dark:text-gray-200">
                             {group.confFile}
                           </span>
@@ -278,13 +278,13 @@ export const CanvasArea: React.FC<CanvasAreaProps> = ({
             mt-4 border-2 border-dashed rounded-lg p-8 text-center
             transition-all duration-200
             ${showDropHighlight
-              ? 'border-blue-500 bg-blue-100 dark:bg-blue-900/40'
-              : 'border-blue-300 dark:border-blue-600'
+              ? 'border-amber-500 bg-amber-100 dark:bg-amber-900/40'
+              : 'border-amber-300 dark:border-amber-600'
             }
           `}
         >
-          <Plus className={`w-6 h-6 mx-auto mb-2 ${showDropHighlight ? 'text-blue-600' : 'text-blue-400'}`} />
-          <span className={`text-sm ${showDropHighlight ? 'text-blue-700 dark:text-blue-300 font-medium' : 'text-blue-500 dark:text-blue-400'}`}>
+          <Plus className={`w-6 h-6 mx-auto mb-2 ${showDropHighlight ? 'text-amber-700' : 'text-amber-400'}`} />
+          <span className={`text-sm ${showDropHighlight ? 'text-amber-700 dark:text-amber-300 font-medium' : 'text-amber-600 dark:text-amber-400'}`}>
             {showDropHighlight ? 'Release to add section' : 'Drag here to add a new section'}
           </span>
         </div>

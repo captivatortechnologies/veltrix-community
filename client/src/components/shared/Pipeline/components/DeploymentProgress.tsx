@@ -54,7 +54,7 @@ const DeploymentProgress: React.FC<DeploymentProgressProps> = ({
           {isPaused && onResume && (
             <button
               onClick={onResume}
-              className="text-xs px-2 py-1 rounded text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+              className="text-xs px-2 py-1 rounded text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20"
             >
               Resume
             </button>
@@ -62,7 +62,7 @@ const DeploymentProgress: React.FC<DeploymentProgressProps> = ({
           {isComplete && deployment.status === 'SUCCEEDED' && onRollback && (
             <button
               onClick={onRollback}
-              className="text-xs px-2 py-1 rounded text-orange-600 dark:text-orange-400 hover:bg-orange-50 dark:hover:bg-orange-900/20 flex items-center gap-1"
+              className="text-xs px-2 py-1 rounded text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 flex items-center gap-1"
             >
               <RotateCcw className="w-3 h-3" />
               Rollback

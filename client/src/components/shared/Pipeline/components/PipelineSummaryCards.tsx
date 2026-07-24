@@ -28,8 +28,8 @@ const PipelineSummaryCards: React.FC<PipelineSummaryCardsProps> = ({
       label: 'Active Deployments',
       value: summary.activeDeployments,
       icon: Rocket,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50 dark:bg-blue-900/20',
+      color: 'text-amber-700',
+      bgColor: 'bg-amber-50 dark:bg-amber-900/20',
     },
     {
       label: 'Failed Deployments',

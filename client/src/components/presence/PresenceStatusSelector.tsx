@@ -83,7 +83,7 @@ export const PresenceStatusSelector: React.FC<PresenceStatusSelectorProps> = ({
                   <span className={option.color}>{option.label}</span>
                   {option.value === myStatus && (
                     <svg
-                      className="w-4 h-4 ml-auto text-blue-600"
+                      className="w-4 h-4 ml-auto text-amber-700"
                       fill="currentColor"
                       viewBox="0 0 20 20"
                     >

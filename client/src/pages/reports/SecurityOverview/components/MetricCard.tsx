@@ -25,7 +25,7 @@ const MetricCard: React.FC<MetricCardProps> = React.memo(({
             </p>
           )}
         </div>
-        {icon && <div className="text-blue-500 text-2xl">{icon}</div>}
+        {icon && <div className="text-amber-600 text-2xl">{icon}</div>}
       </div>
     </div>
   );

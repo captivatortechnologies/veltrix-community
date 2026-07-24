@@ -111,7 +111,7 @@ function VersionTimelineComponent({
               {isCompareMode && compareSelection.length === 2 && (
                 <button
                   onClick={handleCompare}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-amber-950 bg-amber-600 hover:bg-amber-700 rounded-md transition-colors"
                 >
                   <GitCompare className="h-4 w-4" />
                   Compare Selected
@@ -121,7 +121,7 @@ function VersionTimelineComponent({
                 onClick={toggleCompareMode}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                   isCompareMode
-                    ? 'text-blue-700 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300'
+                    ? 'text-amber-700 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-300'
                     : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
                 }`}
               >
@@ -135,8 +135,8 @@ function VersionTimelineComponent({
 
       {/* Compare mode instructions */}
       {isCompareMode && (
-        <div className="px-4 py-2 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-100 dark:border-blue-800">
-          <p className="text-sm text-blue-700 dark:text-blue-300">
+        <div className="px-4 py-2 bg-amber-50 dark:bg-amber-900/20 border-b border-amber-100 dark:border-amber-800">
+          <p className="text-sm text-amber-700 dark:text-amber-300">
             Select 2 configuration-change versions to compare.{' '}
             <span className="font-medium">
               {compareSelection.length}/2 selected

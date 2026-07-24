@@ -57,7 +57,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
             Activity Feed
           </h2>
           {unreadCount > 0 && (
-            <span className="px-2 py-1 text-xs font-medium bg-blue-600 text-white rounded-full">
+            <span className="px-2 py-1 text-xs font-medium bg-amber-600 text-amber-950 rounded-full">
               {unreadCount}
             </span>
           )}
@@ -66,7 +66,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
           <button
             onClick={() => markAllAsRead()}
             disabled={unreadCount === 0}
-            className="text-sm text-blue-600 hover:text-blue-700 disabled:text-gray-400 disabled:cursor-not-allowed"
+            className="text-sm text-amber-700 hover:text-amber-700 disabled:text-gray-400 disabled:cursor-not-allowed"
           >
             Mark all read
           </button>
@@ -114,7 +114,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
       <div className="flex-1 overflow-y-auto">
         {isLoading ? (
           <div className="flex items-center justify-center h-32">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-600" />
           </div>
         ) : displayedActivities.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-32 text-gray-500 dark:text-gray-400">
@@ -129,7 +129,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
               <div
                 key={activity.id}
                 className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer ${
-                  !activity.read ? 'bg-blue-50 dark:bg-blue-900/10' : ''
+                  !activity.read ? 'bg-amber-50 dark:bg-amber-900/10' : ''
                 }`}
                 onClick={() => markAsRead(activity.id)}
               >
@@ -144,7 +144,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
                     </span>
                   </div>
                   {!activity.read && (
-                    <span className="w-2 h-2 bg-blue-600 rounded-full mt-2" />
+                    <span className="w-2 h-2 bg-amber-600 rounded-full mt-2" />
                   )}
                 </div>
               </div>

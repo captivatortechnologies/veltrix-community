@@ -505,7 +505,7 @@ const UserManagement: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                         user.authProvider === 'COGNITO' 
-                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' 
+                          ? 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200' 
                           : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
                       }`}>
                         {user.authProvider || 'LOCAL'}
@@ -517,7 +517,7 @@ const UserManagement: React.FC = () => {
                     onClick={(e) => e.stopPropagation()}
                   >
                     <button
-                      className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 p-1 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900 mr-3"
+                      className="text-amber-700 hover:text-amber-900 dark:text-amber-400 dark:hover:text-amber-300 p-1 rounded-full hover:bg-amber-100 dark:hover:bg-amber-900 mr-3"
                       onClick={() => handleEditStart(user)}
                       title="Edit user"
                     >

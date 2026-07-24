@@ -73,7 +73,7 @@ const PipelineDashboard: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Shield className="w-7 h-7 text-blue-600 dark:text-blue-400" />
+          <Shield className="w-7 h-7 text-amber-700 dark:text-amber-400" />
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
               Security-as-Code Pipeline
@@ -136,7 +136,7 @@ const PipelineDashboard: React.FC = () => {
         {/* Pipeline Activity */}
         <div className="space-y-4">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-            <Rocket className="w-5 h-5 text-blue-500" />
+            <Rocket className="w-5 h-5 text-amber-600" />
             Pipeline Activity
           </h2>
 
@@ -150,10 +150,10 @@ const PipelineDashboard: React.FC = () => {
             />
             {/* Active Deployments */}
             <ActivityRow
-              icon={<Rocket className="w-4 h-4 text-blue-500" />}
+              icon={<Rocket className="w-4 h-4 text-amber-600" />}
               label="Active Deployments"
               count={summary.activeDeployments}
-              color="text-blue-600 dark:text-blue-400"
+              color="text-amber-700 dark:text-amber-400"
             />
             {/* Failed Deployments */}
             <ActivityRow
@@ -164,10 +164,10 @@ const PipelineDashboard: React.FC = () => {
             />
             {/* Drift Alerts */}
             <ActivityRow
-              icon={<AlertTriangle className="w-4 h-4 text-orange-500" />}
+              icon={<AlertTriangle className="w-4 h-4 text-amber-600" />}
               label="Drift Alerts"
               count={summary.unresolvedDrifts}
-              color="text-orange-600 dark:text-orange-400"
+              color="text-amber-700 dark:text-amber-400"
             />
           </div>
 
@@ -182,7 +182,7 @@ const PipelineDashboard: React.FC = () => {
               </span>
               <span>&rarr;</span>
               <span className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-blue-500" /> Validate
+                <span className="w-2 h-2 rounded-full bg-amber-500" /> Validate
               </span>
               <span>&rarr;</span>
               <span className="flex items-center gap-1">

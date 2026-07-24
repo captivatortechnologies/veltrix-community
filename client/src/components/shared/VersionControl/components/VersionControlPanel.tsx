@@ -156,7 +156,7 @@ function VersionControlPanelComponent({
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center gap-3">
-          <GitBranch className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+          <GitBranch className="h-6 w-6 text-amber-700 dark:text-amber-400" />
           <div>
             <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
               {title}
@@ -212,7 +212,7 @@ function VersionControlPanelComponent({
             onClick={() => setActiveTab('history')}
             className={`flex items-center gap-2 px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
               activeTab === 'history'
-                ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
+                ? 'border-amber-600 text-amber-700 dark:border-amber-400 dark:text-amber-400'
                 : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
             }`}
           >
@@ -226,7 +226,7 @@ function VersionControlPanelComponent({
             onClick={() => setActiveTab('approvals')}
             className={`flex items-center gap-2 px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
               activeTab === 'approvals'
-                ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
+                ? 'border-amber-600 text-amber-700 dark:border-amber-400 dark:text-amber-400'
                 : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
             }`}
           >

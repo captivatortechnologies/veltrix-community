@@ -130,7 +130,7 @@ const ProfileSettingsPage: React.FC = () => {
   if (isLoading && !settings) {
     return (
       <div className="flex justify-center items-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500"></div>
       </div>
     );
   }
@@ -169,8 +169,8 @@ const ProfileSettingsPage: React.FC = () => {
         {/* Sidebar */}
         <div className="md:col-span-1">
           <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-4">
-            <div className="flex items-center space-x-3 p-3 bg-blue-50 dark:bg-blue-900 rounded-md">
-              <User className="h-5 w-5 text-blue-500" />
+            <div className="flex items-center space-x-3 p-3 bg-amber-50 dark:bg-amber-900 rounded-md">
+              <User className="h-5 w-5 text-amber-600" />
               <span className="font-medium">Account</span>
             </div>
             <div className="mt-2">
@@ -230,7 +230,7 @@ const ProfileSettingsPage: React.FC = () => {
                       id="email-notifications"
                       checked={settings.notifications.email}
                       onChange={() => handleNotificationChange('email')}
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                      className="h-4 w-4 text-amber-700 border-gray-300 rounded"
                     />
                     <label htmlFor="email-notifications" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
                       Email Notifications
@@ -243,7 +243,7 @@ const ProfileSettingsPage: React.FC = () => {
                       id="browser-notifications"
                       checked={settings.notifications.browser}
                       onChange={() => handleNotificationChange('browser')}
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                      className="h-4 w-4 text-amber-700 border-gray-300 rounded"
                     />
                     <label htmlFor="browser-notifications" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
                       Browser Notifications
@@ -256,7 +256,7 @@ const ProfileSettingsPage: React.FC = () => {
                       id="mobile-notifications"
                       checked={settings.notifications.mobile}
                       onChange={() => handleNotificationChange('mobile')}
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                      className="h-4 w-4 text-amber-700 border-gray-300 rounded"
                     />
                     <label htmlFor="mobile-notifications" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
                       Mobile Notifications
@@ -273,7 +273,7 @@ const ProfileSettingsPage: React.FC = () => {
                       Manage your active sessions and sign out from other devices
                     </p>
                   </div>
-                  <button className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm font-medium">
+                  <button className="text-amber-700 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300 text-sm font-medium">
                     Manage Sessions
                   </button>
                 </div>
@@ -282,7 +282,7 @@ const ProfileSettingsPage: React.FC = () => {
               <div className="flex justify-end">
                 <button
                   onClick={handleSaveSettings}
-                  className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-md flex items-center"
+                  className="bg-amber-600 text-amber-950 hover:bg-amber-700 px-4 py-2 rounded-md flex items-center"
                   disabled={isLoading}
                 >
                   <Save size={16} className="mr-2" />
@@ -323,7 +323,7 @@ const ProfileSettingsPage: React.FC = () => {
                     type="password"
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
-                    className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-amber-500 focus:border-amber-500"
                   />
                 </div>
                 
@@ -336,7 +336,7 @@ const ProfileSettingsPage: React.FC = () => {
                     type="password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-amber-500 focus:border-amber-500"
                   />
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     Password must be at least 8 characters long
@@ -352,14 +352,14 @@ const ProfileSettingsPage: React.FC = () => {
                     type="password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-amber-500 focus:border-amber-500"
                   />
                 </div>
                 
                 <div className="flex justify-end">
                   <button
                     type="submit"
-                    className="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-md flex items-center"
+                    className="bg-amber-600 text-amber-950 hover:bg-amber-700 px-4 py-2 rounded-md flex items-center"
                     disabled={isLoading}
                   >
                     <Lock size={16} className="mr-2" />

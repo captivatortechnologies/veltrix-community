@@ -516,7 +516,7 @@ const IdentityProviderPage: React.FC = () => {
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Identity Providers</h1>
         <button
           onClick={handleSave}
-          className="bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white px-4 py-2 rounded"
+          className="bg-amber-500 hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-700 text-amber-950 px-4 py-2 rounded"
         >
           Save Changes
         </button>
@@ -538,7 +538,7 @@ const IdentityProviderPage: React.FC = () => {
           <div key={provider.id} className={`border dark:border-gray-600 rounded-lg shadow-sm overflow-hidden ${isComingSoon ? 'opacity-60' : ''}`}>
             <div className="flex justify-between items-center p-4 bg-gray-50 dark:bg-gray-700 border-b dark:border-gray-600">
               <div
-                className={`flex items-center rounded ${isComingSoon ? '' : 'cursor-pointer hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500'}`}
+                className={`flex items-center rounded ${isComingSoon ? '' : 'cursor-pointer hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500'}`}
                 {...(!isComingSoon
                   ? {
                       role: 'button',
@@ -577,11 +577,11 @@ const IdentityProviderPage: React.FC = () => {
                         checked={provider.enabled}
                         onChange={() => toggleProvider(provider.id)}
                       />
-                      <div className="relative w-11 h-6 bg-gray-200 dark:bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 dark:peer-checked:bg-blue-700"></div>
+                      <div className="relative w-11 h-6 bg-gray-200 dark:bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-amber-300 dark:peer-focus:ring-amber-800 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-600 dark:peer-checked:bg-amber-700"></div>
                     </label>
                     <button
                       onClick={() => setActiveProvider(activeProvider === provider.id ? null : provider.id)}
-                      className="ml-4 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                      className="ml-4 text-amber-700 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300"
                     >
                       {activeProvider === provider.id ? 'Hide' : 'Configure'}
                     </button>
@@ -757,7 +757,7 @@ const IdentityProviderPage: React.FC = () => {
                 )}
 
                 {provider.type === 'saml' && (
-                  <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900 rounded text-sm text-blue-800 dark:text-blue-100">
+                  <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900 rounded text-sm text-amber-800 dark:text-amber-100">
                     <p className="font-medium">SAML Configuration Notes:</p>
                     <ul className="list-disc list-inside mt-1 space-y-1">
                       <li>Entity ID: {window.location.origin}</li>
@@ -772,7 +772,7 @@ const IdentityProviderPage: React.FC = () => {
 
                 {provider.type === 'oidc' && (
                   <>
-                    <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900 rounded text-sm text-blue-800 dark:text-blue-100">
+                    <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900 rounded text-sm text-amber-800 dark:text-amber-100">
                       <p className="font-medium">Generic OIDC Configuration Notes:</p>
                       <ul className="list-disc list-inside mt-1 space-y-1">
                         <li>Redirect URI: {window.location.origin}/oauth/callback</li>
@@ -833,7 +833,7 @@ const IdentityProviderPage: React.FC = () => {
 
                 {provider.type === 'google' && (
                   <>
-                    <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900 rounded text-sm text-blue-800 dark:text-blue-100">
+                    <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900 rounded text-sm text-amber-800 dark:text-amber-100">
                       <p className="font-medium">Google OAuth Configuration Notes:</p>
                       <ul className="list-disc list-inside mt-1 space-y-1">
                         <li>Redirect URI: {window.location.origin}/oauth/callback</li>
@@ -891,7 +891,7 @@ const IdentityProviderPage: React.FC = () => {
 
                 {provider.type === 'azure' && (
                   <>
-                    <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900 rounded text-sm text-blue-800 dark:text-blue-100">
+                    <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900 rounded text-sm text-amber-800 dark:text-amber-100">
                       <p className="font-medium">Microsoft Azure AD Configuration Notes:</p>
                       <ul className="list-disc list-inside mt-1 space-y-1">
                         <li>Redirect URI: {window.location.origin}/oauth/callback</li>
@@ -952,7 +952,7 @@ const IdentityProviderPage: React.FC = () => {
 
                 {provider.type === 'cognito' && (
                   <>
-                    <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900 rounded text-sm text-blue-800 dark:text-blue-100">
+                    <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900 rounded text-sm text-amber-800 dark:text-amber-100">
                       <p className="font-medium">AWS Cognito Configuration Notes:</p>
                       <ul className="list-disc list-inside mt-1 space-y-1">
                         <li>Redirect URI: {window.location.origin}/auth/cognito/callback</li>

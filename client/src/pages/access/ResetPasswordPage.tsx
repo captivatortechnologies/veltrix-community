@@ -69,7 +69,7 @@ const ResetPasswordPage: React.FC = () => {
             </div>
             <Link
               to="/login"
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-amber-950 bg-amber-600 hover:bg-amber-700"
             >
               Go to sign in
             </Link>
@@ -80,7 +80,7 @@ const ResetPasswordPage: React.FC = () => {
               <p className="text-sm">This reset link is missing its token. Please request a new one.</p>
             </div>
             <div className="text-center">
-              <Link to="/forgot-password" className="text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400">
+              <Link to="/forgot-password" className="text-sm text-amber-700 hover:text-amber-600 dark:text-amber-400">
                 Request a new reset link
               </Link>
             </div>
@@ -100,7 +100,7 @@ const ResetPasswordPage: React.FC = () => {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-amber-500 focus:border-amber-500"
                   placeholder="••••••••"
                 />
                 <button
@@ -126,7 +126,7 @@ const ResetPasswordPage: React.FC = () => {
                 required
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-amber-500 focus:border-amber-500"
                 placeholder="••••••••"
               />
             </div>
@@ -135,14 +135,14 @@ const ResetPasswordPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-amber-950 bg-amber-600 hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? 'Resetting...' : 'Reset password'}
               </button>
             </div>
 
             <div className="text-center">
-              <Link to="/login" className="inline-flex items-center text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400">
+              <Link to="/login" className="inline-flex items-center text-sm text-amber-700 hover:text-amber-600 dark:text-amber-400">
                 <ArrowLeft size={16} className="mr-1" /> Back to sign in
               </Link>
             </div>

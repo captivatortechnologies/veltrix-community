@@ -606,7 +606,7 @@ export const ConfigurationCanvas: React.FC<ConfigurationCanvasProps> = ({
       {/* Drag overlay for visual feedback */}
       <DragOverlay>
         {activeDragItem && (
-          <div className="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-4 border-2 border-blue-500 opacity-90">
+          <div className="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-4 border-2 border-amber-500 opacity-90">
             <div className="font-medium text-gray-900 dark:text-white">
               {activeDragItem.label}
             </div>

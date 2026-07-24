@@ -319,7 +319,7 @@ function VersionDetailModalComponent({
                 placeholder="Leave a comment for the submitter (optional)..."
                 rows={3}
                 disabled={isSubmitting}
-                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+                className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 resize-none focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:opacity-50"
               />
             </div>
           )}
@@ -342,7 +342,7 @@ function VersionDetailModalComponent({
                   {onCompare && (
                     <button
                       onClick={() => onCompare(entry)}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                      className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-colors"
                     >
                       <GitCompare className="h-4 w-4" />
                       Compare

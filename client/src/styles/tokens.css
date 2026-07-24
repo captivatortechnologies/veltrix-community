@@ -10,8 +10,8 @@
  * `tailwind-preset.cjs` in this same directory, which maps these variables onto Tailwind
  * color families.
  *
- * Brand: primary = blue (matches the /login sign-in button, the shield logo, and the
- * sidebar's active-state highlight).
+ * Brand: primary = amber / marigold (matches the /login sign-in button, the shield logo,
+ * and the sidebar's active-state highlight). Gold fill takes near-black text.
  *
  * Values are space-separated RGB triples (no `rgb()`/`#`) so Tailwind can apply opacity
  * modifiers, e.g. `bg-primary-subtle/50`, via `rgb(var(--color-x) / <alpha-value>)`.
@@ -30,13 +30,15 @@
  */
 
 :root {
-  /* Primary — blue-600/700/800 */
-  --color-primary: 37 99 235;
-  --color-primary-hover: 29 78 216;
-  --color-primary-active: 30 64 175;
-  --color-primary-foreground: 255 255 255;
-  --color-primary-subtle: 239 246 255; /* blue-50 */
-  --color-primary-subtle-foreground: 30 64 175; /* blue-800 */
+  /* Primary — marigold. amber-500 base with a near-black (amber-950) foreground:
+     gold takes DARK button text, not white — that's what separates the brand from
+     the danger red (red + white) and keeps button labels at ~9:1 contrast. */
+  --color-primary: 245 158 11; /* amber-500 */
+  --color-primary-hover: 217 119 6; /* amber-600 */
+  --color-primary-active: 180 83 9; /* amber-700 */
+  --color-primary-foreground: 69 26 3; /* amber-950 — near-black on gold */
+  --color-primary-subtle: 255 251 235; /* amber-50 */
+  --color-primary-subtle-foreground: 146 64 14; /* amber-800 */
 
   /* Success — green-600/700/800 */
   --color-success: 22 163 74;
@@ -104,8 +106,8 @@
 .dark,
 [data-theme='dark'] {
   /* Primary subtle values darken; solid base stays put (still readable on dark surfaces) */
-  --color-primary-subtle: 30 41 71;
-  --color-primary-subtle-foreground: 96 165 250; /* blue-400 */
+  --color-primary-subtle: 61 45 20;
+  --color-primary-subtle-foreground: 251 191 36; /* amber-400 */
 
   --color-success-subtle: 28 54 44;
   --color-success-subtle-foreground: 74 222 128; /* green-400 */

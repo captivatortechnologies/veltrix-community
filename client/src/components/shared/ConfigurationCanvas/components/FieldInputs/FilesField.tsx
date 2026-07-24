@@ -150,7 +150,7 @@ const CatalogCombobox: React.FC<CatalogComboboxProps> = ({ value, entries, disab
         aria-expanded={isOpen}
         disabled={disabled}
         onClick={() => (isOpen ? close() : open())}
-        className="flex w-full items-center justify-between gap-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1.5 text-sm text-left text-gray-900 dark:text-gray-100 outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:opacity-60"
+        className="flex w-full items-center justify-between gap-2 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1.5 text-sm text-left text-gray-900 dark:text-gray-100 outline-none focus-visible:ring-2 focus-visible:ring-amber-500 disabled:opacity-60"
       >
         <span className={`truncate font-mono ${value ? '' : 'text-gray-400 dark:text-gray-500'}`}>
           {value || 'Choose or type a .conf file…'}
@@ -203,7 +203,7 @@ const CatalogCombobox: React.FC<CatalogComboboxProps> = ({ value, entries, disab
                 role="option"
                 aria-selected={false}
                 onClick={() => commit(query.trim())}
-                className="cursor-pointer px-3 py-2 text-sm text-gray-900 dark:text-gray-100 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                className="cursor-pointer px-3 py-2 text-sm text-gray-900 dark:text-gray-100 hover:bg-amber-50 dark:hover:bg-amber-900/20"
               >
                 Use custom name “<span className="font-mono">{query.trim()}</span>”
               </li>
@@ -219,14 +219,14 @@ const CatalogCombobox: React.FC<CatalogComboboxProps> = ({ value, entries, disab
                   role="option"
                   aria-selected={isSelected}
                   onClick={() => commit(entry.value)}
-                  className={`flex cursor-pointer items-start gap-2 px-3 py-2 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 ${
-                    isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                  className={`flex cursor-pointer items-start gap-2 px-3 py-2 text-sm hover:bg-amber-50 dark:hover:bg-amber-900/20 ${
+                    isSelected ? 'bg-amber-50 dark:bg-amber-900/20' : ''
                   }`}
                 >
                   <Check
                     size={14}
                     aria-hidden="true"
-                    className={`mt-0.5 flex-shrink-0 ${isSelected ? 'text-blue-600 dark:text-blue-400' : 'text-transparent'}`}
+                    className={`mt-0.5 flex-shrink-0 ${isSelected ? 'text-amber-700 dark:text-amber-400' : 'text-transparent'}`}
                   />
                   <span className="min-w-0">
                     <span className="block truncate font-mono text-gray-900 dark:text-gray-100">{entry.value}</span>
@@ -352,7 +352,7 @@ const ConfStanzaEditor: React.FC<{
         <button
           type="button"
           onClick={addDefaultValues}
-          className="inline-flex items-center gap-1.5 rounded-md border border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 px-3 py-1.5 text-sm font-medium text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/30"
+          className="inline-flex items-center gap-1.5 rounded-md border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 px-3 py-1.5 text-sm font-medium text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/30"
         >
           <Plus className="h-4 w-4" aria-hidden="true" />
           Add default values
@@ -364,19 +364,19 @@ const ConfStanzaEditor: React.FC<{
         return (
           <div
             key={index}
-            className={`rounded-md border ${def ? 'border-blue-300 dark:border-blue-700' : 'border-gray-200 dark:border-gray-700'}`}
+            className={`rounded-md border ${def ? 'border-amber-300 dark:border-amber-700' : 'border-gray-200 dark:border-gray-700'}`}
           >
             <div
               className={`flex items-center gap-2 border-b px-2 py-1.5 ${
                 def
-                  ? 'border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20'
+                  ? 'border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20'
                   : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40'
               }`}
             >
               {def ? (
-                <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                <span className="text-sm font-medium text-amber-700 dark:text-amber-300">
                   Default values{' '}
-                  <span className="font-normal text-blue-600/80 dark:text-blue-300/70">
+                  <span className="font-normal text-amber-700/80 dark:text-amber-300/70">
                     — applied to all stanzas in this file
                   </span>
                 </span>
@@ -618,7 +618,7 @@ export const FilesField: React.FC<FieldInputProps<FileEntry[]>> = ({
                     disabled={rowDisabled}
                     onChange={(e) => setFilename(index, e.target.value)}
                     placeholder="e.g. inputs.conf"
-                    className="flex-1 min-w-[120px] rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm px-2 py-1.5 font-mono text-gray-900 dark:text-gray-100 outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60"
+                    className="flex-1 min-w-[120px] rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm px-2 py-1.5 font-mono text-gray-900 dark:text-gray-100 outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-60"
                   />
                 )}
                 {confEditable && (
@@ -673,7 +673,7 @@ export const FilesField: React.FC<FieldInputProps<FileEntry[]>> = ({
                   spellCheck={false}
                   rows={6}
                   placeholder="File contents…"
-                  className="block w-full resize-y rounded-b-md border-0 bg-white dark:bg-gray-800 px-3 py-2 text-sm font-mono text-gray-900 dark:text-gray-100 outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 disabled:opacity-60"
+                  className="block w-full resize-y rounded-b-md border-0 bg-white dark:bg-gray-800 px-3 py-2 text-sm font-mono text-gray-900 dark:text-gray-100 outline-none focus:ring-2 focus:ring-inset focus:ring-amber-500 disabled:opacity-60"
                 />
               )}
             </div>

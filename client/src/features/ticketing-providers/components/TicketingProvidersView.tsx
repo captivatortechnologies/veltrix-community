@@ -31,7 +31,7 @@ const statusConfig: Record<string, { icon: React.ReactNode; color: string; label
   },
   CONFIGURED: {
     icon: <Wifi className="w-3.5 h-3.5" />,
-    color: 'text-blue-600 dark:text-blue-400',
+    color: 'text-amber-700 dark:text-amber-400',
     label: 'Configured',
   },
   ERROR: {
@@ -92,7 +92,7 @@ const ConnectionRow: React.FC<ConnectionRowProps> = ({
         <button
           onClick={onTest}
           disabled={testing}
-          className="p-1.5 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors"
+          className="p-1.5 text-gray-400 hover:text-amber-700 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-md transition-colors"
           title="Test connection"
         >
           {testing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Wifi className="w-3.5 h-3.5" />}
@@ -157,14 +157,14 @@ const ProviderCard: React.FC<ProviderCardProps> = ({
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 flex items-center justify-center text-xl">
+          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-100 to-amber-100 dark:from-purple-900/30 dark:to-amber-900/30 flex items-center justify-center text-xl">
             {schema.icon}
           </div>
           <div>
             <div className="flex items-center gap-2">
               <h3 className="font-semibold text-gray-900 dark:text-white">{schema.displayName}</h3>
               {hasInstances && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 font-medium">
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 font-medium">
                   {connections.length} configured
                 </span>
               )}

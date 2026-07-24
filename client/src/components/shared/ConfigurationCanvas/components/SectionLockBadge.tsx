@@ -50,7 +50,7 @@ export const SectionLockBadge: React.FC<SectionLockBadgeProps> = ({
           e.stopPropagation();
           onReleaseLock?.();
         }}
-        className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs ${className}`}
+        className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 text-xs ${className}`}
         title="Click to release lock"
       >
         <Lock className="w-3 h-3" />

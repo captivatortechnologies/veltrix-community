@@ -78,7 +78,7 @@ const ProfilePage: React.FC = () => {
   if (isLoading && !profile) {
     return (
       <div className="flex justify-center items-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500"></div>
       </div>
     );
   }
@@ -115,7 +115,7 @@ const ProfilePage: React.FC = () => {
       
       <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden">
         {/* Profile header */}
-        <div className="bg-blue-600 dark:bg-blue-800 p-6 flex flex-col md:flex-row items-center md:items-start space-y-4 md:space-y-0 md:space-x-6">
+        <div className="bg-amber-600 dark:bg-amber-800 p-6 flex flex-col md:flex-row items-center md:items-start space-y-4 md:space-y-0 md:space-x-6">
           <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white">
             <img 
               src={profile.avatarUrl} 
@@ -125,14 +125,14 @@ const ProfilePage: React.FC = () => {
           </div>
           <div className="text-center md:text-left">
             <h2 className="text-2xl font-bold text-white">{profile.name}</h2>
-            <p className="text-blue-200">{profile.role}</p>
-            <p className="text-blue-100 mt-1">{profile.organization}</p>
+            <p className="text-amber-200">{profile.role}</p>
+            <p className="text-amber-100 mt-1">{profile.organization}</p>
           </div>
           
           {!isEditing ? (
             <button 
               onClick={() => setIsEditing(true)}
-              className="ml-auto bg-white text-blue-600 hover:bg-blue-50 px-4 py-2 rounded-md flex items-center"
+              className="ml-auto bg-white text-amber-700 hover:bg-amber-50 px-4 py-2 rounded-md flex items-center"
             >
               <Edit2 size={16} className="mr-2" />
               Edit Profile
@@ -176,7 +176,7 @@ const ProfilePage: React.FC = () => {
                         name="name"
                         value={editedProfile?.name || ''}
                         onChange={handleInputChange}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-amber-500 focus:border-amber-500"
                       />
                     ) : (
                       <p className="font-medium">{profile.name}</p>
@@ -203,7 +203,7 @@ const ProfilePage: React.FC = () => {
                         name="organization"
                         value={editedProfile?.organization || ''}
                         onChange={handleInputChange}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-amber-500 focus:border-amber-500"
                       />
                     ) : (
                       <p className="font-medium">{profile.organization}</p>
@@ -221,7 +221,7 @@ const ProfilePage: React.FC = () => {
                         name="phone"
                         value={editedProfile?.phone || ''}
                         onChange={handleInputChange}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-amber-500 focus:border-amber-500"
                       />
                     ) : (
                       <p className="font-medium">{profile.phone}</p>
@@ -246,7 +246,7 @@ const ProfilePage: React.FC = () => {
                         name="location"
                         value={editedProfile?.location || ''}
                         onChange={handleInputChange}
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-amber-500 focus:border-amber-500"
                       />
                     ) : (
                       <p className="font-medium">{profile.location}</p>
@@ -281,7 +281,7 @@ const ProfilePage: React.FC = () => {
                 value={editedProfile?.bio || ''}
                 onChange={handleInputChange}
                 rows={4}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-amber-500 focus:border-amber-500"
               />
             ) : (
               <p className="text-gray-700 dark:text-gray-300">{profile.bio}</p>

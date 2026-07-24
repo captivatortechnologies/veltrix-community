@@ -135,7 +135,7 @@ const KeysTokenPage: React.FC = () => {
         {!isCreating && !newKey && (
           <button
             onClick={() => setIsCreating(true)}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded flex items-center"
+            className="bg-amber-500 hover:bg-amber-600 text-amber-950 px-4 py-2 rounded flex items-center"
           >
             <Key className="h-4 w-4 mr-2" />
             Create New Key
@@ -179,7 +179,7 @@ const KeysTokenPage: React.FC = () => {
                     value="api"
                     checked={newKeyType === 'api'}
                     onChange={() => setNewKeyType('api')}
-                    className="h-4 w-4 text-blue-600"
+                    className="h-4 w-4 text-amber-700"
                   />
                   <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">API Key</span>
                 </label>
@@ -190,7 +190,7 @@ const KeysTokenPage: React.FC = () => {
                     value="admin"
                     checked={newKeyType === 'admin'}
                     onChange={() => setNewKeyType('admin')}
-                    className="h-4 w-4 text-blue-600"
+                    className="h-4 w-4 text-amber-700"
                   />
                   <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Admin Key</span>
                 </label>
@@ -247,7 +247,7 @@ const KeysTokenPage: React.FC = () => {
               <button
                 onClick={() => void handleCreateKey()}
                 disabled={creating}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
+                className="bg-amber-500 hover:bg-amber-600 text-amber-950 px-4 py-2 rounded disabled:opacity-50"
               >
                 {creating ? 'Creating…' : 'Create Key'}
               </button>
@@ -257,28 +257,28 @@ const KeysTokenPage: React.FC = () => {
       )}
 
       {newKey && (
-        <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 p-4 rounded-lg mb-6">
+        <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 p-4 rounded-lg mb-6">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-medium text-blue-800 dark:text-blue-300">New Key Created</h2>
-            <div className="text-sm text-blue-600 dark:text-blue-400">
+            <h2 className="text-lg font-medium text-amber-800 dark:text-amber-300">New Key Created</h2>
+            <div className="text-sm text-amber-700 dark:text-amber-400">
               {newKey.type === 'admin' ? 'Admin Key' : newKey.type === 'webhook' ? 'Webhook Key' : 'API Key'}
             </div>
           </div>
 
           <div className="mb-4">
-            <p className="text-sm text-blue-800 dark:text-blue-300 font-medium mb-1">
+            <p className="text-sm text-amber-800 dark:text-amber-300 font-medium mb-1">
               {newKey.name}
               {newKey.roleName && (
-                <span className="ml-2 font-normal text-blue-600 dark:text-blue-400">· {newKey.roleName} role</span>
+                <span className="ml-2 font-normal text-amber-700 dark:text-amber-400">· {newKey.roleName} role</span>
               )}
             </p>
             <div className="flex items-center">
-              <code className="bg-blue-100 dark:bg-blue-800 px-3 py-2 rounded text-blue-800 dark:text-blue-300 flex-1 font-mono text-sm break-all">
+              <code className="bg-amber-100 dark:bg-amber-800 px-3 py-2 rounded text-amber-800 dark:text-amber-300 flex-1 font-mono text-sm break-all">
                 {newKey.key}
               </code>
               <button
                 onClick={() => copyToClipboard(newKey.key)}
-                className="ml-2 p-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+                className="ml-2 p-2 text-amber-700 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300"
                 title="Copy to clipboard"
               >
                 <Copy className="h-5 w-5" />
@@ -293,7 +293,7 @@ const KeysTokenPage: React.FC = () => {
           <div className="text-right">
             <button
               onClick={handleDoneWithNewKey}
-              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+              className="bg-amber-500 hover:bg-amber-600 text-amber-950 px-4 py-2 rounded"
             >
               Done
             </button>

@@ -56,7 +56,7 @@ export const KeyValueField: React.FC<FieldInputProps<KeyValueEntry[]> & { lockKe
                 disabled={disabled}
                 onChange={(e) => setKey(index, e.target.value)}
                 placeholder="key"
-                className="w-1/3 min-w-[120px] rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1.5 text-sm font-mono text-gray-900 dark:text-gray-100 outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60"
+                className="w-1/3 min-w-[120px] rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1.5 text-sm font-mono text-gray-900 dark:text-gray-100 outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-60"
               />
             )}
             <span className="text-gray-400" aria-hidden="true">=</span>
@@ -67,7 +67,7 @@ export const KeyValueField: React.FC<FieldInputProps<KeyValueEntry[]> & { lockKe
               disabled={disabled}
               onChange={(e) => setValue(index, e.target.value)}
               placeholder="value"
-              className="flex-1 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1.5 text-sm font-mono text-gray-900 dark:text-gray-100 outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60"
+              className="flex-1 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1.5 text-sm font-mono text-gray-900 dark:text-gray-100 outline-none focus:ring-2 focus:ring-amber-500 disabled:opacity-60"
             />
             {!disabled && (
               <button

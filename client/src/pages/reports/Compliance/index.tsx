@@ -310,7 +310,7 @@ const CompliancePage: React.FC = () => {
                 key={framework.id}
                 className={`bg-white dark:bg-gray-800 rounded-lg shadow p-5 cursor-pointer transition-all duration-200 ${
                   selectedFramework === framework.id
-                    ? 'ring-2 ring-blue-500 dark:ring-blue-400'
+                    ? 'ring-2 ring-amber-500 dark:ring-amber-400'
                     : 'hover:shadow-md'
                 }`}
                 onClick={() => setSelectedFramework(selectedFramework === framework.id ? null : framework.id)}
@@ -411,7 +411,7 @@ const CompliancePage: React.FC = () => {
                           {formatDate(control.lastTested)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <a href="#" className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300">View Details</a>
+                          <a href="#" className="text-amber-700 hover:text-amber-900 dark:text-amber-400 dark:hover:text-amber-300">View Details</a>
                         </td>
                       </tr>
                     ))}

@@ -9,9 +9,9 @@ import { useToasts, NotificationType } from '../../stores';
 
 const typeStyles: Record<NotificationType, { bg: string; icon: string; border: string }> = {
   [NotificationType.INFO]: {
-    bg: 'bg-blue-50 dark:bg-blue-900/20',
+    bg: 'bg-amber-50 dark:bg-amber-900/20',
     icon: 'ℹ️',
-    border: 'border-blue-500',
+    border: 'border-amber-500',
   },
   [NotificationType.SUCCESS]: {
     bg: 'bg-green-50 dark:bg-green-900/20',
@@ -54,7 +54,7 @@ export const ToastContainer: React.FC = () => {
               {toast.action && (
                 <button
                   onClick={toast.action.onClick}
-                  className="mt-2 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                  className="mt-2 text-sm font-medium text-amber-700 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300"
                 >
                   {toast.action.label}
                 </button>

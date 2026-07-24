@@ -24,13 +24,13 @@ import type {
 
 const statusIcon: Record<DeploymentStatus, React.ReactNode> = {
   QUEUED: <Clock className="w-4 h-4 text-gray-400" />,
-  IN_PROGRESS: <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />,
+  IN_PROGRESS: <Loader2 className="w-4 h-4 text-amber-600 animate-spin" />,
   HEALTH_CHECKING: <Loader2 className="w-4 h-4 text-yellow-500 animate-spin" />,
   PAUSED: <Pause className="w-4 h-4 text-yellow-500" />,
   SUCCEEDED: <CheckCircle2 className="w-4 h-4 text-emerald-500" />,
   FAILED: <XCircle className="w-4 h-4 text-red-500" />,
-  ROLLING_BACK: <ArrowRightCircle className="w-4 h-4 text-orange-500" />,
-  ROLLED_BACK: <AlertTriangle className="w-4 h-4 text-orange-500" />,
+  ROLLING_BACK: <ArrowRightCircle className="w-4 h-4 text-amber-600" />,
+  ROLLED_BACK: <AlertTriangle className="w-4 h-4 text-amber-600" />,
 }
 
 const EnvironmentMatrix: React.FC = () => {
@@ -82,7 +82,7 @@ const EnvironmentMatrix: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Grid3X3 className="w-7 h-7 text-blue-600 dark:text-blue-400" />
+          <Grid3X3 className="w-7 h-7 text-amber-700 dark:text-amber-400" />
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
               Environment Matrix
@@ -98,7 +98,7 @@ const EnvironmentMatrix: React.FC = () => {
             placeholder="Filter canvases..."
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:ring-2 focus:ring-amber-500 focus:border-transparent"
           />
           <button
             onClick={fetchData}
@@ -114,7 +114,7 @@ const EnvironmentMatrix: React.FC = () => {
       {/* Matrix Table */}
       {loading && !data ? (
         <div className="flex items-center justify-center h-64">
-          <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+          <Loader2 className="w-8 h-8 text-amber-600 animate-spin" />
         </div>
       ) : data && data.environments.length > 0 && filteredMatrix ? (
         <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-x-auto">
@@ -152,7 +152,7 @@ const EnvironmentMatrix: React.FC = () => {
                       <div className="flex flex-col gap-1">
                         <Link
                           to={`/tools-integration`}
-                          className="font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                          className="font-medium text-amber-700 dark:text-amber-400 hover:underline"
                         >
                           {row.canvas.name}
                         </Link>
@@ -201,7 +201,7 @@ const EnvironmentMatrix: React.FC = () => {
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Succeeded
           </span>
           <span className="flex items-center gap-1.5">
-            <Loader2 className="w-3.5 h-3.5 text-blue-500" /> In Progress
+            <Loader2 className="w-3.5 h-3.5 text-amber-600" /> In Progress
           </span>
           <span className="flex items-center gap-1.5">
             <Pause className="w-3.5 h-3.5 text-yellow-500" /> Paused
@@ -210,7 +210,7 @@ const EnvironmentMatrix: React.FC = () => {
             <XCircle className="w-3.5 h-3.5 text-red-500" /> Failed
           </span>
           <span className="flex items-center gap-1.5">
-            <ArrowRightCircle className="w-3.5 h-3.5 text-orange-500" /> Rolling Back
+            <ArrowRightCircle className="w-3.5 h-3.5 text-amber-600" /> Rolling Back
           </span>
           <span className="flex items-center gap-1.5">
             <Clock className="w-3.5 h-3.5 text-gray-400" /> Queued

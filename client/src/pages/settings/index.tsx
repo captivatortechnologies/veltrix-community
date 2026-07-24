@@ -17,7 +17,7 @@ function getSettingsLinks(brand: BrandConfig): SettingsLink[] {
     {
       to: '/access-control',
       icon: Shield,
-      iconClassName: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
+      iconClassName: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
       title: 'Access Control',
       description: 'Manage users, roles, permissions, and identity providers.',
     },
@@ -52,7 +52,7 @@ function getSettingsLinks(brand: BrandConfig): SettingsLink[] {
     {
       to: '/settings/ticketing',
       icon: Ticket,
-      iconClassName: 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400',
+      iconClassName: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
       title: 'Ticketing',
       description: 'Connect ServiceNow, Zendesk, or another provider to link configurations to change/issue tickets.',
     },
@@ -110,7 +110,7 @@ const SettingsPage: React.FC = () => {
           <Link
             key={to}
             to={to}
-            className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
+            className="block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
           >
             <Card variant="bordered" className="h-full transition-shadow hover:shadow-md">
               <CardBody className="flex items-start gap-4">

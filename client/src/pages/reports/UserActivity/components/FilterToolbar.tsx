@@ -43,7 +43,7 @@ const FilterToolbar: React.FC<FilterToolbarProps> = ({ users, tabState, setTabSt
             type="checkbox"
             checked={activeOnly}
             onChange={(e) => setTabState('activeOnly', e.target.checked)}
-            className="mr-2 h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
+            className="mr-2 h-4 w-4 text-amber-700 rounded border-gray-300 focus:ring-amber-500 dark:border-gray-600 dark:bg-gray-700"
           />
           Active Only
         </label>

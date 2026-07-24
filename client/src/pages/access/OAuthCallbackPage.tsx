@@ -187,7 +187,7 @@ const OAuthCallbackPage: React.FC = () => {
 
           {!error && (
             <div className="flex justify-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600"></div>
             </div>
           )}
 
@@ -197,7 +197,7 @@ const OAuthCallbackPage: React.FC = () => {
               <p className="text-sm">{error}</p>
               <button
                 onClick={() => navigate('/login')}
-                className="mt-4 text-sm text-blue-600 hover:text-blue-500 dark:text-blue-400"
+                className="mt-4 text-sm text-amber-700 hover:text-amber-600 dark:text-amber-400"
               >
                 ← Back to login
               </button>

@@ -7,7 +7,7 @@ This directory contains reusable UI components used throughout the Veltrix appli
 All color comes from CSS custom properties defined in `src/styles/tokens.css` and mapped
 onto Tailwind color families in `src/styles/tailwind-preset.cjs` (consumed by
 `tailwind.config.js` via `presets: [...]`). Components should never hardcode a hex value or
-a raw Tailwind palette class (`bg-blue-600`, `dark:bg-gray-800`, …) — use the semantic
+a raw Tailwind palette class (`bg-amber-600`, `dark:bg-gray-800`, …) — use the semantic
 classes instead:
 
 | Tailwind class family | Use for |
@@ -23,8 +23,8 @@ in `tokens.css`), so components generally do **not** need `dark:` prefixes for t
 classes — that's the point of the system. See the docblock at the top of `tokens.css` for
 the full rationale.
 
-Brand: **primary = blue** (`#2563eb`), matching the `/login` sign-in button, the shield
-logo, and the sidebar's active-state highlight.
+Brand: **primary = amber / marigold** (`#f59e0b`, with near-black button text), matching
+the `/login` sign-in button, the shield logo, and the sidebar's active-state highlight.
 
 ## Quick Reference
 

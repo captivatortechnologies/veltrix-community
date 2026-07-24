@@ -78,7 +78,7 @@ export const UserPresenceAvatar: React.FC<UserPresenceAvatarProps> = ({
           />
         ) : (
           <div
-            className={`${sizeClasses[size]} rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold`}
+            className={`${sizeClasses[size]} rounded-full bg-gradient-to-br from-amber-500 to-purple-600 flex items-center justify-center text-white font-semibold`}
           >
             {initials}
           </div>

@@ -381,7 +381,7 @@ const UserModal: React.FC<UserModalProps> = ({ user, isEditing, onClose }) => {
                       type="radio"
                       checked={authProvider === 'LOCAL'}
                       onChange={() => setAuthProvider('LOCAL')}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                      className="h-4 w-4 text-amber-700 focus:ring-amber-500 border-gray-300"
                     />
                     <label htmlFor="auth-local" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
                       Local Authentication
@@ -394,7 +394,7 @@ const UserModal: React.FC<UserModalProps> = ({ user, isEditing, onClose }) => {
                       type="radio"
                       checked={authProvider === 'COGNITO'}
                       onChange={() => setAuthProvider('COGNITO')}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                      className="h-4 w-4 text-amber-700 focus:ring-amber-500 border-gray-300"
                     />
                     <label htmlFor="auth-cognito" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
                       AWS Cognito
@@ -412,7 +412,7 @@ const UserModal: React.FC<UserModalProps> = ({ user, isEditing, onClose }) => {
           
           {/* Show note about Cognito password handling */}
           {isEditing && !user && authProvider === 'COGNITO' && (
-            <div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 text-blue-700 dark:text-blue-300 p-4 rounded col-span-2">
+            <div className="bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-500 text-amber-700 dark:text-amber-300 p-4 rounded col-span-2">
               <p className="text-sm">
                 When creating a Cognito user, a temporary password will be generated and sent to the user's email address.
                 The user will be required to change their password on first login.
@@ -432,7 +432,7 @@ const UserModal: React.FC<UserModalProps> = ({ user, isEditing, onClose }) => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-amber-950 bg-amber-600 hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? 'Saving...' : 'Save'}
               </button>
@@ -444,7 +444,7 @@ const UserModal: React.FC<UserModalProps> = ({ user, isEditing, onClose }) => {
               <button
                 type="button"
                 onClick={() => onClose()}
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-amber-950 bg-amber-600 hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500"
               >
                 Close
               </button>

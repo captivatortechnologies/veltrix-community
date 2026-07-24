@@ -158,7 +158,7 @@ const EmailSettingsPage: React.FC = () => {
             type="checkbox"
             checked={form.enabled}
             onChange={(e) => update('enabled', e.target.checked)}
-            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            className="h-4 w-4 text-amber-700 focus:ring-amber-500 border-gray-300 rounded"
           />
           <span className="text-sm font-medium text-gray-900 dark:text-white">Enable email delivery from these settings</span>
         </label>
@@ -250,7 +250,7 @@ const EmailSettingsPage: React.FC = () => {
         )}
 
         <div className="flex justify-end">
-          <button type="submit" disabled={isSaving} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded disabled:opacity-50">
+          <button type="submit" disabled={isSaving} className="bg-amber-600 hover:bg-amber-700 text-amber-950 px-4 py-2 rounded disabled:opacity-50">
             {isSaving ? 'Saving…' : 'Save settings'}
           </button>
         </div>
