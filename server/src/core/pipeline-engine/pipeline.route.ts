@@ -533,6 +533,49 @@ export async function pipelineRoutes(fastify: FastifyInstance) {
     handler: pipelineController.detectDrift,
   })
 
+  // Drift-check schedule: the tenant default + per-app overrides (Settings).
+  fastify.get('/drift/schedule', {
+    preHandler: [verifyToken, hasPermission('configuration-canvas', 'read')],
+    schema: {
+      tags: ['pipeline'],
+      summary: 'Get the tenant + per-app drift-check schedule',
+      security: [{ bearerAuth: [] }],
+      response: { 401: errorSchema, 500: errorSchema },
+    },
+    handler: pipelineController.getDriftSchedule,
+  })
+
+  fastify.put('/drift/schedule', {
+    preHandler: [verifyToken, hasPermission('configuration-canvas', 'write')],
+    schema: {
+      tags: ['pipeline'],
+      summary: 'Set the tenant default or a per-app drift-check frequency',
+      body: {
+        type: 'object',
+        required: ['frequency'],
+        properties: {
+          appId: { type: 'string' },
+          frequency: { type: 'string', enum: ['off', 'hourly', 'daily', 'weekly'] },
+        },
+      },
+      security: [{ bearerAuth: [] }],
+      response: { 400: errorSchema, 401: errorSchema, 500: errorSchema },
+    },
+    handler: pipelineController.setDriftSchedule,
+  })
+
+  fastify.delete('/drift/schedule/:appId', {
+    preHandler: [verifyToken, hasPermission('configuration-canvas', 'write')],
+    schema: {
+      tags: ['pipeline'],
+      summary: 'Clear a per-app drift-check override (revert to the tenant default)',
+      params: { type: 'object', required: ['appId'], properties: { appId: { type: 'string' } } },
+      security: [{ bearerAuth: [] }],
+      response: { 400: errorSchema, 401: errorSchema, 500: errorSchema },
+    },
+    handler: pipelineController.clearDriftSchedule,
+  })
+
   // Drift records for one configuration (config view modal Drift tab)
   // @ts-ignore
   fastify.get('/configuration-canvas/:canvasId/drift', {

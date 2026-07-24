@@ -40,6 +40,7 @@ const EmailSettingsPage = lazy(() => import('./pages/settings/EmailSettingsPage'
 const KeysTokenPage = lazy(() => import('./pages/settings/KeysTokenPage'));
 const LogsPage = lazy(() => import('./pages/settings/LogsPage'));
 const ConnectivityPage = lazy(() => import('./pages/settings/ConnectivityPage'));
+const DriftDetectionPage = lazy(() => import('./pages/settings/DriftDetectionPage'));
 const TicketingPage = lazy(() => import('./pages/settings/TicketingPage'));
 const CloudAccountsPage = lazy(() => import('./pages/settings/CloudAccountsPage'));
 const RemoteAccessPage = lazy(() => import('./pages/settings/RemoteAccessPage'));
@@ -285,6 +286,16 @@ function App() {
               isAuthenticated() ? (
                 <AuthenticatedLayout>
                   <LogsPage />
+                </AuthenticatedLayout>
+              ) : (
+                <Navigate to="/login" />
+              )
+            } />
+
+            <Route path="/settings/drift-detection" element={
+              isAuthenticated() ? (
+                <AuthenticatedLayout>
+                  <DriftDetectionPage />
                 </AuthenticatedLayout>
               ) : (
                 <Navigate to="/login" />

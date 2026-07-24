@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Shield, Building, Key, FileText, Network, Cloud, Radio, Mail, Ticket, ChevronRight, type LucideIcon } from 'lucide-react';
+import { Shield, Building, Key, FileText, Network, Cloud, Radio, Mail, Ticket, Activity, ChevronRight, type LucideIcon } from 'lucide-react';
 import { Card, CardBody } from '../../components/shared/Card';
 import { useBrand, type BrandConfig } from '../../brand';
 
@@ -69,6 +69,13 @@ function getSettingsLinks(brand: BrandConfig): SettingsLink[] {
       iconClassName: 'bg-teal-100 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400',
       title: 'Remote Access',
       description: `Link your servers to the ${brand.name} secure network with one command — isolated to your organization.`,
+    },
+    {
+      to: '/settings/drift-detection',
+      icon: Activity,
+      iconClassName: 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400',
+      title: 'Drift Detection',
+      description: 'Set how often the scheduled check looks for configuration changes made outside the pipeline.',
     },
     {
       to: '/settings/logs',

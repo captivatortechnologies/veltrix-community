@@ -178,7 +178,7 @@ describe('AppSettingsDialog', () => {
       renderDialog()
       await waitFor(() => {
         expect(
-          screen.getByText('No configurable settings available for this app.'),
+          screen.getByText('This app has no app-specific settings.'),
         ).toBeTruthy()
       })
     })

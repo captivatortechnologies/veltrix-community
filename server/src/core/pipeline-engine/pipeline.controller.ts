@@ -3,6 +3,12 @@ import prisma from '../../db'
 import { loggerService } from '../../module/logger/logger.service'
 import { getPipelineService, getDriftDetector, getJobRunner } from '../platform-bootstrap'
 import { DRIFT_CANVAS_QUEUE } from './drift.jobs'
+import {
+  DRIFT_FREQUENCIES,
+  DEFAULT_DRIFT_FREQUENCY,
+  TENANT_DEFAULT_SCOPE,
+  isDriftFrequency,
+} from './drift-schedule'
 import type { DeploymentStrategy } from '../../../../shared/types/pipeline'
 
 /**
@@ -420,6 +426,71 @@ export const pipelineController = {
     } catch (error) {
       loggerService.error('Error checking canvas drift:', error)
       reply.status(500).send({ error: 'Error checking canvas drift' })
+    }
+  },
+
+  /** GET /pipeline/drift/schedule — the tenant default + per-app drift-check frequencies. */
+  getDriftSchedule: async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      if (!request.user?.customerId) return reply.status(401).send({ error: 'Authentication required' })
+      const rows = await prisma.driftSchedule.findMany({
+        where: { customerId: request.user.customerId },
+        select: { appId: true, frequency: true },
+      })
+      const tenantDefault = rows.find((r) => r.appId === TENANT_DEFAULT_SCOPE)?.frequency ?? DEFAULT_DRIFT_FREQUENCY
+      const perApp: Record<string, string> = {}
+      for (const r of rows) if (r.appId !== TENANT_DEFAULT_SCOPE) perApp[r.appId] = r.frequency
+      reply.send({ tenantDefault, perApp, options: DRIFT_FREQUENCIES, defaultFrequency: DEFAULT_DRIFT_FREQUENCY })
+    } catch (error) {
+      loggerService.error('Error fetching drift schedule:', error)
+      reply.status(500).send({ error: 'Error fetching drift schedule' })
+    }
+  },
+
+  /**
+   * PUT /pipeline/drift/schedule — set the tenant default (omit appId) or a
+   * per-app override (set appId). frequency ∈ off | hourly | daily | weekly.
+   */
+  setDriftSchedule: async (
+    request: FastifyRequest<{ Body: { appId?: string | null; frequency?: string } }>,
+    reply: FastifyReply,
+  ) => {
+    try {
+      if (!request.user?.customerId) return reply.status(401).send({ error: 'Authentication required' })
+      const { appId, frequency } = request.body ?? {}
+      if (!isDriftFrequency(frequency)) {
+        return reply.status(400).send({ error: `frequency must be one of: ${DRIFT_FREQUENCIES.join(', ')}` })
+      }
+      const scope = typeof appId === 'string' && appId.trim() ? appId.trim() : TENANT_DEFAULT_SCOPE
+      const customerId = request.user.customerId
+      await prisma.driftSchedule.upsert({
+        where: { customerId_appId: { customerId, appId: scope } },
+        create: { customerId, appId: scope, frequency },
+        update: { frequency },
+      })
+      reply.send({ ok: true, scope: scope === TENANT_DEFAULT_SCOPE ? 'tenant' : scope, frequency })
+    } catch (error) {
+      loggerService.error('Error setting drift schedule:', error)
+      reply.status(500).send({ error: 'Error setting drift schedule' })
+    }
+  },
+
+  /** DELETE /pipeline/drift/schedule/:appId — clear a per-app override (revert to the tenant default). */
+  clearDriftSchedule: async (
+    request: FastifyRequest<{ Params: { appId: string } }>,
+    reply: FastifyReply,
+  ) => {
+    try {
+      if (!request.user?.customerId) return reply.status(401).send({ error: 'Authentication required' })
+      const appId = request.params.appId
+      if (!appId || appId === TENANT_DEFAULT_SCOPE) {
+        return reply.status(400).send({ error: 'A per-app appId is required (the tenant default cannot be cleared)' })
+      }
+      await prisma.driftSchedule.deleteMany({ where: { customerId: request.user.customerId, appId } })
+      reply.send({ ok: true, appId })
+    } catch (error) {
+      loggerService.error('Error clearing drift schedule:', error)
+      reply.status(500).send({ error: 'Error clearing drift schedule' })
     }
   },
 

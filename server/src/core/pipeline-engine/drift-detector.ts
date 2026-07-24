@@ -11,6 +11,7 @@ import type { PipelineHandlers, DriftContext, ComponentRef } from './types'
 import type { DriftDiff } from '../../../../shared/types/pipeline'
 import { createPlatformDataApi } from './platform-data-api'
 import { canvasItemsOf } from './canvasSnapshot'
+import { effectiveDriftFrequency, isDue } from './drift-schedule'
 import { decryptCredentialSecrets } from '../../module/credential/credential.service'
 import { resolvePermissionSnapshotForUser, type PermissionSnapshot } from '../../lib/permissions'
 
@@ -121,19 +122,28 @@ export class DriftDetector {
    * tenant's failure never aborts the sweep.
    */
   async sweepAll(): Promise<void> {
-    const pairs = await this.db.deployment.findMany({
+    // Frequency-aware: one row per deployed canvas; run only the configs that are
+    // DUE per their effective schedule (per-app override → tenant default →
+    // built-in), reusing lastDriftCheckAt as the clock. `off` skips entirely.
+    const canvases = await this.db.deployment.findMany({
       where: { status: 'SUCCEEDED' },
-      distinct: ['customerId', 'environmentId'],
-      select: { customerId: true, environmentId: true },
+      distinct: ['canvasId'],
+      select: { customerId: true, canvasId: true, appId: true, canvas: { select: { lastDriftCheckAt: true } } },
     })
-    for (const { customerId, environmentId } of pairs) {
+    const now = Date.now()
+    const { loggerService } = await import('../../module/logger/logger.service')
+    let ran = 0
+    for (const c of canvases) {
       try {
-        await this.detectAll(customerId, environmentId)
+        const frequency = await effectiveDriftFrequency(this.db, c.customerId, c.appId)
+        if (!isDue(frequency, c.canvas?.lastDriftCheckAt ?? null, now)) continue
+        await this.detectForCanvasAndFinalize(c.customerId, c.canvasId)
+        ran++
       } catch (err) {
-        const { loggerService } = await import('../../module/logger/logger.service')
-        loggerService.error(`Drift sweep failed for ${customerId}/${environmentId}:`, err)
+        loggerService.error(`Drift sweep failed for canvas ${c.canvasId}:`, err)
       }
     }
+    loggerService.info(`[Drift] Sweep evaluated ${canvases.length} config(s), checked ${ran} due`)
   }
 
   /**

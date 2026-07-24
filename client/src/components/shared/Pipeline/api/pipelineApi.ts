@@ -120,6 +120,18 @@ export interface DriftRecord {
 }
 
 /** Response of a canvas-scoped drift check/list — the records for ONE configuration. */
+export type DriftFrequency = 'off' | 'hourly' | 'daily' | 'weekly'
+
+export interface DriftScheduleResponse {
+  /** Tenant-wide default frequency. */
+  tenantDefault: DriftFrequency
+  /** Per-app overrides, keyed by app slug (these win over the tenant default). */
+  perApp: Record<string, DriftFrequency>
+  /** Allowed values, in display order. */
+  options: DriftFrequency[]
+  defaultFrequency: DriftFrequency
+}
+
 export interface CanvasDriftResponse {
   data: DriftRecord[]
   /** Async on-demand check state: CHECKING while a check runs, IDLE otherwise. */
@@ -344,5 +356,30 @@ export const pipelineApi = {
       body: JSON.stringify({ environmentId }),
     })
     return handleResponse(res)
+  },
+
+  /** GET /pipeline/drift/schedule — tenant default + per-app drift-check frequencies. */
+  getDriftSchedule: async (): Promise<DriftScheduleResponse> => {
+    const res = await fetch(`${API_URL}/pipeline/drift/schedule`, { headers: getAuthHeaders() })
+    return handleResponse<DriftScheduleResponse>(res)
+  },
+
+  /** PUT /pipeline/drift/schedule — set the tenant default (no appId) or a per-app override. */
+  setDriftSchedule: async (frequency: DriftFrequency, appId?: string): Promise<void> => {
+    const res = await fetch(`${API_URL}/pipeline/drift/schedule`, {
+      method: 'PUT',
+      headers: getAuthHeaders(true, true),
+      body: JSON.stringify({ frequency, ...(appId ? { appId } : {}) }),
+    })
+    await handleResponse(res)
+  },
+
+  /** DELETE /pipeline/drift/schedule/:appId — clear a per-app override (inherit the tenant default). */
+  clearDriftSchedule: async (appId: string): Promise<void> => {
+    const res = await fetch(`${API_URL}/pipeline/drift/schedule/${encodeURIComponent(appId)}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(false, true),
+    })
+    await handleResponse(res)
   },
 }

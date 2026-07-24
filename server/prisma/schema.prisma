@@ -1062,6 +1062,23 @@ model AppSettingDefinition {
   @@map("AppSettingDefinition")
 }
 
+/// How often the scheduled drift sweep checks a tenant's deployed configs. One
+/// row per (customer, scope): appId "*" is the tenant default, an app slug is a
+/// per-app override (which wins over the tenant default). frequency is one of
+/// off | hourly | daily | weekly.
+model DriftSchedule {
+  id         String   @id @default(uuid())
+  customerId String
+  appId      String   @default("*")
+  frequency  String   @default("hourly")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([customerId, appId])
+  @@index([customerId])
+  @@map("DriftSchedule")
+}
+
 // Configuration types an app manages through the pipeline
 model AppConfigurationType {
   id              String   @id @default(uuid())

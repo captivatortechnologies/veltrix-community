@@ -4,6 +4,7 @@ import { appService, type AppSettingValue } from '../../services/appService'
 import { Button } from '../../components/shared/Button'
 import { Input } from '../../components/shared/Input'
 import { useToast } from '../../components/shared/Toast'
+import { DriftScheduleControl } from '../../components/shared/Pipeline'
 
 // ---------------------------------------------------------------------------
 // Props
@@ -482,8 +483,8 @@ const AppSettingsDialog: React.FC<AppSettingsDialogProps> = ({
 
           {/* Settings form */}
           {!isFetching && !fetchError && settings.length === 0 && (
-            <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-6">
-              No configurable settings available for this app.
+            <p className="text-sm text-gray-500 dark:text-gray-400 py-2">
+              This app has no app-specific settings.
             </p>
           )}
 
@@ -507,6 +508,15 @@ const AppSettingsDialog: React.FC<AppSettingsDialogProps> = ({
                 />
               ))}
             </form>
+          )}
+
+          {/* Drift detection — a per-app override of the tenant schedule (saved on
+              change, independent of the Save Settings button above). */}
+          {!isFetching && !fetchError && (
+            <div className={settings.length > 0 ? 'mt-6 border-t border-gray-200 pt-6 dark:border-gray-700' : 'mt-2'}>
+              <h3 className="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">Drift detection</h3>
+              <DriftScheduleControl appId={appId} appName={appName} />
+            </div>
           )}
         </div>
 
