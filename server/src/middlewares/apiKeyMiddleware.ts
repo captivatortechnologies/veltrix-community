@@ -112,12 +112,21 @@ export const verifyApiKey = async (request: FastifyRequest<{ Querystring: ApiKey
     }
 
     // A key's access is governed by the RBAC role assigned when it was created.
-    // hasPermission() resolves permissions from request.user.roleId, so setting
-    // it to the key's role makes the role's grants the key's controls. Legacy
-    // keys created before role-binding have no roleId — preserve their historical
-    // behavior by falling back to the system admin role.
-    const LEGACY_API_KEY_ROLE_ID = '00000000-0000-4000-a000-000000000001';
-    const effectiveRoleId = keyDetails.roleId || LEGACY_API_KEY_ROLE_ID;
+    // hasPermission() resolves permissions from request.user.roleId, so the key's
+    // bound role defines its controls. SECURITY: fail CLOSED — a key with no bound
+    // role is denied, NOT silently escalated to the system-admin role. The former
+    // `|| LEGACY_API_KEY_ROLE_ID` fallback was a privilege-escalation hole
+    // (CWE-269): any role-less key acted as a full admin. Re-issue such a key with
+    // an explicit role.
+    if (!keyDetails.roleId) {
+      loggerService.warn('API KEY MIDDLEWARE: API key has no bound role — denying (fail closed)', {
+        apiKey: maskedKey,
+      });
+      return reply.status(403).send({
+        error: 'API key has no associated role. Re-issue the key with an explicit role.',
+      });
+    }
+    const effectiveRoleId = keyDetails.roleId;
 
     // Resolve the tenant's API-actor user so write paths with non-nullable
     // user FKs (createdById / triggeredById) attribute to a real row.
