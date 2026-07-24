@@ -7,12 +7,16 @@ import ReactDOM from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 import { register as registerServiceWorker } from './utils/service-worker-registration';
-import { loadBrand } from './brand';
+import { loadBrand, getBrand, applyBrandChrome } from './brand';
 
 // Kick off the (optional) /api/brand override once, up front, so every
 // `useBrand()` consumer across the app shares a single fetch instead of each
 // one triggering its own — see brand.ts for the resolution order.
-void loadBrand();
+// Point the favicon + browser/PWA theme-color at the brand accent immediately
+// (env/default), then re-apply with whatever `/api/brand` returns so a
+// white-label deployment's VELTRIX_BRAND_COLOR swaps the icon with no rebuild.
+applyBrandChrome(getBrand().color);
+void loadBrand().then((brand) => applyBrandChrome(brand.color));
 
 // Veltrix Community Edition application entry point
 ReactDOM.createRoot(document.getElementById('root')!).render(

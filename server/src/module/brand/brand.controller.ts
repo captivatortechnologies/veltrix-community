@@ -10,6 +10,7 @@ export const brandController = {
       name: config.brand.name,
       tagline: config.brand.tagline,
       logoUrl: config.brand.logoUrl,
+      color: config.brand.color,
     };
     reply.send(brand);
   },

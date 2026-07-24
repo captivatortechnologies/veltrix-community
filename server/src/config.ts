@@ -81,5 +81,9 @@ export const config = {
     name: process.env.VELTRIX_BRAND_NAME || 'Veltrix',
     tagline: process.env.VELTRIX_BRAND_TAGLINE || 'Security-as-Code',
     logoUrl: process.env.VELTRIX_BRAND_LOGO_URL || null,
+    // Brand accent for the browser-tab favicon and mobile/PWA chrome
+    // (theme-color). Any CSS color — a company drops in its own hex to swap the
+    // icon with no code change. Defaults to the Community Edition marigold.
+    color: process.env.VELTRIX_BRAND_COLOR || '#f59e0b',
   },
 };
