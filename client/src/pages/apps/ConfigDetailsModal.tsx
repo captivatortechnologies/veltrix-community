@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { CheckCircle2, Edit2, Copy, Rocket, RotateCcw, Trash2, GitPullRequest, Send, Loader2, Ticket } from 'lucide-react'
+import { CheckCircle2, Edit2, Copy, Rocket, RotateCcw, Trash2, GitPullRequest, Send, Loader2, Ticket, Check, Eye, EyeOff } from 'lucide-react'
 import { Modal } from '@/components/shared/Modal/Modal'
 import { Tabs, type TabItem } from '@/components/shared/Tabs'
 import {
@@ -7,6 +7,11 @@ import {
   type ConfigurationCanvas,
   type ConfigurationCanvasListItem,
 } from '@/components/shared/ConfigurationCanvas/api/configurationCanvasApi'
+import {
+  getLatestDeployedResources,
+  type DeployedResource,
+  type DeployedResourceField,
+} from './appConfigResources'
 import { TicketLinkPanel } from '@/components/apps/TicketLinkPanel'
 import { ConfigDriftPanel } from '@/components/apps/ConfigDriftPanel'
 import { useConfigDrift } from './useConfigDrift'
@@ -24,6 +29,102 @@ function formatValue(v: unknown): string {
     }
   }
   return String(v)
+}
+
+/** Copy-to-clipboard button with transient "copied" feedback. */
+const CopyButton: React.FC<{ value: string; label?: string }> = ({ value, label }) => {
+  const [copied, setCopied] = useState(false)
+  return (
+    <button
+      type="button"
+      onClick={async () => {
+        try {
+          await navigator.clipboard.writeText(value)
+          setCopied(true)
+          setTimeout(() => setCopied(false), 1500)
+        } catch {
+          /* clipboard unavailable — no-op */
+        }
+      }}
+      title={copied ? 'Copied' : `Copy ${label ?? 'value'}`}
+      aria-label={copied ? 'Copied' : `Copy ${label ?? 'value'}`}
+      className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+    >
+      {copied ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
+    </button>
+  )
+}
+
+/** One deployed-resource field: value (masked for secrets) + reveal + copy. */
+const ResourceFieldRow: React.FC<{ field: DeployedResourceField }> = ({ field }) => {
+  const [revealed, setRevealed] = useState(false)
+  const isSecret = Boolean(field.secret)
+  const shown = isSecret && !revealed ? '•'.repeat(Math.min(field.value.length || 12, 24)) : field.value
+  return (
+    <div className="grid grid-cols-3 gap-3 px-4 py-2">
+      <dt className="text-sm text-gray-500 dark:text-gray-400">{field.label}</dt>
+      <dd className="col-span-2 flex items-center gap-2">
+        <span
+          className={`break-all text-sm ${isSecret ? 'font-mono' : ''} text-gray-900 dark:text-white`}
+        >
+          {shown}
+        </span>
+        {isSecret && (
+          <button
+            type="button"
+            onClick={() => setRevealed((v) => !v)}
+            title={revealed ? 'Hide' : 'Reveal'}
+            aria-label={revealed ? 'Hide value' : 'Reveal value'}
+            className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+          >
+            {revealed ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+          </button>
+        )}
+        {field.copyable && <CopyButton value={field.value} label={field.label} />}
+      </dd>
+    </div>
+  )
+}
+
+/** "Deployed resources" section — the deploy output (e.g. created HEC tokens). */
+const DeployedResourcesSection: React.FC<{ canvasId: string }> = ({ canvasId }) => {
+  const [resources, setResources] = useState<DeployedResource[]>([])
+  useEffect(() => {
+    let cancelled = false
+    getLatestDeployedResources(canvasId)
+      .then((r) => {
+        if (!cancelled) setResources(r)
+      })
+      .catch(() => {
+        /* no deployment / no resources — section stays hidden */
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [canvasId])
+
+  if (resources.length === 0) return null
+  return (
+    <div className="rounded-lg border border-gray-200 dark:border-gray-700">
+      <div className="border-b border-gray-200 bg-gray-50 px-4 py-2 text-sm font-semibold text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100">
+        Deployed resources
+      </div>
+      <div className="divide-y divide-gray-100 dark:divide-gray-800">
+        {resources.map((r, i) => (
+          <div key={`${r.name}-${i}`}>
+            <div className="px-4 pt-3 pb-1 text-sm font-medium text-gray-700 dark:text-gray-200">
+              {r.name}
+            </div>
+            <dl className="divide-y divide-gray-100 dark:divide-gray-800">
+              {r.fields.map((f, j) => (
+                <ResourceFieldRow key={`${f.label}-${j}`} field={f} />
+              ))}
+            </dl>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 export interface ConfigDetailsModalProps {
@@ -151,6 +252,8 @@ export const ConfigDetailsModal: React.FC<ConfigDetailsModalProps> = ({
               </div>
             ))
           )}
+
+          <DeployedResourcesSection canvasId={config.id} />
 
           {onLinkTicket && (
             <div className="rounded-lg border border-gray-200 dark:border-gray-700">

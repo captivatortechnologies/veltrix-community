@@ -180,17 +180,52 @@ export async function pollDeployment(
   return last
 }
 
+/** A field of a deployed resource, rendered read-only in the View modal. */
+export interface DeployedResourceField {
+  label: string
+  value: string
+  /** Masked with a reveal toggle (e.g. a token value). */
+  secret?: boolean
+  /** Show a copy button. */
+  copyable?: boolean
+}
+/** One resource a deploy produced (e.g. a created HEC token) — name + fields. */
+export interface DeployedResource {
+  name: string
+  fields: DeployedResourceField[]
+}
+/** App-declared deploy output. `resources` is the generic, UI-rendered part. */
+export interface DeploymentArtifacts {
+  resources?: DeployedResource[]
+  [key: string]: unknown
+}
+
+export interface CanvasDeployment {
+  id: string
+  status: string
+  completedAt?: string
+  artifacts?: DeploymentArtifacts | null
+}
+
 /** GET /api/pipeline/canvas/:id/deployments — recent deployments, newest first. */
-export async function getCanvasDeployments(
-  canvasId: string,
-  limit = 20,
-): Promise<Array<{ id: string; status: string; completedAt?: string }>> {
+export async function getCanvasDeployments(canvasId: string, limit = 20): Promise<CanvasDeployment[]> {
   const res = await fetch(`${API_URL}/pipeline/canvas/${canvasId}/deployments?limit=${limit}`, {
     method: 'GET',
     headers: authHeaders(),
     credentials: 'include',
   })
   return asJson(res, 'fetch deployments')
+}
+
+/**
+ * The deployed `resources` from the most recent SUCCEEDED deployment of a canvas
+ * (what the View modal shows — e.g. created HEC tokens with their values). Empty
+ * when there's no successful deployment or it produced no resources.
+ */
+export async function getLatestDeployedResources(canvasId: string): Promise<DeployedResource[]> {
+  const deployments = await getCanvasDeployments(canvasId, 20)
+  const latest = deployments.find((d) => d.status === 'SUCCEEDED' && d.artifacts?.resources?.length)
+  return latest?.artifacts?.resources ?? []
 }
 
 /** The most recent SUCCEEDED deployment for a canvas — what a rollback reverts. */

@@ -202,6 +202,7 @@ export class DeploymentOrchestrator {
 
       // Store rollback data (rename-safe resourceIds + prior state).
       await this.persistRollbackData(data.deploymentId, result.rollbackData)
+      await this.persistArtifacts(data.deploymentId, result.artifacts)
     }
 
     // Final health check
@@ -239,6 +240,7 @@ export class DeploymentOrchestrator {
 
       // Store rollback data (rename-safe resourceIds + prior state).
       await this.persistRollbackData(data.deploymentId, result.rollbackData)
+      await this.persistArtifacts(data.deploymentId, result.artifacts)
 
       // Health check after each component
       const healthCtx = await this.buildHealthCheckContext(data, component)
@@ -289,6 +291,8 @@ export class DeploymentOrchestrator {
         }
         // Store rollback data (rename-safe resourceIds + prior state).
         await this.persistRollbackData(data.deploymentId, result.rollbackData)
+        await this.persistArtifacts(data.deploymentId, result.artifacts)
+      await this.persistArtifacts(data.deploymentId, result.artifacts)
       }
 
       // Health check at each canary step
@@ -326,6 +330,7 @@ export class DeploymentOrchestrator {
       }
       // Store rollback data (rename-safe resourceIds + prior state).
       await this.persistRollbackData(data.deploymentId, result.rollbackData)
+      await this.persistArtifacts(data.deploymentId, result.artifacts)
     }
 
     // Phase 2: Health check the green deployment
@@ -689,6 +694,39 @@ export class DeploymentOrchestrator {
       where: { id: deploymentId },
       data: { rollbackData: rollbackData as Prisma.InputJsonValue },
     })
+  }
+
+  /**
+   * Persist a component's DeployResult.artifacts on the deployment, MERGING the
+   * `resources` array across components (each server contributes its own — e.g. a
+   * per-server HEC token value). Best-effort: a failure is logged, never fatal.
+   */
+  private async persistArtifacts(deploymentId: string, artifacts: unknown) {
+    if (!artifacts || typeof artifacts !== 'object') return
+    const incoming = artifacts as { resources?: unknown[] } & Record<string, unknown>
+    try {
+      const row = await this.db.deployment.findUnique({
+        where: { id: deploymentId },
+        select: { artifacts: true },
+      })
+      const prior = ((row?.artifacts as Record<string, unknown> | null) ?? {}) as {
+        resources?: unknown[]
+      } & Record<string, unknown>
+      const merged = {
+        ...prior,
+        ...incoming,
+        resources: [
+          ...(Array.isArray(prior.resources) ? prior.resources : []),
+          ...(Array.isArray(incoming.resources) ? incoming.resources : []),
+        ],
+      }
+      await this.db.deployment.update({
+        where: { id: deploymentId },
+        data: { artifacts: merged as Prisma.InputJsonValue },
+      })
+    } catch (err) {
+      await this.addLog(deploymentId, 'warn', `Could not persist deploy artifacts: ${err instanceof Error ? err.message : 'unknown'}`)
+    }
   }
 
   private async updateCanvas(id: string, status: string, lastDeployError?: string | null) {

@@ -52,6 +52,29 @@ const deploymentSchema = {
     canaryPercent: { type: 'number' },
     createdAt: { type: 'string', format: 'date-time' },
     completedAt: { type: 'string', format: 'date-time' },
+    // App-declared deploy output for the View modal. Loosely typed (JSON), with the
+    // `resources` shape pinned so it serializes reliably (fast-json-stringify would
+    // otherwise strip undeclared fields).
+    artifacts: {
+      type: ['object', 'null'],
+      additionalProperties: true,
+      properties: {
+        resources: {
+          type: 'array',
+          items: {
+            type: 'object',
+            additionalProperties: true,
+            properties: {
+              name: { type: 'string' },
+              fields: {
+                type: 'array',
+                items: { type: 'object', additionalProperties: true },
+              },
+            },
+          },
+        },
+      },
+    },
     environment: {
       type: 'object',
       properties: {

@@ -1140,6 +1140,12 @@ model Deployment {
   rolledBackAt         DateTime?
   rolledBackById       String?
   rollbackData         Json? // App-specific data needed to rollback
+  // App-declared deploy output surfaced read-only in the config View modal — the
+  // handler's DeployResult.artifacts, merged across components. Convention:
+  // `{ resources: [{ name, fields: [{ label, value, secret?, copyable? }] }] }`
+  // (e.g. a created HEC token's value + routing). May carry secrets → only
+  // returned through authenticated app endpoints.
+  artifacts            Json?
 
   startedAt     DateTime  @default(now())
   completedAt   DateTime?
