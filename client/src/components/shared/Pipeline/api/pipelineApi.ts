@@ -122,6 +122,14 @@ export interface DriftRecord {
 /** Response of a canvas-scoped drift check/list — the records for ONE configuration. */
 export interface CanvasDriftResponse {
   data: DriftRecord[]
+  /** Async on-demand check state: CHECKING while a check runs, IDLE otherwise. */
+  checkState?: 'IDLE' | 'CHECKING'
+  /** ISO timestamp the most recent on-demand check finished. */
+  lastDriftCheckAt?: string | null
+  /** True when a "Check drift now" was queued (async) rather than run inline. */
+  queued?: boolean
+  /** True when the check ran inline (no job runner) and `data` is fresh. */
+  checked?: boolean
 }
 
 /** Response of an on-demand, cross-config drift detection sweep. */
@@ -308,12 +316,11 @@ export const pipelineApi = {
   },
 
   /** GET /pipeline/configuration-canvas/:canvasId/drift — drift records for ONE configuration. */
-  getCanvasDrift: async (canvasId: string): Promise<DriftRecord[]> => {
+  getCanvasDrift: async (canvasId: string): Promise<CanvasDriftResponse> => {
     const res = await fetch(`${API_URL}/pipeline/configuration-canvas/${canvasId}/drift`, {
       headers: getAuthHeaders(),
     })
-    const body = await handleResponse<CanvasDriftResponse>(res)
-    return body.data
+    return handleResponse<CanvasDriftResponse>(res)
   },
 
   /**

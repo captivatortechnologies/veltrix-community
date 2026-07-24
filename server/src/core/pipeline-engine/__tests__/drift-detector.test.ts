@@ -5,7 +5,7 @@
 // computed an empty desired spec and always reported "no drift". The fix rebuilds
 // sections from the frozen history snapshot via snapshotSections + canvasItemsOf.
 
-import { snapshotSections } from '../drift-detector'
+import { snapshotSections, DriftDetector } from '../drift-detector'
 import { canvasItemsOf } from '../canvasSnapshot'
 
 describe('snapshotSections', () => {
@@ -45,5 +45,34 @@ describe('snapshotSections', () => {
     // The bug: this used to be [] → handlers read an empty desired spec.
     expect(sections).toHaveLength(1)
     expect(sections[0].fields).toEqual({ name: 'Sales-FTE', description: 'Active FTE' })
+  })
+})
+
+describe('detectForCanvasAndFinalize (async on-demand check)', () => {
+  function makeDetector(detect: () => Promise<void>) {
+    const updateMany = jest.fn().mockResolvedValue({ count: 1 })
+    const db = { configurationCanvas: { updateMany } } as unknown as ConstructorParameters<typeof DriftDetector>[0]
+    const detector = new DriftDetector(db, (() => null) as unknown as ConstructorParameters<typeof DriftDetector>[1])
+    ;(detector as unknown as { detectForCanvas: () => Promise<void> }).detectForCanvas = detect
+    return { detector, updateMany }
+  }
+
+  it('marks the canvas IDLE + stamps lastDriftCheckAt after a check', async () => {
+    const { detector, updateMany } = makeDetector(async () => {})
+    await detector.detectForCanvasAndFinalize('cust-1', 'canvas-1')
+    expect(updateMany).toHaveBeenCalledTimes(1)
+    const arg = updateMany.mock.calls[0][0]
+    expect(arg.where).toEqual({ id: 'canvas-1', customerId: 'cust-1' })
+    expect(arg.data.driftCheckState).toBe('IDLE')
+    expect(arg.data.lastDriftCheckAt instanceof Date).toBe(true)
+  })
+
+  it('finalizes state even when detection throws, then rethrows (poll never hangs)', async () => {
+    const { detector, updateMany } = makeDetector(async () => {
+      throw new Error('boom')
+    })
+    await expect(detector.detectForCanvasAndFinalize('cust-1', 'canvas-1')).rejects.toThrow('boom')
+    expect(updateMany).toHaveBeenCalledTimes(1)
+    expect(updateMany.mock.calls[0][0].data.driftCheckState).toBe('IDLE')
   })
 })

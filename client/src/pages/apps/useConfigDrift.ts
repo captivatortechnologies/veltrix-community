@@ -53,8 +53,8 @@ export function useConfigDrift(canvasId: string | undefined): UseConfigDriftResu
     setLoading(true)
     setError(null)
     try {
-      const data = await pipelineApi.getCanvasDrift(canvasId)
-      setRecords(data)
+      const body = await pipelineApi.getCanvasDrift(canvasId)
+      setRecords(body.data)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load configuration drift')
     } finally {
@@ -72,7 +72,24 @@ export function useConfigDrift(canvasId: string | undefined): UseConfigDriftResu
     setError(null)
     try {
       const result = await pipelineApi.checkCanvasDrift(canvasId)
-      setRecords(result.data)
+      if (result.queued) {
+        // Async check: poll the drift status until it goes back to IDLE (a managed
+        // check hashes files over SSH + can run audit searches — it can take a
+        // while). Cap the wait so the button never spins forever.
+        const DEADLINE = Date.now() + 120_000
+        let body = await pipelineApi.getCanvasDrift(canvasId)
+        while (body.checkState === 'CHECKING' && Date.now() < DEADLINE) {
+          await new Promise((r) => setTimeout(r, 2_000))
+          body = await pipelineApi.getCanvasDrift(canvasId)
+        }
+        setRecords(body.data)
+        if (body.checkState === 'CHECKING') {
+          toast.info('Drift check is still running — results will appear shortly.')
+        }
+      } else {
+        // Inline fallback (no job runner): data is already fresh.
+        setRecords(result.data ?? [])
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to check for drift'
       setError(msg)

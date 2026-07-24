@@ -1,7 +1,8 @@
 import { FastifyRequest, FastifyReply } from 'fastify'
 import prisma from '../../db'
 import { loggerService } from '../../module/logger/logger.service'
-import { getPipelineService, getDriftDetector } from '../platform-bootstrap'
+import { getPipelineService, getDriftDetector, getJobRunner } from '../platform-bootstrap'
+import { DRIFT_CANVAS_QUEUE } from './drift.jobs'
 import type { DeploymentStrategy } from '../../../../shared/types/pipeline'
 
 /**
@@ -367,9 +368,16 @@ export const pipelineController = {
       if (!request.user?.customerId) {
         return reply.status(401).send({ error: 'Authentication required' })
       }
-      const records = await driftRecordsForCanvas(request.user.customerId, request.params.canvasId)
+      const customerId = request.user.customerId
+      const canvasId = request.params.canvasId
+      const records = await driftRecordsForCanvas(customerId, canvasId)
       if (records === null) return reply.status(404).send({ error: 'Configuration not found' })
-      reply.send({ data: records })
+      // Surface the async check state so the client can poll "checking → done".
+      const canvas = await prisma.configurationCanvas.findFirst({
+        where: { id: canvasId, customerId },
+        select: { driftCheckState: true, lastDriftCheckAt: true },
+      })
+      reply.send({ data: records, checkState: canvas?.driftCheckState ?? 'IDLE', lastDriftCheckAt: canvas?.lastDriftCheckAt ?? null })
     } catch (error) {
       loggerService.error('Error fetching canvas drift:', error)
       reply.status(500).send({ error: 'Error fetching canvas drift' })
@@ -393,9 +401,22 @@ export const pipelineController = {
       })
       if (!canvas) return reply.status(404).send({ error: 'Configuration not found' })
 
-      await getDriftDetector().detectForCanvas(customerId, canvasId)
-      const records = await driftRecordsForCanvas(customerId, canvasId)
-      reply.send({ checked: true, data: records ?? [] })
+      // Run the check ASYNCHRONOUSLY: a managed-ZTNA check hashes files over SSH
+      // and can run audit searches — too slow for a synchronous request (it 504'd
+      // at the gateway). Mark CHECKING, enqueue, and return immediately; the
+      // client polls the drift status (checkState → IDLE) for the result.
+      try {
+        await prisma.configurationCanvas.update({ where: { id: canvasId }, data: { driftCheckState: 'CHECKING' } })
+        await getJobRunner().enqueue(DRIFT_CANVAS_QUEUE, { customerId, canvasId })
+        return reply.status(202).send({ queued: true, checkState: 'CHECKING' })
+      } catch (enqueueError) {
+        // No JobRunner/Redis — fall back to an inline check so the feature still
+        // works in a single-process/dev setup (may be slow, but never lost).
+        loggerService.warn('Drift check could not be queued; running inline:', enqueueError)
+        await getDriftDetector().detectForCanvasAndFinalize(customerId, canvasId)
+        const records = await driftRecordsForCanvas(customerId, canvasId)
+        return reply.send({ checked: true, data: records ?? [] })
+      }
     } catch (error) {
       loggerService.error('Error checking canvas drift:', error)
       reply.status(500).send({ error: 'Error checking canvas drift' })

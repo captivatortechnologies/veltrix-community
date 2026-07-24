@@ -20,7 +20,7 @@ import { DriftDetector } from './pipeline-engine/drift-detector'
 import { loggerService } from '../module/logger/logger.service'
 import { isFeatureEnabled } from '../config/feature-flags'
 import { registerSandboxCleanupJob } from '../module/sandbox/sandbox.jobs'
-import { registerDriftSweepJob } from './pipeline-engine/drift.jobs'
+import { registerDriftSweepJob, registerDriftCanvasJob } from './pipeline-engine/drift.jobs'
 
 // --- Singleton instances ---
 
@@ -178,8 +178,12 @@ export async function initializePlatform(): Promise<void> {
         registerDriftSweepJob(jobRunner, driftDetector),
         'Drift sweep job registration',
       )
+      await withBootTimeout(
+        registerDriftCanvasJob(jobRunner, driftDetector),
+        'Drift canvas-check worker registration',
+      )
     } catch (err) {
-      loggerService.warn('[Platform] Drift sweep job registration skipped:', err)
+      loggerService.warn('[Platform] Drift job registration skipped:', err)
     }
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : JSON.stringify(err)

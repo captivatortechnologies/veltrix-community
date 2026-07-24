@@ -83,6 +83,23 @@ export class DriftDetector {
   }
 
   /**
+   * On-demand check for ONE canvas that finalizes the async check state (run by
+   * the `pipeline-drift-canvas` worker after the controller enqueues it): detect,
+   * then mark the canvas IDLE and stamp lastDriftCheckAt — always, even if
+   * detection found nothing or threw — so the client's poll ends cleanly.
+   */
+  async detectForCanvasAndFinalize(customerId: string, canvasId: string): Promise<void> {
+    try {
+      await this.detectForCanvas(customerId, canvasId)
+    } finally {
+      await this.db.configurationCanvas.updateMany({
+        where: { id: canvasId, customerId },
+        data: { driftCheckState: 'IDLE', lastDriftCheckAt: new Date() },
+      })
+    }
+  }
+
+  /**
    * On-demand drift check for ALL of a tenant's deployed configs across every
    * environment they've deployed to. Powers the Drift page's "Check drift now".
    */

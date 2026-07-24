@@ -700,6 +700,12 @@ model ConfigurationCanvas {
   // validation error). Set when a deploy fails, cleared when one starts/succeeds,
   // so the "Deploy failed" badge can explain WHY without digging into logs.
   lastDeployError String?
+  // On-demand drift check runs asynchronously (a managed-ZTNA check hashes files
+  // over SSH + can run audit searches — too slow for a synchronous request). The
+  // client polls these: CHECKING while a check is queued/running, IDLE otherwise;
+  // lastDriftCheckAt stamps when the most recent check finished.
+  driftCheckState  String    @default("IDLE") // IDLE | CHECKING
+  lastDriftCheckAt DateTime?
   customerId  String
   createdById String
   updatedById String?
