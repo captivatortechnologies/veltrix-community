@@ -180,6 +180,36 @@ export async function pollDeployment(
   return last
 }
 
+/** GET /api/pipeline/canvas/:id/deployments — recent deployments, newest first. */
+export async function getCanvasDeployments(
+  canvasId: string,
+  limit = 20,
+): Promise<Array<{ id: string; status: string; completedAt?: string }>> {
+  const res = await fetch(`${API_URL}/pipeline/canvas/${canvasId}/deployments?limit=${limit}`, {
+    method: 'GET',
+    headers: authHeaders(),
+    credentials: 'include',
+  })
+  return asJson(res, 'fetch deployments')
+}
+
+/** The most recent SUCCEEDED deployment for a canvas — what a rollback reverts. */
+export async function getLatestSucceededDeployment(canvasId: string): Promise<{ id: string; status: string } | null> {
+  const deployments = await getCanvasDeployments(canvasId, 20)
+  return deployments.find((d) => d.status === 'SUCCEEDED') ?? null
+}
+
+/** POST /api/pipeline/deployments/:id/rollback — revert a deployment; returns the rollback deployment's id. */
+export async function rollbackDeployment(deploymentId: string, reason: string): Promise<{ deploymentId: string }> {
+  const res = await fetch(`${API_URL}/pipeline/deployments/${deploymentId}/rollback`, {
+    method: 'POST',
+    headers: authHeaders(true, true),
+    credentials: 'include',
+    body: JSON.stringify({ reason }),
+  })
+  return asJson(res, 'roll back deployment')
+}
+
 // ---------------------------------------------------------------------------
 // Connections — registered components
 // ---------------------------------------------------------------------------

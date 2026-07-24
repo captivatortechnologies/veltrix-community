@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { CheckCircle2, Edit2, Copy, Rocket, Trash2, GitPullRequest, Send, Loader2, Ticket } from 'lucide-react'
+import { CheckCircle2, Edit2, Copy, Rocket, RotateCcw, Trash2, GitPullRequest, Send, Loader2, Ticket } from 'lucide-react'
 import { Modal } from '@/components/shared/Modal/Modal'
 import { Tabs, type TabItem } from '@/components/shared/Tabs'
 import {
@@ -33,6 +33,8 @@ export interface ConfigDetailsModalProps {
   onEdit?: (c: ConfigurationCanvasListItem) => void
   onDuplicate?: (c: ConfigurationCanvasListItem) => void
   onDeploy?: (c: ConfigurationCanvasListItem) => void
+  /** Roll a deployed configuration back to its previous state (shown for deployed configs). */
+  onRollback?: (c: ConfigurationCanvasListItem) => void
   onDelete?: (c: ConfigurationCanvasListItem) => void
   onReviews?: (c: ConfigurationCanvasListItem) => void
   onSubmitApproval?: (c: ConfigurationCanvasListItem) => void
@@ -59,6 +61,7 @@ export const ConfigDetailsModal: React.FC<ConfigDetailsModalProps> = ({
   onEdit,
   onDuplicate,
   onDeploy,
+  onRollback,
   onDelete,
   onReviews,
   onSubmitApproval,
@@ -245,6 +248,15 @@ export const ConfigDetailsModal: React.FC<ConfigDetailsModalProps> = ({
               className={`${BTN} bg-indigo-600 text-white hover:bg-indigo-700`}
             >
               <Rocket className="h-4 w-4" /> Deploy
+            </button>
+          )}
+          {onRollback && ['DEPLOYED', 'DEPLOYMENT_FAILED'].includes(config.status) && (
+            <button
+              onClick={act(onRollback)}
+              title="Roll back to the previous deployed configuration"
+              className={`${BTN} border border-orange-300 text-orange-700 hover:bg-orange-50 dark:border-orange-600 dark:text-orange-300 dark:hover:bg-orange-900/20`}
+            >
+              <RotateCcw className="h-4 w-4" /> Roll back
             </button>
           )}
           {onDelete && (

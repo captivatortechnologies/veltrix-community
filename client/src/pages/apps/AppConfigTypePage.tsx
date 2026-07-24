@@ -68,6 +68,8 @@ import {
   validateCanvas,
   deployCanvas,
   pollDeployment,
+  getLatestSucceededDeployment,
+  rollbackDeployment,
   fetchComponents,
   fetchTags,
   fetchUsers,
@@ -353,7 +355,7 @@ const AppConfigTypeSurface: React.FC = () => {
   const [canvasDefaults, setCanvasDefaults] = useState<CanvasDefaults | undefined>(undefined)
 
   // Per-config async actions
-  const [busy, setBusy] = useState<{ id: string; action: 'validate' | 'deploy' | 'duplicate' } | null>(
+  const [busy, setBusy] = useState<{ id: string; action: 'validate' | 'deploy' | 'duplicate' | 'rollback' } | null>(
     null,
   )
   const [validation, setValidation] = useState<{
@@ -786,6 +788,44 @@ const AppConfigTypeSurface: React.FC = () => {
       }
     },
     [toast, fetchConfigurations],
+  )
+
+  const handleRollback = useCallback(
+    async (config: ConfigurationCanvasListItem) => {
+      const confirmed = await confirm({
+        title: 'Roll back configuration',
+        message: `Roll back "${config.name}" to the state before its most recent deployment? This re-applies the previous configuration on the target(s).`,
+        confirmText: 'Roll back',
+        cancelText: 'Cancel',
+        variant: 'danger',
+      })
+      if (!confirmed) return
+      setBusy({ id: config.id, action: 'rollback' })
+      try {
+        const target = await getLatestSucceededDeployment(config.id)
+        if (!target) {
+          toast.error('No successful deployment to roll back.')
+          return
+        }
+        const { deploymentId } = await rollbackDeployment(target.id, 'Rolled back from the configuration view')
+        toast.info('Rollback started…')
+        const status = await pollDeployment(deploymentId)
+        if (status?.status === 'ROLLED_BACK' || status?.status === 'SUCCEEDED') {
+          toast.success('Rollback complete.')
+        } else if (status) {
+          setDeployError({
+            name: config.name,
+            message: status.error || `Rollback ${(STATUS_LABEL[status.status] ?? status.status).toLowerCase()}.`,
+          })
+        }
+        await fetchConfigurations()
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Rollback failed')
+      } finally {
+        setBusy(null)
+      }
+    },
+    [confirm, toast, fetchConfigurations],
   )
 
   const handleApprovalSubmit = useCallback(
@@ -1269,6 +1309,7 @@ const AppConfigTypeSurface: React.FC = () => {
         onEdit={handleEdit}
         onDuplicate={handleDuplicate}
         onDeploy={handleDeploy}
+        onRollback={handleRollback}
         onDelete={handleDelete}
         onReviews={setReviewsConfig}
         onSubmitApproval={setApprovalConfig}
