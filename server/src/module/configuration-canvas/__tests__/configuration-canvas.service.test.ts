@@ -426,4 +426,49 @@ describe('configurationCanvasService.update — re-approval on edit', () => {
       }),
     );
   });
+
+  it('does NOT reset a DEPLOYED canvas to DRAFT on a no-op save (content unchanged)', async () => {
+    // Edit → Save with nothing changed must keep the config deployed + approved.
+    db.configurationCanvas.findFirst.mockResolvedValue({
+      id: CANVAS,
+      version: 5,
+      status: 'DEPLOYED',
+      name: 'n',
+      description: 'd',
+      sections: [{ name: 'Section', order: 0, fields: [] }],
+      tags: [],
+    });
+    db.configurationCanvasSection.create.mockResolvedValue({ id: 's1' });
+
+    // Same content re-sent unchanged (order differences are not content changes).
+    const NOOP = { sections: [{ name: 'Section', order: 0, fields: [] }] } as never;
+    await configurationCanvasService.update(CANVAS, NOOP, CUSTOMER, 'user-1');
+
+    const updateArg = db.configurationCanvas.update.mock.calls[0][0];
+    expect(updateArg.data.status).toBeUndefined(); // stays DEPLOYED, not reset to DRAFT
+    expect(db.configurationCanvasApproval.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it('DOES reset a DEPLOYED canvas to DRAFT when a field value actually changes', async () => {
+    db.configurationCanvas.findFirst.mockResolvedValue({
+      id: CANVAS,
+      version: 5,
+      status: 'DEPLOYED',
+      name: 'n',
+      description: 'd',
+      sections: [{ name: 'S', order: 0, fields: [{ key: 'index', value: 'main' }] }],
+      tags: [],
+    });
+    db.configurationCanvasSection.create.mockResolvedValue({ id: 's1' });
+
+    const REAL_EDIT = {
+      sections: [{ name: 'S', order: 0, fields: [{ key: 'index', value: 'security' }] }],
+    } as never;
+    await configurationCanvasService.update(CANVAS, REAL_EDIT, CUSTOMER, 'user-1');
+
+    expect(db.configurationCanvas.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ status: 'DRAFT' }) }),
+    );
+    expect(db.configurationCanvasApproval.deleteMany).toHaveBeenCalledWith({ where: { canvasId: CANVAS } });
+  });
 });

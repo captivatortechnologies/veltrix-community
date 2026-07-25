@@ -384,7 +384,31 @@ export const configurationCanvasService = {
       ConfigCanvasStatus.CHANGES_REQUESTED,
       ConfigCanvasStatus.VALIDATION_FAILED,
     ];
-    const isContentEdit = data.sections !== undefined || data.tagIds !== undefined;
+    // A no-op save (Edit → Save with nothing changed) must NOT reset a deployed
+    // config to DRAFT / clear approvals. Detect a REAL change in deployed content
+    // (values + which fields/sections exist — order is not content) rather than
+    // "a field was present in the payload".
+    const sameSet = (a?: string[], b?: string[]): boolean => {
+      const x = [...(a ?? [])].sort();
+      const y = [...(b ?? [])].sort();
+      return x.length === y.length && x.every((v, i) => v === y[i]);
+    };
+    const canonical = (
+      sections: Array<{ name?: string | null; fields?: Array<{ key: string; value?: unknown }> }>,
+    ): string =>
+      JSON.stringify(
+        [...(sections ?? [])]
+          .map((s) => ({
+            name: s.name ?? '',
+            fields: [...(s.fields ?? [])]
+              .map((f) => ({ key: f.key, value: f.value === undefined ? null : f.value }))
+              .sort((a, b) => a.key.localeCompare(b.key)),
+          }))
+          .sort((a, b) => a.name.localeCompare(b.name)),
+      );
+    const isContentEdit =
+      (data.sections !== undefined && canonical(data.sections) !== canonical(existing.sections)) ||
+      (data.tagIds !== undefined && !sameSet(data.tagIds, existing.tags.map((t) => t.tagId)));
     const resetForReapproval =
       data.status === undefined &&
       isContentEdit &&
