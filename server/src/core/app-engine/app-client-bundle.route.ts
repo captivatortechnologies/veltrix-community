@@ -27,7 +27,7 @@
 import * as fs from 'fs'
 import * as path from 'path'
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify'
-import { build, Plugin } from 'esbuild'
+import { build, stop, BuildOptions, BuildFailure, Message, Plugin } from 'esbuild'
 import { loggerService } from '../../module/logger/logger.service'
 import { getAppRegistry } from '../platform-bootstrap'
 import { resolveClientEntryFile } from './client-entry-resolver'
@@ -132,17 +132,32 @@ function latestMtimeMs(dir: string): number {
   return latest
 }
 
-async function buildOnDemand(appId: string, appDir: string, entryPath: string): Promise<string> {
-  const clientDir = path.join(appDir, 'client')
-  const watchedDir = fs.existsSync(clientDir) ? clientDir : path.dirname(entryPath)
-  const mtimeMs = latestMtimeMs(watchedDir)
+/** Serialisable view of an esbuild failure. */
+interface BuildErrorDetail {
+  message: string
+  errors?: Message[]
+}
 
-  const cached = onDemandCache.get(appId)
-  if (cached && cached.mtimeMs === mtimeMs) {
-    return cached.code
+/**
+ * esbuild throws a `BuildFailure` whose `message`/`stack` are non-enumerable, so
+ * a naive JSON.stringify (which is what loggerService does) collapses it to
+ * `{}`. Pull the real text and the structured `errors` into a plain object so
+ * both the log and the HTTP response carry the actual cause.
+ */
+function describeBuildError(error: unknown): BuildErrorDetail {
+  if (error && typeof error === 'object') {
+    const failure = error as Partial<BuildFailure>
+    const message =
+      typeof failure.message === 'string' && failure.message ? failure.message : String(error)
+    return Array.isArray(failure.errors) && failure.errors.length > 0
+      ? { message, errors: failure.errors }
+      : { message }
   }
+  return { message: String(error) }
+}
 
-  const result = await build({
+function esbuildOptions(entryPath: string): BuildOptions {
+  return {
     entryPoints: [entryPath],
     bundle: true,
     format: 'esm',
@@ -153,9 +168,46 @@ async function buildOnDemand(appId: string, appDir: string, entryPath: string): 
     minify: false,
     logLevel: 'silent',
     plugins: [hostRuntimeShimPlugin()],
-  })
+  }
+}
 
-  const code = result.outputFiles[0]?.text ?? ''
+/**
+ * Build the entry with esbuild, retrying exactly once on failure. A long-running
+ * server can leave esbuild's shared service process dead ("The service was
+ * stopped"), after which every `build()` rejects even though the identical
+ * config builds fine in a fresh process. `stop()` tears the dead service down so
+ * the retry lazily spins up a new one.
+ */
+async function runResilientBuild(entryPath: string): Promise<string> {
+  try {
+    const result = await build(esbuildOptions(entryPath))
+    return result.outputFiles?.[0]?.text ?? ''
+  } catch (firstError) {
+    loggerService.warn(
+      'esbuild on-demand build failed; resetting the esbuild service and retrying once',
+      describeBuildError(firstError),
+    )
+    try {
+      await stop()
+    } catch {
+      // Best-effort teardown of an already-dead service — ignore.
+    }
+    const result = await build(esbuildOptions(entryPath))
+    return result.outputFiles?.[0]?.text ?? ''
+  }
+}
+
+async function buildOnDemand(appId: string, appDir: string, entryPath: string): Promise<string> {
+  const clientDir = path.join(appDir, 'client')
+  const watchedDir = fs.existsSync(clientDir) ? clientDir : path.dirname(entryPath)
+  const mtimeMs = latestMtimeMs(watchedDir)
+
+  const cached = onDemandCache.get(appId)
+  if (cached && cached.mtimeMs === mtimeMs) {
+    return cached.code
+  }
+
+  const code = await runResilientBuild(entryPath)
   onDemandCache.set(appId, { mtimeMs, code })
   return code
 }
@@ -231,8 +283,16 @@ export function registerAppClientBundleRoute(fastify: FastifyInstance): void {
             const code = await buildOnDemand(appId, appDir, resolvedEntry)
             return sendBundle(reply, code)
           } catch (error) {
-            loggerService.error(`Failed to build client bundle for "${appId}":`, error)
-            return reply.status(500).send({ error: 'Failed to build app client bundle' })
+            const detail = describeBuildError(error)
+            loggerService.error(
+              `Failed to build client bundle for "${appId}": ${detail.message}`,
+              detail,
+            )
+            return reply.status(500).send({
+              error: 'Failed to build app client bundle',
+              message: detail.message,
+              ...(detail.errors ? { errors: detail.errors } : {}),
+            })
           }
         }
       }
