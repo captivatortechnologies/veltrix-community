@@ -518,6 +518,20 @@ describe('brandTokenStyle', () => {
     expect(brandTokenStyle('not-a-color')).toEqual({})
     expect(brandTokenStyle('#xyz')).toEqual({})
   })
+
+  it('flips the subtle pair to a dark brand-tinted surface + lightened foreground in dark mode', () => {
+    const light = brandTokenStyle('#2563eb', undefined, false) as Record<string, string>
+    const dark = brandTokenStyle('#2563eb', undefined, true) as Record<string, string>
+    // Solid brand shades stay constant across themes.
+    expect(dark['--color-primary']).toBe(light['--color-primary'])
+    expect(dark['--color-primary-hover']).toBe(light['--color-primary-hover'])
+    // Subtle darkens (mixed toward gray-900) instead of staying the light tint…
+    expect(dark['--color-primary-subtle']).toBe('21 39 78')
+    expect(dark['--color-primary-subtle']).not.toBe(light['--color-primary-subtle'])
+    // …and its foreground lightens (mixed toward white) so text stays legible.
+    expect(dark['--color-primary-subtle-foreground']).toBe('146 177 245')
+    expect(dark['--color-primary-subtle-foreground']).not.toBe(light['--color-primary-subtle-foreground'])
+  })
 })
 
 describe('groupNavForTabs', () => {

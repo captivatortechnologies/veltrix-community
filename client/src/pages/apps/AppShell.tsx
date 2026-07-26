@@ -19,6 +19,7 @@ import { ChevronDown, ChevronRight, ExternalLink, PanelLeftClose, PanelLeftOpen 
 import type { EnabledApp, EnabledAppBranding } from '../../services/appService'
 import type { AppPageDeclaration } from '../../../../shared/types/app'
 import { Badge } from '../../components/shared/Badge'
+import { ThemeContext } from '../../contexts/ThemeContext'
 import { ToastProvider } from '../../components/shared/Toast'
 import { ConfirmationDialogProvider } from '../../components/shared/ConfirmationDialog'
 import { resolveAppPageIcon, resolveConfigGroupIcon } from '../../components/ui/sidebar/sidebarIcons'
@@ -84,6 +85,18 @@ function mixWhite([r, g, b]: [number, number, number], amount: number): [number,
   return [r + (255 - r) * amount, g + (255 - g) * amount, b + (255 - b) * amount]
 }
 
+/** Mix `color` toward `target` by `amount` (0–1), per channel. */
+function mixToward(
+  [r, g, b]: [number, number, number],
+  [tr, tg, tb]: [number, number, number],
+  amount: number,
+): [number, number, number] {
+  return [r + (tr - r) * amount, g + (tg - g) * amount, b + (tb - b) * amount]
+}
+
+/** Dark-mode base surface (gray-900) — matches `--color-surface` under `.dark` in tokens.css. */
+const DARK_SURFACE: [number, number, number] = [17, 24, 39]
+
 /** True when the color is very light (relative-luminance proxy on 0–255 channels). */
 function isVeryLight([r, g, b]: [number, number, number]): boolean {
   return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255 > 0.6
@@ -96,18 +109,29 @@ function isVeryLight([r, g, b]: [number, number, number]): boolean {
  * and reserved for a future accent token family (the design system currently has
  * no `--color-accent`), hence the underscore.
  */
-export function brandTokenStyle(primaryHex?: string, _accentHex?: string): React.CSSProperties {
+export function brandTokenStyle(
+  primaryHex?: string,
+  _accentHex?: string,
+  isDark = false,
+): React.CSSProperties {
   const primary = parseHexColor(primaryHex)
   if (!primary) return {}
   // Dark near-black text on very light brands, white otherwise (contrast).
   const foreground: [number, number, number] = isVeryLight(primary) ? [17, 24, 39] : [255, 255, 255]
+  // `isDark` makes the surface-dependent "subtle" pair theme-aware. Solid brand
+  // shades stay constant across themes — but the injected `--color-primary-subtle`
+  // must flip: a light tint on light surfaces, a dark brand-tinted surface on dark
+  // ones (otherwise the light tint shadowed tokens.css's dark value, so every app
+  // surface rendered a light bg-primary-subtle under light text in dark mode).
+  const subtle = isDark ? mixToward(DARK_SURFACE, primary, 0.2) : mixWhite(primary, 0.85)
+  const subtleForeground = isDark ? mixWhite(primary, 0.5) : primary
   return {
     '--color-primary': tripleToString(primary),
     '--color-primary-hover': tripleToString(darken(primary, 0.1)),
     '--color-primary-active': tripleToString(darken(primary, 0.2)),
     '--color-primary-foreground': tripleToString(foreground),
-    '--color-primary-subtle': tripleToString(mixWhite(primary, 0.85)),
-    '--color-primary-subtle-foreground': tripleToString(primary),
+    '--color-primary-subtle': tripleToString(subtle),
+    '--color-primary-subtle-foreground': tripleToString(subtleForeground),
   } as React.CSSProperties
 }
 
@@ -988,6 +1012,15 @@ export const AppShell: React.FC<AppShellProps> = ({ app, navItems, activePath, c
   // re-renders the shell — `children` keep the same identity and are never
   // remounted, preserving any in-page form state across a collapse/expand.
   const [collapsed, toggleCollapsed] = useSidebarCollapsed()
+  // Theme drives the brand "subtle" tint: light tint in light mode, dark
+  // brand-tinted surface in dark mode (see brandTokenStyle). Read from context so
+  // a toggle re-renders the branded container (the inline CSS vars update); fall
+  // back to the `.dark` class when rendered outside a ThemeProvider (tests) so the
+  // shell never hard-depends on it.
+  const theme = React.useContext(ThemeContext)
+  const isDarkMode =
+    theme?.isDarkMode ??
+    (typeof document !== 'undefined' && document.documentElement.classList.contains('dark'))
   // Clicking a config sub-group's collapsed rail tile (CollapsedNavGroupTile)
   // must land the user on that group already open, not just on an expanded-
   // but-still-fully-collapsed sub-group. SidebarSubGroup reads its open/closed
@@ -1032,7 +1065,7 @@ export const AppShell: React.FC<AppShellProps> = ({ app, navItems, activePath, c
       className="flex min-h-full flex-col"
       style={{
         ...brandVariables(app.branding),
-        ...brandTokenStyle(app.branding?.primaryColor, app.branding?.accentColor),
+        ...brandTokenStyle(app.branding?.primaryColor, app.branding?.accentColor, isDarkMode),
       }}
     >
       <ToastProvider>

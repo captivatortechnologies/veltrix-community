@@ -99,7 +99,7 @@ export const AppUpgradeBanner: React.FC<AppUpgradeBannerProps> = ({
         role="status"
         className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-primary/30 bg-primary-subtle px-4 py-3"
       >
-        <Sparkles className="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+        <Sparkles className="h-5 w-5 shrink-0 text-primary-subtle-foreground" aria-hidden="true" />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-content-primary">
             A new version of {app.name} is available
