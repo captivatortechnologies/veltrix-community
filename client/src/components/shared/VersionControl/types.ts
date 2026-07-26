@@ -185,6 +185,9 @@ export interface VersionTimelineProps {
   showEntityInfo?: boolean;
   onEntryClick?: (entry: VersionEntry) => void;
   onCompare?: (entry1: VersionEntry, entry2: VersionEntry) => void;
+  /** Compare 2..N selected versions at once (sorted oldest→newest). Preferred
+   *  over onCompare when provided; enables multi-version selection. */
+  onCompareMulti?: (entries: VersionEntry[]) => void;
   className?: string;
 }
 

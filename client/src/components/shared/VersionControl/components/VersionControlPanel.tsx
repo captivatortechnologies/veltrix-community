@@ -18,6 +18,7 @@ import type {
 import { useVersionControl } from '../hooks/useVersionControl';
 import { VersionTimeline } from './VersionTimeline';
 import { PendingApprovals } from './PendingApprovals';
+import { VersionMultiCompareModal } from './VersionMultiCompareModal';
 import { VersionFilters } from './VersionFilters';
 import { VersionDetailModal } from './VersionDetailModal';
 import { VersionCompareModal } from './VersionCompareModal';
@@ -66,6 +67,9 @@ function VersionControlPanelComponent({
   const [isCompareModalOpen, setIsCompareModalOpen] = useState(false);
   const [compareFromVersion, setCompareFromVersion] = useState<VersionEntry | null>(null);
   const [compareToVersion, setCompareToVersion] = useState<VersionEntry | null>(null);
+  // Multi-version compare (2..N selected versions shown as columns).
+  const [isMultiCompareOpen, setIsMultiCompareOpen] = useState(false);
+  const [compareVersions, setCompareVersions] = useState<VersionEntry[]>([]);
 
   // Get unique entity types for filter
   const availableEntityTypes = Array.from(
@@ -107,6 +111,11 @@ function VersionControlPanelComponent({
     setCompareFromVersion(compareToVersion);
     setCompareToVersion(compareFromVersion);
   }, [compareFromVersion, compareToVersion]);
+
+  const handleCompareMulti = useCallback((entries: VersionEntry[]) => {
+    setCompareVersions(entries);
+    setIsMultiCompareOpen(true);
+  }, []);
 
   const handleRevert = async (versionId: string) => {
     const entry = historyEntries.find(e => e.id === versionId);
@@ -262,6 +271,7 @@ function VersionControlPanelComponent({
             isLoading={isLoading}
             onEntryClick={handleEntryClick}
             onCompare={showCompare ? handleCompare : undefined}
+            onCompareMulti={showCompare ? handleCompareMulti : undefined}
             className="border-0 rounded-none"
           />
         )}
@@ -295,6 +305,7 @@ function VersionControlPanelComponent({
               isLoading={isLoading}
               onEntryClick={handleEntryClick}
               onCompare={showCompare ? handleCompare : undefined}
+              onCompareMulti={showCompare ? handleCompareMulti : undefined}
               className="border-0 rounded-none"
             />
           </>
@@ -343,6 +354,12 @@ function VersionControlPanelComponent({
         onSwapVersions={handleSwapVersions}
         customDiffTabs={customDiffTabs}
         defaultDiffView={defaultDiffView}
+      />
+
+      <VersionMultiCompareModal
+        versions={compareVersions}
+        isOpen={isMultiCompareOpen}
+        onClose={() => setIsMultiCompareOpen(false)}
       />
     </div>
   );

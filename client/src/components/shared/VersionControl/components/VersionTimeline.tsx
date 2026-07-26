@@ -22,6 +22,9 @@ function isConfigurationChange(entry: VersionEntry): boolean {
   return entry.action === 'CREATED' || entry.action === 'UPDATED';
 }
 
+/** Upper bound on how many versions can be compared side by side at once. */
+const MAX_COMPARE = 6;
+
 function VersionTimelineComponent({
   entries,
   isLoading = false,
@@ -30,10 +33,15 @@ function VersionTimelineComponent({
   showEntityInfo = true,
   onEntryClick,
   onCompare,
+  onCompareMulti,
   className = '',
 }: VersionTimelineProps) {
   const [isCompareMode, setIsCompareMode] = useState(false);
   const [compareSelection, setCompareSelection] = useState<VersionEntry[]>([]);
+  // Multi-select is available when a multi-compare handler is wired; otherwise
+  // fall back to the legacy exactly-two pairwise compare.
+  const compareEnabled = Boolean(onCompareMulti || onCompare);
+  const maxSelectable = onCompareMulti ? MAX_COMPARE : 2;
 
   const handleEntryClick = useCallback(
     (entry: VersionEntry) => {
@@ -52,8 +60,8 @@ function VersionTimelineComponent({
       if (isSelected) {
         return prev.filter((e) => e.id !== entry.id);
       }
-      if (prev.length >= 2) {
-        // Replace oldest selection
+      if (prev.length >= maxSelectable) {
+        // At the cap: drop the oldest selection to make room for the new one.
         return [...prev.slice(1), entry];
       }
       return [...prev, entry];
@@ -61,15 +69,18 @@ function VersionTimelineComponent({
   };
 
   const handleCompare = () => {
-    if (compareSelection.length === 2 && onCompare) {
-      // Sort by timestamp (older first)
-      const sorted = [...compareSelection].sort(
-        (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-      );
+    if (compareSelection.length < 2) return;
+    // Sort by timestamp (older first) so columns read left-to-right in time.
+    const sorted = [...compareSelection].sort(
+      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    );
+    if (onCompareMulti) {
+      onCompareMulti(sorted);
+    } else if (onCompare && sorted.length === 2) {
       onCompare(sorted[0], sorted[1]);
-      setCompareSelection([]);
-      setIsCompareMode(false);
     }
+    setCompareSelection([]);
+    setIsCompareMode(false);
   };
 
   const toggleCompareMode = () => {
@@ -106,15 +117,15 @@ function VersionTimelineComponent({
 
         <div className="flex items-center gap-2">
           {/* Compare mode controls */}
-          {onCompare && (
+          {compareEnabled && (
             <>
-              {isCompareMode && compareSelection.length === 2 && (
+              {isCompareMode && compareSelection.length >= 2 && (
                 <button
                   onClick={handleCompare}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-amber-950 bg-amber-600 hover:bg-amber-700 rounded-md transition-colors"
                 >
                   <GitCompare className="h-4 w-4" />
-                  Compare Selected
+                  Compare Selected ({compareSelection.length})
                 </button>
               )}
               <button
@@ -137,9 +148,12 @@ function VersionTimelineComponent({
       {isCompareMode && (
         <div className="px-4 py-2 bg-amber-50 dark:bg-amber-900/20 border-b border-amber-100 dark:border-amber-800">
           <p className="text-sm text-amber-700 dark:text-amber-300">
-            Select 2 configuration-change versions to compare.{' '}
+            {onCompareMulti
+              ? `Select 2–${maxSelectable} configuration-change versions to compare.`
+              : 'Select 2 configuration-change versions to compare.'}{' '}
             <span className="font-medium">
-              {compareSelection.length}/2 selected
+              {compareSelection.length}
+              {onCompareMulti ? '' : '/2'} selected
             </span>
           </p>
         </div>
