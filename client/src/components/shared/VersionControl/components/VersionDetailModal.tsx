@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import type { VersionDetailModalProps } from '../types';
 import { DiffViewer } from './DiffViewer';
+import { SnapshotView } from './SnapshotView';
 import {
   formatTimestamp,
   getUserDisplayName,
@@ -303,6 +304,18 @@ function VersionDetailModalComponent({
               })()
             )}
           </div>
+
+          {/* Full configuration at this version — the complete content, so a
+              delta-only change (e.g. status → PENDING_APPROVAL) still shows
+              everything the config holds, not just the changed field. */}
+          {(newValue || oldValue) && (
+            <div className="mt-4">
+              <SnapshotView
+                title="Configuration at this version"
+                snapshot={(newValue ?? oldValue) as Record<string, unknown>}
+              />
+            </div>
+          )}
 
           {/* Review comment for pending approvals */}
           {isPendingApproval && (onApprove || onReject) && (

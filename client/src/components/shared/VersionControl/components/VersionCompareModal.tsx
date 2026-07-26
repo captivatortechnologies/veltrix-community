@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import type { VersionCompareModalProps } from '../types';
 import { DiffViewer } from './DiffViewer';
+import { SnapshotView } from './SnapshotView';
 import { computeVersionDiff } from '../utils/diffUtils';
 import {
   formatTimestamp,
@@ -205,8 +206,8 @@ function VersionCompareModalComponent({
             </div>
           </div>
 
-          {/* Diff View */}
-          <div className="p-6 max-h-[400px] overflow-auto">
+          {/* Diff View + full content of each version */}
+          <div className="p-6 max-h-[460px] overflow-auto space-y-4">
             <DiffViewer
               oldValue={fromVersion.details.newValue || fromVersion.details.oldValue || null}
               newValue={toVersion.details.newValue || null}
@@ -216,6 +217,25 @@ function VersionCompareModalComponent({
               customDiffTabs={customDiffTabs}
               defaultDiffView={defaultDiffView}
             />
+
+            {/* Full content of each selected version, side by side — so the whole
+                config of each is visible, not only the changed fields above. */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <SnapshotView
+                title={`FROM · ${fromVersion.id.slice(0, 7)}`}
+                accent="from"
+                snapshot={
+                  (fromVersion.details.newValue ?? fromVersion.details.oldValue ?? null) as
+                    | Record<string, unknown>
+                    | null
+                }
+              />
+              <SnapshotView
+                title={`TO · ${toVersion.id.slice(0, 7)}`}
+                accent="to"
+                snapshot={(toVersion.details.newValue ?? null) as Record<string, unknown> | null}
+              />
+            </div>
           </div>
 
           {/* Footer */}

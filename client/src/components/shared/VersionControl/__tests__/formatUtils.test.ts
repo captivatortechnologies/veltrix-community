@@ -53,10 +53,11 @@ describe('formatUtils', () => {
       expect(result).toContain('hour');
     });
 
-    it('should return days ago', () => {
+    it('shows an absolute date + time for anything a day or older (not a coarse "N days ago")', () => {
       const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
       const result = formatRelativeTime(twoDaysAgo);
-      expect(result).toContain('day');
+      expect(result).not.toContain('ago');
+      expect(result).toBe(formatTimestamp(twoDaysAgo));
     });
   });
 
