@@ -25,7 +25,6 @@ const LoadingFallback = () => (
 // Lazy load pages for code splitting
 // Auth pages (loaded immediately as they're entry points)
 import LoginPage from './pages/access/LoginPage'
-import SignupPage from './pages/access/SignupPage'
 import ForgotPasswordPage from './pages/access/ForgotPasswordPage'
 import ResetPasswordPage from './pages/access/ResetPasswordPage'
 import OAuthCallbackPage from './pages/access/OAuthCallbackPage'
@@ -120,7 +119,6 @@ function App() {
           {/* Unauthenticated routes */}
           <Routes>
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/signup" element={<SignupPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/oauth/callback" element={<OAuthCallbackPage />} />

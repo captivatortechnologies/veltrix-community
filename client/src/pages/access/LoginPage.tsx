@@ -568,15 +568,6 @@ const LoginPage: React.FC = () => {
         )}
         
         {renderCurrentStep()}
-        
-        <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Don't have an account?{' '}
-            <Link to="/signup" className="font-medium text-amber-700 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300">
-              Sign up
-            </Link>
-          </p>
-        </div>
       </div>
     </div>
   );

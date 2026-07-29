@@ -197,34 +197,6 @@ export const login = async (email: string, password: string): Promise<AuthRespon
   }
 };
 
-// Register user
-export const register = async (
-  name: string, 
-  email: string, 
-  password: string, 
-  authProvider: string = 'LOCAL'
-): Promise<AuthResponse> => {
-  try {
-    // For demo purposes, use a default customer ID
-    // In a real application, this would be determined by the signup flow
-    const defaultCustomerId = "00000000-0000-0000-0000-000000000001";
-    
-    const response = await axios.post(`${API_URL}/auth/register`, { 
-      name, 
-      email, 
-      password,
-      customerId: defaultCustomerId,
-      authProvider
-    });
-    return response.data;
-  } catch (error) {
-    if (axios.isAxiosError(error) && error.response) {
-      throw new Error(error.response.data.error || 'Failed to register');
-    }
-    throw new Error('Network error. Please try again.');
-  }
-};
-
 /**
  * Request a password-reset email. The server always responds the same way
  * (whether or not the account exists), so this resolves with a generic message
