@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Eye, EyeOff, CheckCircle, ArrowLeft } from 'lucide-react';
 import { resetPassword } from '../../services/authService';
-import logoSvg from '../../assets/logo.svg';
+import { BrandLogo } from '../../components/ui/BrandLogo';
 import { useBrand } from '../../brand';
 
 const MIN_PASSWORD_LENGTH = 8;
@@ -51,7 +51,7 @@ const ResetPasswordPage: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 px-4">
       <div className="max-w-md w-full space-y-8 bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md">
         <div className="text-center">
-          <img src={logoSvg} alt={`${brand.name} logo`} className="h-10 w-auto mx-auto mb-1" />
+          <BrandLogo className="mb-1" />
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mt-4">Choose a new password</h1>
         </div>
 

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ArrowLeft, MailCheck } from 'lucide-react';
 import { requestPasswordReset } from '../../services/authService';
-import logoSvg from '../../assets/logo.svg';
+import { BrandLogo } from '../../components/ui/BrandLogo';
 import { useBrand } from '../../brand';
 
 /**
@@ -38,7 +38,7 @@ const ForgotPasswordPage: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 px-4">
       <div className="max-w-md w-full space-y-8 bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md">
         <div className="text-center">
-          <img src={logoSvg} alt={`${brand.name} logo`} className="h-10 w-auto mx-auto mb-1" />
+          <BrandLogo className="mb-1" />
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mt-4">Reset your password</h1>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
             Enter your email and we'll send you a link to reset it.

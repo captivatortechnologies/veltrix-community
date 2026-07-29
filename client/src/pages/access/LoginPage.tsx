@@ -9,7 +9,7 @@ import CognitoLoginButton from '../../components/auth/CognitoLoginButton';
 import GoogleLoginButton from '../../components/auth/GoogleLoginButton';
 import MicrosoftLoginButton from '../../components/auth/MicrosoftLoginButton';
 import OidcLoginButton from '../../components/auth/OidcLoginButton';
-import logoSvg from '../../assets/logo.svg';
+import { BrandLogo } from '../../components/ui/BrandLogo';
 import { useBrand } from '../../brand';
 
 enum LoginStep {
@@ -543,7 +543,7 @@ const LoginPage: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 px-4">
       <div className="max-w-md w-full space-y-8 bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md">
         <div className="text-center">
-          <img src={logoSvg} alt={`${brand.name} logo`} className="h-10 w-auto mx-auto mb-1" />
+          <BrandLogo className="mb-1" />
           {brand.vendor && (
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{brand.vendor}</p>
           )}

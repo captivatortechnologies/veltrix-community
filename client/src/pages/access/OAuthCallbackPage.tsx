@@ -6,7 +6,7 @@ import { oidcService } from '../../services/oidcService';
 import { handleCognitoCallback, exchangeCognitoTokens, COGNITO_STATE_KEY } from '../../services/cognitoService';
 import { setAuthData, getRememberMePreference } from '../../services/authService';
 import { extractSsoErrorFromAxiosError } from '../../services/identityProviderTypes';
-import logoSvg from '../../assets/logo.svg';
+import { BrandLogo } from '../../components/ui/BrandLogo';
 import { useBrand } from '../../brand';
 
 const OAuthCallbackPage: React.FC = () => {
@@ -180,7 +180,7 @@ const OAuthCallbackPage: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 px-4">
       <div className="max-w-md w-full space-y-8 bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md">
         <div className="text-center">
-          <img src={logoSvg} alt={`${brand.name} logo`} className="h-10 w-auto mx-auto mb-4" />
+          <BrandLogo className="mb-4" />
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
             {status}
           </h1>
