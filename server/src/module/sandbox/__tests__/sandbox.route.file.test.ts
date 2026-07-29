@@ -260,6 +260,7 @@ describe('Sandbox file routes', () => {
 
     it('rejects API keys without sandbox:write', async () => {
       apiKeyPrincipal.apiKeyScopes = ['sandbox:read']
+      mockPrisma.$queryRaw.mockResolvedValue([]) // its role also grants no sandbox permission
       expect((await inject()).statusCode).toBe(403)
       expect(mockDeleteFile).not.toHaveBeenCalled()
     })

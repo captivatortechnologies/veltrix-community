@@ -66,11 +66,14 @@ async function roleHasSandboxPermission(roleId: string): Promise<boolean> {
     SELECT resource, action FROM "Permission" WHERE "roleId" = ${roleId}
   `
 
-  return permissions.some(
-    (p) =>
-      (p.resource === 'all' && p.action === 'all') ||
-      (p.resource === SANDBOX_RBAC_RESOURCE &&
-        (p.action === SANDBOX_RBAC_ACTION || p.action === 'all')),
+  return (
+    Array.isArray(permissions) &&
+    permissions.some(
+      (p) =>
+        (p.resource === 'all' && p.action === 'all') ||
+        (p.resource === SANDBOX_RBAC_RESOURCE &&
+          (p.action === SANDBOX_RBAC_ACTION || p.action === 'all')),
+    )
   )
 }
 
@@ -86,13 +89,20 @@ export function requireSandboxAuth(scope: SandboxScope) {
 
         const user = (request as { user?: AuthenticatedUser }).user
         const scopes = user?.apiKeyScopes ?? []
-        const satisfied =
+        const satisfiedByScope =
           scopes.includes(scope) ||
           // write access implies read access
           (scope === 'sandbox:read' && scopes.includes('sandbox:write'))
 
+        // Fall back to the key's ROLE permissions when its scopes don't grant it
+        // directly: an Administrator (all:all) key carries no explicit sandbox
+        // scope but is authorized, mirroring the JWT path (roleHasSandboxPermission
+        // honors all:all). Without this an all:all admin key is wrongly rejected.
+        const satisfied =
+          satisfiedByScope || (user?.roleId ? await roleHasSandboxPermission(user.roleId) : false)
+
         if (!satisfied) {
-          loggerService.warn('Sandbox auth: API key missing required scope', {
+          loggerService.warn('Sandbox auth: API key lacks sandbox scope and role permission', {
             requiredScope: scope,
             presentScopes: scopes,
           })

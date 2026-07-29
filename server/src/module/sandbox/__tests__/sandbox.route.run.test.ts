@@ -152,14 +152,25 @@ describe('POST /api/sandboxes/:id/run', () => {
     expect(mockRunHandler).not.toHaveBeenCalled()
   })
 
-  it('rejects API keys without the sandbox:write scope', async () => {
+  it('rejects API keys without the sandbox:write scope or a sandbox role permission', async () => {
     apiKeyPrincipal.apiKeyScopes = ['sandbox:read']
+    mockPrisma.$queryRaw.mockResolvedValue([]) // its role also grants no sandbox permission
 
     const response = await inject()
 
     expect(response.statusCode).toBe(403)
     expect(response.json().error).toContain('sandbox:write')
     expect(mockRunHandler).not.toHaveBeenCalled()
+  })
+
+  it('allows an admin (all:all) API key with no explicit sandbox scope, via its role', async () => {
+    apiKeyPrincipal.apiKeyScopes = [] // an Administrator key carries no explicit scopes
+    mockPrisma.$queryRaw.mockResolvedValue([{ resource: 'all', action: 'all' }])
+
+    const response = await inject()
+
+    expect(response.statusCode).toBe(200)
+    expect(mockRunHandler).toHaveBeenCalled()
   })
 
   it('runs the handler for a properly scoped API key and serializes every field', async () => {
