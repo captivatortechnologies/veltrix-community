@@ -24,5 +24,16 @@
     "configuration-management",
     "pipeline",
     "self-hosted"
-  ]
+  ],
+  "//overrides": "Security remediations for transitive deps not directly ours (Dependabot Bundle A). Version-ranged selectors touch only the vulnerable instance and leave safe majors alone.",
+  "pnpm": {
+    "overrides": {
+      "find-my-way": ">=9.7.0",
+      "fast-uri@>=3.0.0 <3.1.4": "3.1.4",
+      "tar@>=7.5.0 <7.5.21": "7.5.21",
+      "brace-expansion@>=5.0.0 <5.0.8": "5.0.8",
+      "@opentelemetry/core@>=2.0.0 <2.8.0": "2.8.0",
+      "adm-zip": ">=0.6.0"
+    }
+  }
 }
