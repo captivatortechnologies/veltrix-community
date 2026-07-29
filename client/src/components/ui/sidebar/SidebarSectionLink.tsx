@@ -51,7 +51,7 @@ const SidebarSectionLink: React.FC<SidebarSectionLinkProps> = ({
         aria-label={name}
         aria-current={isActive ? 'page' : undefined}
         className={`group flex w-full items-center justify-center rounded-md px-2 py-2.5 transition-colors ${focusRing} ${
-          isActive ? 'bg-amber-700 text-amber-950' : 'text-gray-400 hover:bg-gray-700/80 hover:text-amber-950'
+          isActive ? 'bg-amber-500 text-amber-950' : 'text-gray-400 hover:bg-gray-700/80 hover:text-white'
         }`}
       >
         <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center">{icon}</span>

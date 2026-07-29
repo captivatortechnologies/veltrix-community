@@ -57,7 +57,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
             Activity Feed
           </h2>
           {unreadCount > 0 && (
-            <span className="px-2 py-1 text-xs font-medium bg-amber-600 text-amber-950 rounded-full">
+            <span className="px-2 py-1 text-xs font-medium bg-amber-500 text-amber-950 rounded-full">
               {unreadCount}
             </span>
           )}
@@ -144,7 +144,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
                     </span>
                   </div>
                   {!activity.read && (
-                    <span className="w-2 h-2 bg-amber-600 rounded-full mt-2" />
+                    <span className="w-2 h-2 bg-amber-500 rounded-full mt-2" />
                   )}
                 </div>
               </div>

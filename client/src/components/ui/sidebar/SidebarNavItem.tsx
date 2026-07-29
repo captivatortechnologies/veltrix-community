@@ -26,7 +26,7 @@ const baseClasses =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-800';
 
 function stateClasses(isActive: boolean): string {
-  return isActive ? 'bg-amber-700 text-amber-950' : 'text-gray-300 hover:bg-gray-700/80 hover:text-amber-950';
+  return isActive ? 'bg-amber-500 text-amber-950' : 'text-gray-300 hover:bg-gray-700/80 hover:text-white';
 }
 
 /**

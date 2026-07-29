@@ -88,7 +88,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className = '' }) => {
     <button
       type="button"
       onClick={() => setIsCollapsed(!isCollapsed)}
-      className="flex-shrink-0 rounded-full border border-white/20 bg-amber-600 p-1 text-amber-950 shadow-md hover:bg-amber-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-800"
+      className="flex-shrink-0 rounded-full border border-white/20 bg-amber-500 p-1 text-amber-950 shadow-md hover:bg-amber-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-800"
       aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
       aria-pressed={isCollapsed}
     >

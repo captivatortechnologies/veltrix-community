@@ -282,7 +282,7 @@ const ProfileSettingsPage: React.FC = () => {
               <div className="flex justify-end">
                 <button
                   onClick={handleSaveSettings}
-                  className="bg-amber-600 text-amber-950 hover:bg-amber-700 px-4 py-2 rounded-md flex items-center"
+                  className="bg-amber-500 text-amber-950 hover:bg-amber-600 px-4 py-2 rounded-md flex items-center"
                   disabled={isLoading}
                 >
                   <Save size={16} className="mr-2" />
@@ -359,7 +359,7 @@ const ProfileSettingsPage: React.FC = () => {
                 <div className="flex justify-end">
                   <button
                     type="submit"
-                    className="bg-amber-600 text-amber-950 hover:bg-amber-700 px-4 py-2 rounded-md flex items-center"
+                    className="bg-amber-500 text-amber-950 hover:bg-amber-600 px-4 py-2 rounded-md flex items-center"
                     disabled={isLoading}
                   >
                     <Lock size={16} className="mr-2" />

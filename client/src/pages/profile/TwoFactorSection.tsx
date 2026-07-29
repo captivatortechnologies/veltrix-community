@@ -116,7 +116,7 @@ export const TwoFactorSection: React.FC<TwoFactorSectionProps> = ({ enabled, onS
             type="button"
             onClick={handleStartSetup}
             disabled={isBusy}
-            className="bg-amber-600 text-amber-950 hover:bg-amber-700 px-4 py-2 rounded-md text-sm font-medium disabled:opacity-50"
+            className="bg-amber-500 text-amber-950 hover:bg-amber-600 px-4 py-2 rounded-md text-sm font-medium disabled:opacity-50"
           >
             Set up
           </button>
@@ -177,7 +177,7 @@ export const TwoFactorSection: React.FC<TwoFactorSectionProps> = ({ enabled, onS
             <button
               type="submit"
               disabled={isBusy || verifyCode.trim().length < 6}
-              className="bg-amber-600 text-amber-950 hover:bg-amber-700 px-4 py-2 rounded-md text-sm font-medium disabled:opacity-50"
+              className="bg-amber-500 text-amber-950 hover:bg-amber-600 px-4 py-2 rounded-md text-sm font-medium disabled:opacity-50"
             >
               Verify &amp; enable
             </button>

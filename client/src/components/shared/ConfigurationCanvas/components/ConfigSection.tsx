@@ -349,7 +349,7 @@ export const ConfigSectionComponent: React.FC<ConfigSectionProps> = ({
                 <button
                   onClick={handleAddField}
                   disabled={!newFieldKey.trim()}
-                  className="px-3 py-1.5 text-sm text-amber-950 bg-amber-600 hover:bg-amber-700 disabled:bg-amber-300 disabled:cursor-not-allowed rounded-md"
+                  className="px-3 py-1.5 text-sm text-amber-950 bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 disabled:cursor-not-allowed rounded-md"
                 >
                   Add Field
                 </button>

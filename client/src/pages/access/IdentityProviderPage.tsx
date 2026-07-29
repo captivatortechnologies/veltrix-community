@@ -516,7 +516,7 @@ const IdentityProviderPage: React.FC = () => {
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Identity Providers</h1>
         <button
           onClick={handleSave}
-          className="bg-amber-500 hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-700 text-amber-950 px-4 py-2 rounded"
+          className="bg-amber-500 hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-600 text-amber-950 px-4 py-2 rounded"
         >
           Save Changes
         </button>

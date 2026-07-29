@@ -250,7 +250,7 @@ const EmailSettingsPage: React.FC = () => {
         )}
 
         <div className="flex justify-end">
-          <button type="submit" disabled={isSaving} className="bg-amber-600 hover:bg-amber-700 text-amber-950 px-4 py-2 rounded disabled:opacity-50">
+          <button type="submit" disabled={isSaving} className="bg-amber-500 hover:bg-amber-600 text-amber-950 px-4 py-2 rounded disabled:opacity-50">
             {isSaving ? 'Saving…' : 'Save settings'}
           </button>
         </div>

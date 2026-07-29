@@ -54,7 +54,7 @@ export const NotificationCenter: React.FC<NotificationCenterProps> = ({
             Notifications
           </h2>
           {unreadCount > 0 && (
-            <span className="px-2 py-1 text-xs font-medium bg-amber-600 text-amber-950 rounded-full">
+            <span className="px-2 py-1 text-xs font-medium bg-amber-500 text-amber-950 rounded-full">
               {unreadCount}
             </span>
           )}

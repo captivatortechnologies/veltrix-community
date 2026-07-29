@@ -327,7 +327,7 @@ export const ApprovalSubmissionDialog: React.FC<ApprovalSubmissionDialogProps> =
           <button
             onClick={handleSubmit}
             disabled={isSubmitting || selectedApprovers.length === 0 || selectedEnvironments.length === 0}
-            className="px-4 py-2 bg-amber-600 text-amber-950 rounded-md hover:bg-amber-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-4 py-2 bg-amber-500 text-amber-950 rounded-md hover:bg-amber-600 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {isSubmitting ? (
               <>

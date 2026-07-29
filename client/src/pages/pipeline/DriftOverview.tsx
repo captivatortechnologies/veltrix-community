@@ -114,7 +114,7 @@ const DriftOverview: React.FC = () => {
           <button
             onClick={() => void handleCheckNow()}
             disabled={checking}
-            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-amber-950 bg-amber-600 hover:bg-amber-700 disabled:opacity-60 rounded-lg transition-colors"
+            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-amber-950 bg-amber-500 hover:bg-amber-600 disabled:opacity-60 rounded-lg transition-colors"
           >
             {checking ? (
               <Loader2 className="w-4 h-4 animate-spin" />
@@ -165,7 +165,7 @@ const DriftOverview: React.FC = () => {
               onClick={() => handleFilterChange(f)}
               className={`px-4 py-2 text-sm font-medium capitalize transition-colors ${
                 resolvedFilter === f
-                  ? 'bg-amber-600 text-amber-950'
+                  ? 'bg-amber-500 text-amber-950'
                   : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-750'
               }`}
             >

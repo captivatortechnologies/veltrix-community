@@ -115,7 +115,7 @@ const ProfilePage: React.FC = () => {
       
       <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden">
         {/* Profile header */}
-        <div className="bg-amber-600 dark:bg-amber-800 p-6 flex flex-col md:flex-row items-center md:items-start space-y-4 md:space-y-0 md:space-x-6">
+        <div className="bg-amber-500 dark:bg-amber-800 p-6 flex flex-col md:flex-row items-center md:items-start space-y-4 md:space-y-0 md:space-x-6">
           <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white">
             <img 
               src={profile.avatarUrl} 

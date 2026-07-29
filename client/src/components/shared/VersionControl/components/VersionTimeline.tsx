@@ -122,7 +122,7 @@ function VersionTimelineComponent({
               {isCompareMode && compareSelection.length >= 2 && (
                 <button
                   onClick={handleCompare}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-amber-950 bg-amber-600 hover:bg-amber-700 rounded-md transition-colors"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-amber-950 bg-amber-500 hover:bg-amber-600 rounded-md transition-colors"
                 >
                   <GitCompare className="h-4 w-4" />
                   Compare Selected ({compareSelection.length})

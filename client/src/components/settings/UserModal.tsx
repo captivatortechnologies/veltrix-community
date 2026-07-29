@@ -432,7 +432,7 @@ const UserModal: React.FC<UserModalProps> = ({ user, isEditing, onClose }) => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-amber-950 bg-amber-600 hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-amber-950 bg-amber-500 hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? 'Saving...' : 'Save'}
               </button>
@@ -444,7 +444,7 @@ const UserModal: React.FC<UserModalProps> = ({ user, isEditing, onClose }) => {
               <button
                 type="button"
                 onClick={() => onClose()}
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-amber-950 bg-amber-600 hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500"
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-amber-950 bg-amber-500 hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500"
               >
                 Close
               </button>
