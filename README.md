@@ -5,7 +5,8 @@
 > configuration, plus a plugin/app engine that lets any security tool wire into it.
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](./LICENSE)
-![Status: early](https://img.shields.io/badge/status-bootstrapping-orange.svg)
+![Version 0.1.x](https://img.shields.io/badge/version-0.1.x-blue.svg)
+![Status: pre-1.0](https://img.shields.io/badge/status-pre--1.0-brightgreen.svg)
 
 ---
 
@@ -90,10 +91,17 @@ platform without changes.
 
 ## Status
 
-🚧 **Bootstrapping.** This repository is being assembled by extracting and
-cleaning the open‑source core out of the internal Veltrix monorepo. Expect the
-tree to fill in over the coming commits (server core, app engine, DB schema,
-client, SDKs, infra, docs). Track progress in the issues / project board.
+**Pre‑1.0 (`0.1.x`) — assembled and running.** The open‑source core is in place and
+exercised by CI on every push: the pipeline engine, the app engine + SDKs, the
+configuration canvas, version control and approvals, RBAC/auth, the React design
+system, and Docker Compose / Helm / Kubernetes self‑host. A full build → migrate →
+seed → login boot runs as the **Docker smoke test** job, alongside the unit suites
+and a Playwright e2e run.
+
+It's still pre‑1.0: the public API and SDK surface aren't frozen, so expect breaking
+changes between minor versions until 1.0 — pin a version and read the release notes
+before upgrading. The [Roadmap](#roadmap) tracks the path to 1.0; issues and
+discussions are open.
 
 ## Quickstart
 
@@ -166,7 +174,7 @@ cp .env.example .env
 | **Datastores** | `DATABASE_URL`, `REDIS_URL` | PostgreSQL 16 and Redis 7 — Redis powers the BullMQ pipeline workers. |
 | **Secrets** (required) | `JWT_SECRET`, `JWT_REFRESH_SECRET`, `ENCRYPTION_KEY`, `COOKIE_SECRET` | No defaults — the server **fails fast** if any is unset. Generate each with `openssl rand -hex 32`; keep the two JWT secrets distinct. |
 | **First-run admin** | `VELTRIX_ADMIN_EMAIL`, `VELTRIX_ADMIN_PASSWORD` | Created on first boot. Leave the password blank and a random one is printed once to the server log. |
-| **Branding** | `VELTRIX_BRAND_NAME`, `VELTRIX_BRAND_TAGLINE`, `VELTRIX_BRAND_LOGO_URL` | The Community Edition brand is fully configurable; served at `GET /api/brand`. |
+| **Branding** | `VELTRIX_BRAND_NAME`, `VELTRIX_BRAND_TAGLINE`, `VELTRIX_BRAND_LOGO_URL`, `VELTRIX_BRAND_COLOR` | The Community Edition brand is fully configurable and served at `GET /api/brand`. `VELTRIX_BRAND_COLOR` (a hex value, e.g. `#f59e0b`) sets the UI accent and also drives the generated favicon and browser theme colour — applied at runtime, no rebuild. |
 | **Apps** | `APPS_DIR` | Directory the app engine discovers apps from — a checkout of the [apps repo](https://github.com/captivatortechnologies/veltrix-apps). |
 
 ### Feature flags
@@ -312,8 +320,10 @@ Yes. Apache-2.0 permits commercial use, modification, and redistribution; the SD
 may be MIT — check each package's `LICENSE`.
 
 **Can I rebrand it?**
-Yes — set the `VELTRIX_BRAND_*` variables (see [Configuration](#configuration)); the
-client reads the brand from `GET /api/brand` at runtime, so no rebuild is needed.
+Yes — set the `VELTRIX_BRAND_*` variables (see [Configuration](#configuration)): name,
+tagline, logo, and `VELTRIX_BRAND_COLOR` (which also drives the favicon and browser
+theme colour). The client reads the brand from `GET /api/brand` at runtime, so a
+colour or logo swap takes effect on reload — no rebuild.
 
 **How do I add support for my security tools?**
 Install apps from the [apps catalog](#apps--integrations), or build your own with
