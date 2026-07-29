@@ -132,7 +132,19 @@ export const authController = {
   // Register new user
   register: async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      const data = request.body as RegisterRequestType;
+      // Tenancy is derived from the authenticated admin (set by verifyToken on
+      // the route), NEVER from the request body — a caller may only provision
+      // users into their own organization. This is the half of the fix that
+      // closes the old cross-tenant self-registration hole (CWE-639); the route
+      // itself is gated by verifyToken + hasPermission('user','write').
+      const customerId = request.user?.customerId;
+      if (!customerId) {
+        return reply.status(401).send({ error: 'Authentication required' });
+      }
+      const data: RegisterRequestType = {
+        ...(request.body as Omit<RegisterRequestType, 'customerId'>),
+        customerId,
+      };
 
       loggerService.info(`Registration attempt for email: ${data.email}`);
 

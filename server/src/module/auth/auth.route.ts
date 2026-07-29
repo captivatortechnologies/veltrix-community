@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { authController } from './auth.controller';
-import { verifyToken } from '../../middlewares/authMiddleware';
+import { verifyToken, hasPermission } from '../../middlewares/authMiddleware';
 
 // Define common error response schema
 const errorSchema = {
@@ -284,19 +284,32 @@ export async function authRoutes(fastify: FastifyInstance) {
   });
 
   // Register
+  // Provision a new user. This is an ADMIN-ONLY operation: single-tenant OSS
+  // uses an invite model — an authenticated admin (user:write) creates accounts
+  // scoped to their OWN organization. Tenancy comes from the caller's token
+  // (request.user.customerId in the controller), never the request body, so a
+  // caller can never provision a user — let alone an org Administrator — into
+  // another tenant.
+  //
+  // Previously this route was PUBLIC and honoured a client-supplied customerId;
+  // omitting roleId auto-granted that org's Administrator role, so anyone who
+  // knew an Organization id could self-register as its admin (CWE-639). See
+  // auth.service.register for the role-scoping half of the fix.
   fastify.post('/auth/register', {
+    preHandler: [verifyToken, hasPermission('user', 'write')],
     schema: {
       tags: ['auth'],
-      summary: 'Register a new user',
-      description: 'Creates a new user account',
+      summary: 'Provision a new user (admin only)',
+      description:
+        "Creates a new user account within the authenticated admin's organization. Requires the user:write permission.",
+      security: [{ bearerAuth: [] }],
       body: {
         type: 'object',
-        required: ['name', 'email', 'password', 'customerId'],
+        required: ['name', 'email', 'password'],
         properties: {
           name: { type: 'string' },
           email: { type: 'string', format: 'email' },
           password: { type: 'string', minLength: 8 },
-          customerId: { type: 'string', format: 'uuid' },
           authProvider: { type: 'string', enum: ['LOCAL', 'COGNITO', 'SAML', 'OAUTH'] }
         }
       },
@@ -328,6 +341,8 @@ export async function authRoutes(fastify: FastifyInstance) {
           }
         },
         400: errorSchema,
+        401: errorSchema,
+        403: errorSchema,
         409: errorSchema,
         500: errorSchema
       }
