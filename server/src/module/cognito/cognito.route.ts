@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { cognitoController } from './cognito.controller';
-import { verifyToken, ensureAdmin } from '../../middlewares/authMiddleware';
+import { verifyToken, ensureAdmin, hasPermission } from '../../middlewares/authMiddleware';
+import { checkTenantQuota } from '../../middlewares/tenant-isolation.middleware';
 import { CognitoConfigResponse, CognitoTokenExchangeRequest, CognitoCallbackRequest } from './cognito.schema';
 
 // Define common schemas
@@ -181,7 +182,7 @@ export default async function cognitoRoutes(fastify: FastifyInstance) {
         body: {
           type: 'object',
           properties: {
-            ssoType: { type: 'string' }
+            ssoType: { type: 'string', enum: ['OIDC', 'GOOGLE', 'AZURE'] }
           },
           required: ['ssoType']
         },
@@ -322,8 +323,11 @@ export default async function cognitoRoutes(fastify: FastifyInstance) {
   // Get all users from Cognito
   fastify.get(
     '/cognito-users',
-    { 
-      preHandler: [verifyToken],
+    {
+      // Same permission the platform users list requires — this returns the
+      // tenant's user roster (from the pool instead of the database), so it
+      // must not be readable by any authenticated user.
+      preHandler: [verifyToken, hasPermission('user', 'read')],
       schema: {
         tags: ['cognito'],
         summary: 'Get Cognito users',
@@ -346,7 +350,11 @@ export default async function cognitoRoutes(fastify: FastifyInstance) {
   fastify.post(
     '/create-user',
     {
-      preHandler: [verifyToken],
+      // Mirrors POST /api/users: creating a user here also writes a database
+      // user row with a caller-supplied roleId, so it needs the same
+      // permission and the same tenant quota gate. Without them any
+      // authenticated tenant user could mint an Administrator account.
+      preHandler: [verifyToken, hasPermission('user', 'write'), checkTenantQuota('users')],
       schema: {
         tags: ['cognito'],
         summary: 'Create Cognito user',

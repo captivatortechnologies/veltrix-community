@@ -26,7 +26,7 @@ jest.mock('../../../db', () => ({
   default: {
     role: { findUnique: jest.fn() },
     $queryRaw: jest.fn(),
-    customerIdentityProvider: { findFirst: jest.fn() },
+    customerIdentityProvider: { findFirst: jest.fn(), create: jest.fn(), update: jest.fn(), updateMany: jest.fn(), deleteMany: jest.fn() },
     identityProvider: { findFirst: jest.fn(), update: jest.fn(), create: jest.fn() },
     organization: { findFirst: jest.fn() },
   },
@@ -256,5 +256,72 @@ describe('cognito.route — authorization', () => {
     const decrypted = decryptFields(savedConfig, SENSITIVE_CONFIG_FIELDS)
     expect(decrypted.awsAccessKeyId).toBe('AKIA_BRAND_NEW')
     expect(decrypted.awsSecretAccessKey).toBe('brand-new-aws-secret')
+  })
+
+  describe('Cognito user management — permission gates', () => {
+    it('403s GET /cognito-users for an authenticated user without user:read', async () => {
+      setTestUser(NO_PERMS_USER)
+      const res = await app.inject({ method: 'GET', url: '/api/cognito/cognito-users' })
+      expect(res.statusCode).toBe(403)
+    })
+
+    it('401s GET /cognito-users when unauthenticated', async () => {
+      setTestUser(undefined)
+      const res = await app.inject({ method: 'GET', url: '/api/cognito/cognito-users' })
+      expect(res.statusCode).toBe(401)
+    })
+
+    it('403s POST /create-user for an authenticated user without user:write — no Administrator minting', async () => {
+      setTestUser(NO_PERMS_USER)
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/cognito/create-user',
+        payload: { email: 'escalate@acme.com', roleId: 'role-admin', firstName: 'Esc' },
+      })
+      expect(res.statusCode).toBe(403)
+    })
+
+    it('401s POST /create-user when unauthenticated', async () => {
+      setTestUser(undefined)
+      const res = await app.inject({
+        method: 'POST',
+        url: '/api/cognito/create-user',
+        payload: { email: 'anon@acme.com', roleId: 'role-x', firstName: 'Anon' },
+      })
+      expect(res.statusCode).toBe(401)
+    })
+  })
+
+  describe('POST /disable-for-sso — ssoType allowlist', () => {
+    beforeEach(() => {
+      setTestUser(ADMIN_USER)
+      mockRoleFindUnique.mockResolvedValue({ id: 'role-admin', name: 'Administrator' })
+      mockQueryRaw.mockResolvedValue([{ id: 'p1', resource: 'all', action: 'all', roleId: 'role-admin', appId: null }])
+    })
+
+    it.each(['SAML', 'COGNITO', 'EVIL_PROVIDER'])(
+      '400s ssoType "%s" at the schema layer — the value is written verbatim as an enabled CustomerIdentityProvider.type',
+      async (ssoType) => {
+        const res = await app.inject({ method: 'POST', url: '/api/cognito/disable-for-sso', payload: { ssoType } })
+
+        expect(res.statusCode).toBe(400)
+        expect(mockCustomerIdentityProviderFindFirst).not.toHaveBeenCalled()
+        expect(prisma.customerIdentityProvider.create).not.toHaveBeenCalled()
+      }
+    )
+
+    it('accepts an allowlisted ssoType, disables Cognito, and enables the selected provider', async () => {
+      mockCustomerIdentityProviderFindFirst.mockResolvedValue(null)
+      ;(prisma.customerIdentityProvider.create as jest.Mock).mockResolvedValue({})
+
+      const res = await app.inject({ method: 'POST', url: '/api/cognito/disable-for-sso', payload: { ssoType: 'OIDC' } })
+
+      expect(res.statusCode).toBe(200)
+      expect(JSON.parse(res.body)).toMatchObject({ success: true })
+      const createdTypes = (prisma.customerIdentityProvider.create as jest.Mock).mock.calls.map(
+        (c: any[]) => c[0].data.type
+      )
+      expect(createdTypes).toEqual(expect.arrayContaining(['COGNITO', 'OIDC']))
+    })
   })
 })

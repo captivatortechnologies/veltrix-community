@@ -530,6 +530,14 @@ export const cognitoService = {
   // Disable Cognito when another SSO option is selected
   async disableCognitoForSso(customerId: string, ssoType: string): Promise<boolean> {
     try {
+      // Defense in depth behind the route's enum: this value is written
+      // verbatim as a CustomerIdentityProvider.type on an enabled row.
+      const ALLOWED_SSO_TYPES = ['OIDC', 'GOOGLE', 'AZURE'];
+      if (!ALLOWED_SSO_TYPES.includes(ssoType)) {
+        loggerService.warn(`Rejected disable-for-sso with unsupported ssoType "${ssoType}"`);
+        return false;
+      }
+
       // First, check if customer has a specific Cognito configuration
       const customerCognitoConfig = await prisma.customerIdentityProvider.findFirst({
         where: {
