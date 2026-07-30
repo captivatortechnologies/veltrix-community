@@ -46,7 +46,14 @@ export async function registerSecurityPlugins(server: FastifyInstance) {
     max: 100, // Maximum requests per window
     timeWindow: '1 minute', // Time window
     cache: 10000, // In-memory LRU size (used when Redis is unavailable)
-    allowList: ['127.0.0.1'], // Whitelist for local/dev
+    // Loopback whitelist for local development and on-box health checks. `::1`
+    // and the IPv4-mapped form are required, not optional: on a dual-stack
+    // machine `localhost` resolves to IPv6 first, so a dev/E2E client arrives as
+    // `::1` and the 127.0.0.1 entry alone never matched — local runs were being
+    // throttled (429) partway through, reading as an unrelated request timeout.
+    // Production is unaffected: trustProxy is enabled, so request.ip is the real
+    // client address from X-Forwarded-For and these never match a genuine user.
+    allowList: ['127.0.0.1', '::1', '::ffff:127.0.0.1'], // loopback for local/dev
     redis: rateLimitRedis,
     keyGenerator: (request) => {
       // Use customer ID or IP address for rate limiting
