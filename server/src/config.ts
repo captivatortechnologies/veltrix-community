@@ -42,7 +42,14 @@ export const config = {
   // (see config/feature-flags.ts `oauth.cognito`). Never required at
   // startup: cognito.enabled being false means these fields are unused.
   cognito: {
-    enabled: process.env.COGNITO_ENABLED === 'true',
+    // Requires the pool to be addressable (a user pool id + client id), not just
+    // the flag — an admin who sets COGNITO_ENABLED=true but leaves the pool vars
+    // blank would otherwise advertise a Cognito sign-in path that can only 400
+    // with provider_disabled. (OSS is opt-in via `=== 'true'`, unlike upstream's
+    // default-on `!== 'false'`.)
+    enabled:
+      process.env.COGNITO_ENABLED === 'true' &&
+      Boolean(process.env.COGNITO_USER_POOL_ID && process.env.COGNITO_CLIENT_ID),
     userPoolId: process.env.COGNITO_USER_POOL_ID || '',
     userPoolRegion: process.env.COGNITO_USER_POOL_REGION || 'us-east-1',
     clientId: process.env.COGNITO_CLIENT_ID || '',
