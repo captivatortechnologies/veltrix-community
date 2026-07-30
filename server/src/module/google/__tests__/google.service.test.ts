@@ -126,5 +126,21 @@ describe('googleService — state/nonce wiring (I1)', () => {
         googleService.exchangeGoogleTokens({ idToken: 'id.tok', accessToken: 'access.tok', nonce: 'expected-nonce' })
       ).rejects.toMatchObject({ code: 'invalid_nonce' });
     });
+
+    // A valid signature proves only who signed the token, not that the login
+    // was brokered here — so an exchange with no nonce is refused even when the
+    // token verifies, closing token substitution against this public endpoint.
+    it('rejects a validly-signed token exchanged with NO nonce', async () => {
+      mockVerifyIdToken.mockResolvedValue({
+        getPayload: () => ({ email: 'user@tenant.test', sub: 'sub-1', email_verified: true }),
+      });
+
+      await expect(
+        googleService.exchangeGoogleTokens({ idToken: 'id.tok', accessToken: 'access.tok' })
+      ).rejects.toMatchObject({ code: 'nonce_required' });
+
+      // No nonce means the requirement rejects before nonce consumption.
+      expect(consumeOAuthNonce).not.toHaveBeenCalled();
+    });
   });
 });

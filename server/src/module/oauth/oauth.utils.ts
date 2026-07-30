@@ -334,8 +334,15 @@ export async function findOrProvisionSsoUser(params: {
  * oauth-state.store.ts). This closes a token-substitution gap: the
  * token-exchange endpoints are public and only verify the ID token's
  * signature, which proves who signed it, not that it resulted from a login
- * flow this server actually brokered. A missing/invalid/replayed nonce is
- * rejected before any user lookup happens.
+ * flow this server actually brokered. An invalid/replayed nonce is rejected
+ * before any user lookup happens.
+ *
+ * It is optional HERE only because every caller now consumes the nonce itself
+ * (it carries the tenant binding they need before verification) and so passes
+ * `undefined` through — one-time use means it cannot be consumed twice. The
+ * requirement lives in each provider service: all four reject a token exchange
+ * with no nonce, Microsoft up front (it verifies no ID token) and the other
+ * three immediately after signature verification.
  */
 export async function exchangeTokensForJWT(
   userInfo: OAuthUserInfo,

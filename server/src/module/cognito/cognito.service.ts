@@ -1066,10 +1066,25 @@ export const cognitoService = {
         throw new OAuthFlowError('invalid_token', 'Invalid Cognito ID token: signature verification failed', 401);
       }
 
+      // A valid signature proves only WHO signed the token, not that this
+      // login was brokered here — an attacker holding any token issued for
+      // this same client could otherwise exchange it. The server-issued nonce
+      // is that proof, so it is mandatory. Enforced AFTER signature
+      // verification on purpose: a forged token still fails as invalid_token,
+      // which is the more accurate reason and keeps the forged-token coverage
+      // meaningful.
+      if (!data.nonce) {
+        throw new OAuthFlowError(
+          'nonce_required',
+          'This sign-in could not be verified. Please sign in again.',
+          400
+        );
+      }
+
       // Defense-in-depth OIDC nonce check: the ID token's own `nonce` claim
       // (echoed back by Cognito from the authorize request) must match the
       // nonce we just proved was server-issued.
-      if (data.nonce && decodedToken.nonce !== data.nonce) {
+      if (decodedToken.nonce !== data.nonce) {
         throw new OAuthFlowError('nonce_mismatch', 'Sign-in verification failed. Please try signing in again.', 400);
       }
 

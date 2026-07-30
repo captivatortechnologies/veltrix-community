@@ -207,6 +207,9 @@ describe('oidcService.exchangeOidcTokens — wiring to the shared gate-parity/JI
         jitMode: 'domain-match',
       }),
     });
+    // A server-issued nonce is mandatory for a successful exchange; default it
+    // to valid so each test can focus on the behavior it actually asserts.
+    mockConsumeOAuthNonce.mockResolvedValue({ customerId: undefined });
   });
 
   it('resolves the tenant from the nonce BEFORE verification (so a customer-specific config is honored), and passes the verified user info/provider/jitMode through to exchangeTokensForJWT with the nonce omitted (already consumed)', async () => {
@@ -260,7 +263,9 @@ describe('oidcService.exchangeOidcTokens — wiring to the shared gate-parity/JI
       new OAuthFlowError('user_inactive', 'Your account has been deactivated. Contact your administrator.', 403)
     );
 
-    await expect(oidcService.exchangeOidcTokens({ idToken: 't', accessToken: 'a' })).rejects.toMatchObject({
+    await expect(
+      oidcService.exchangeOidcTokens({ idToken: 't', accessToken: 'a', nonce: 'n-1' })
+    ).rejects.toMatchObject({
       code: 'user_inactive',
       statusCode: 403,
     });
@@ -272,7 +277,9 @@ describe('oidcService.exchangeOidcTokens — wiring to the shared gate-parity/JI
       new OAuthFlowError('tenant_suspended', "Your organization's account is not active. Contact your administrator.", 403)
     );
 
-    await expect(oidcService.exchangeOidcTokens({ idToken: 't', accessToken: 'a' })).rejects.toMatchObject({
+    await expect(
+      oidcService.exchangeOidcTokens({ idToken: 't', accessToken: 'a', nonce: 'n-1' })
+    ).rejects.toMatchObject({
       code: 'tenant_suspended',
       statusCode: 403,
     });
@@ -284,9 +291,36 @@ describe('oidcService.exchangeOidcTokens — wiring to the shared gate-parity/JI
       new OAuthFlowError('jit_domain_not_allowed', 'No organization is configured for the domain "unknown-domain.test".', 403)
     );
 
-    await expect(oidcService.exchangeOidcTokens({ idToken: 't', accessToken: 'a' })).rejects.toMatchObject({
+    await expect(
+      oidcService.exchangeOidcTokens({ idToken: 't', accessToken: 'a', nonce: 'n-1' })
+    ).rejects.toMatchObject({
       code: 'jit_domain_not_allowed',
       statusCode: 403,
+    });
+  });
+
+  // A valid signature proves only who signed the token, not that the login was
+  // brokered here — so an exchange with no nonce is refused even when the token
+  // verifies, closing token substitution against this public endpoint.
+  it('rejects a validly-signed token exchanged with NO nonce', async () => {
+    jest.spyOn(oidcService, 'verifyIdToken').mockResolvedValueOnce({ email: 'alice@acme.com', providerId: 'sub-1' });
+
+    await expect(oidcService.exchangeOidcTokens({ idToken: 't', accessToken: 'a' })).rejects.toMatchObject({
+      code: 'nonce_required',
+      statusCode: 400,
+    });
+    expect(mockExchangeTokensForJWT).not.toHaveBeenCalled();
+  });
+
+  // Ordering guard: the nonce requirement sits AFTER verification so a forged
+  // token still reports the signature failure rather than being masked by it.
+  it('reports invalid_token (not nonce_required) for a forged token with no nonce', async () => {
+    jest.spyOn(oidcService, 'verifyIdToken').mockRejectedValueOnce(
+      new OAuthFlowError('invalid_token', 'Invalid OIDC ID token: signature verification failed', 401)
+    );
+
+    await expect(oidcService.exchangeOidcTokens({ idToken: 'forged', accessToken: 'a' })).rejects.toMatchObject({
+      code: 'invalid_token',
     });
   });
 

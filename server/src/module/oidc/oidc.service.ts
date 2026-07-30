@@ -487,6 +487,20 @@ export const oidcService = {
       // was already authoritatively validated as server-issued above.
       const userInfo = await this.verifyIdToken(data.idToken, resolvedCustomerId, data.nonce);
 
+      // A valid signature proves only WHO signed the token, not that this
+      // login was brokered here — an attacker holding any token issued for
+      // this same client could otherwise exchange it. The server-issued nonce
+      // is that proof, so it is mandatory. Enforced AFTER verification on
+      // purpose: a forged token still fails as invalid_token, the more
+      // accurate reason.
+      if (!data.nonce) {
+        throw new OAuthFlowError(
+          'nonce_required',
+          'This sign-in could not be verified. Please sign in again.',
+          400
+        );
+      }
+
       if (!userInfo.email || !userInfo.providerId) {
         throw new Error('Email or provider ID not found in token');
       }

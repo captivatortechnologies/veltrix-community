@@ -112,12 +112,16 @@ describe('cognitoService.exchangeCognitoTokens — signature verification (I0)',
   });
 
   it('only mints a session once the ID token passes signature verification', async () => {
+    // A server-issued nonce is mandatory for a successful exchange (it proves
+    // the flow was brokered here), so a happy path must supply one.
+    (consumeOAuthNonce as jest.Mock).mockResolvedValueOnce({ customerId: undefined });
     mockVerify.mockResolvedValueOnce({
       email: 'real.user@tenant.test',
       sub: 'legit-cognito-sub',
       name: 'Real User',
       token_use: 'id',
       aud: 'test-client-id',
+      nonce: 'issued-nonce',
     });
 
     (prisma.user.findFirst as jest.Mock).mockResolvedValueOnce({
@@ -147,6 +151,7 @@ describe('cognitoService.exchangeCognitoTokens — signature verification (I0)',
     const result = await cognitoService.exchangeCognitoTokens({
       idToken: 'a-genuinely-signed-token',
       accessToken: 'valid-access-token',
+      nonce: 'issued-nonce',
     });
 
     expect(mockVerify).toHaveBeenCalledWith('a-genuinely-signed-token');
@@ -155,10 +160,12 @@ describe('cognitoService.exchangeCognitoTokens — signature verification (I0)',
   });
 
   it('creates the ID token verifier scoped to the pool userPoolId, clientId, and token_use=id', async () => {
+    (consumeOAuthNonce as jest.Mock).mockResolvedValueOnce({ customerId: undefined });
     mockVerify.mockResolvedValueOnce({
       email: 'someone@tenant.test',
       sub: 'sub-123',
       token_use: 'id',
+      nonce: 'issued-nonce',
     });
     (prisma.user.findFirst as jest.Mock).mockResolvedValueOnce({
       id: 'user-2',
@@ -183,7 +190,7 @@ describe('cognitoService.exchangeCognitoTokens — signature verification (I0)',
       refresh_expires_in: 1,
     });
 
-    await cognitoService.exchangeCognitoTokens({ idToken: 'token', accessToken: 'access' });
+    await cognitoService.exchangeCognitoTokens({ idToken: 'token', accessToken: 'access', nonce: 'issued-nonce' });
 
     expect(mockCreate).toHaveBeenCalledWith({
       userPoolId: 'us-east-1_TESTPOOL',
@@ -237,23 +244,38 @@ describe('cognitoService.exchangeCognitoTokens — SSO gate parity + nonce (I1)'
   }
 
   it('rejects a deactivated user account even though the organization is active', async () => {
-    mockVerifiedToken();
+    (consumeOAuthNonce as jest.Mock).mockResolvedValueOnce({ customerId: undefined });
+    mockVerifiedToken('issued-nonce');
     mockUser({ isActive: false });
 
     await expect(
-      cognitoService.exchangeCognitoTokens({ idToken: 'token', accessToken: 'access' })
+      cognitoService.exchangeCognitoTokens({ idToken: 'token', accessToken: 'access', nonce: 'issued-nonce' })
     ).rejects.toMatchObject({ code: 'user_inactive', statusCode: 403 });
     expect(authService.generateTokens).not.toHaveBeenCalled();
   });
 
   it('rejects a suspended organization even though the user account is active', async () => {
-    mockVerifiedToken();
+    (consumeOAuthNonce as jest.Mock).mockResolvedValueOnce({ customerId: undefined });
+    mockVerifiedToken('issued-nonce');
     mockUser({ organization: { isActive: false } });
 
     await expect(
-      cognitoService.exchangeCognitoTokens({ idToken: 'token', accessToken: 'access' })
+      cognitoService.exchangeCognitoTokens({ idToken: 'token', accessToken: 'access', nonce: 'issued-nonce' })
     ).rejects.toMatchObject({ code: 'tenant_suspended', statusCode: 403 });
     expect(authService.generateTokens).not.toHaveBeenCalled();
+  });
+
+  // A valid signature proves only who signed the token, not that the login was
+  // brokered here — so an exchange with no nonce is refused even when the token
+  // verifies, closing token substitution against this public endpoint.
+  it('rejects a validly-signed token exchanged with NO nonce', async () => {
+    mockVerifiedToken();
+
+    await expect(
+      cognitoService.exchangeCognitoTokens({ idToken: 'token', accessToken: 'access' })
+    ).rejects.toMatchObject({ code: 'nonce_required', statusCode: 400 });
+    expect(authService.generateTokens).not.toHaveBeenCalled();
+    expect(prisma.user.findFirst).not.toHaveBeenCalled();
   });
 
   it('rejects when the supplied nonce fails server-side consumption (invalid/expired/replayed)', async () => {
