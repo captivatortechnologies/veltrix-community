@@ -720,6 +720,7 @@ export async function appManagementRoutes(fastify: FastifyInstance) {
           installedVersion: app.installations[0]?.version ?? null,
           catalogEntry: marketplaceCatalog.getById(app.appId),
           onDiskReleaseNotes: await readOnDiskReleaseNotes(app.appId, app.version),
+          source: app.source,
         })
 
         reply.send(info)
@@ -780,6 +781,7 @@ export async function appManagementRoutes(fastify: FastifyInstance) {
           installedVersion: fromVersion,
           catalogEntry,
           onDiskReleaseNotes: await readOnDiskReleaseNotes(appId, app.version),
+          source: app.source,
         })
 
         if (!info.upgradeAvailable) {

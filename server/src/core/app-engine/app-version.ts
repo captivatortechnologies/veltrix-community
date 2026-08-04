@@ -163,7 +163,21 @@ export function resolveLatestRelease(
   appVersion: string,
   catalogEntry?: Pick<MarketplaceEntry, 'version' | 'releaseNotes' | 'releasedAt' | 'downloadUrl'> | null,
   onDiskReleaseNotes?: string,
+  source?: string | null,
 ): ResolvedRelease {
+  // Built-in apps ship their code WITH the platform: their on-disk version is
+  // authoritative and they are upgraded by redeploying the platform (which
+  // advances the checkout), never by pulling a marketplace package. The upgrade
+  // handler enforces this — it refuses to pull a package for BUILT_IN apps
+  // (app-management.route.ts). So a catalog version AHEAD of the on-disk copy is
+  // not an actionable upgrade for a built-in app: advertising it produces a
+  // banner whose "Upgrade" button dead-ends on "No newer version is available to
+  // install yet." Treat on-disk as the ceiling — the banner then only appears
+  // once a redeploy has advanced the on-disk version past the tenant's, which is
+  // an upgrade the handler can actually deliver.
+  if (source === 'BUILT_IN') {
+    return { version: appVersion, releaseNotes: onDiskReleaseNotes }
+  }
   // A catalog entry only represents a real upgrade target when it is actually
   // installable — i.e. it carries a downloadUrl. "Coming soon" marketplace
   // placeholders (available: false, no downloadUrl) still declare a display
@@ -196,8 +210,11 @@ export function buildAppVersionInfo(input: {
   catalogEntry?: Pick<MarketplaceEntry, 'version' | 'releaseNotes' | 'releasedAt' | 'downloadUrl'> | null
   /** The app's on-disk CHANGELOG section for `appVersion`; used when the catalog carries no notes. */
   onDiskReleaseNotes?: string
+  /** The app's install source. BUILT_IN apps are upgraded via redeploy (on-disk
+   *  authoritative), so a catalog version ahead of on-disk is never advertised. */
+  source?: string | null
 }): AppVersionInfo {
-  const latest = resolveLatestRelease(input.appVersion, input.catalogEntry, input.onDiskReleaseNotes)
+  const latest = resolveLatestRelease(input.appVersion, input.catalogEntry, input.onDiskReleaseNotes, input.source)
   return {
     appId: input.appId,
     installedVersion: input.installedVersion,

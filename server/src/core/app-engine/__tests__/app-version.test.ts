@@ -142,6 +142,31 @@ describe('resolveLatestRelease', () => {
     const release = resolveLatestRelease('1.7.0', { version: '4.0.0', releaseNotes: 'vendor notes' })
     expect(release).toEqual({ version: '1.7.0' })
   })
+
+  it('CAPS a BUILT_IN app at its on-disk version even when the installable catalog is ahead', () => {
+    // BUILT_IN apps are upgraded by redeploying the platform, not by pulling a
+    // marketplace package. On-disk is authoritative; a catalog version ahead of
+    // it is not an actionable upgrade (the /upgrade handler refuses to pull for
+    // BUILT_IN), so it must never be advertised as "latest".
+    const release = resolveLatestRelease(
+      '0.3.0',
+      { version: '0.3.1', releaseNotes: 'catalog notes', downloadUrl: DL },
+      '## 0.3.0\n- on-disk notes',
+      'BUILT_IN',
+    )
+    expect(release).toEqual({ version: '0.3.0', releaseNotes: '## 0.3.0\n- on-disk notes' })
+  })
+
+  it('still uses the installable catalog for a MARKETPLACE app that is behind', () => {
+    const release = resolveLatestRelease(
+      '0.3.0',
+      { version: '0.3.1', releaseNotes: 'catalog notes', downloadUrl: DL },
+      undefined,
+      'MARKETPLACE',
+    )
+    expect(release.version).toBe('0.3.1')
+    expect(release.releaseNotes).toBe('catalog notes')
+  })
 })
 
 describe('buildAppVersionInfo', () => {
