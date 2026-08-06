@@ -7,10 +7,8 @@ import { handleCognitoCallback, exchangeCognitoTokens, COGNITO_STATE_KEY } from 
 import { setAuthData, getRememberMePreference } from '../../services/authService';
 import { extractSsoErrorFromAxiosError } from '../../services/identityProviderTypes';
 import { BrandLogo } from '../../components/ui/BrandLogo';
-import { useBrand } from '../../brand';
 
 const OAuthCallbackPage: React.FC = () => {
-  const brand = useBrand();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);

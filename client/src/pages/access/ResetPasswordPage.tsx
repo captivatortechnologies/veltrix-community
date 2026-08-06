@@ -3,7 +3,6 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Eye, EyeOff, CheckCircle, ArrowLeft } from 'lucide-react';
 import { resetPassword } from '../../services/authService';
 import { BrandLogo } from '../../components/ui/BrandLogo';
-import { useBrand } from '../../brand';
 
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -12,7 +11,6 @@ const MIN_PASSWORD_LENGTH = 8;
  * the emailed link (`?token=…`) and sets a new password.
  */
 const ResetPasswordPage: React.FC = () => {
-  const brand = useBrand();
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token') || '';
 

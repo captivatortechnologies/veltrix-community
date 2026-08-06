@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, ArrowLeft, MailCheck } from 'lucide-react';
 import { requestPasswordReset } from '../../services/authService';
 import { BrandLogo } from '../../components/ui/BrandLogo';
-import { useBrand } from '../../brand';
 
 /**
  * Self-service "forgot password" — step 1. Collects an email and asks the server
@@ -12,7 +11,6 @@ import { useBrand } from '../../brand';
  * account enumeration).
  */
 const ForgotPasswordPage: React.FC = () => {
-  const brand = useBrand();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
