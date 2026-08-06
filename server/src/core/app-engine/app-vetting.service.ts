@@ -103,6 +103,35 @@ const FORBIDDEN_MODULES = new Set([
 // Filesystem/OS access is almost never needed by an API-driven app; flag it
 // for review rather than banning it outright.
 const REVIEW_MODULES = new Set(['fs', 'node:fs', 'fs/promises', 'node:fs/promises', 'os', 'node:os'])
+
+// Dev-only tooling directories an app may ship but the platform NEVER loads at
+// runtime: unit tests (`__tests__`, `*.test|spec.*`) and the self-hosted-tool
+// bring-up/CI harnesses (`infra/` — docker orchestration, health gates,
+// inventory builders) that 13 first-party apps carry. Code here legitimately
+// spawns processes and calls process.exit — the in-process-safety rules exist
+// because RUNTIME handlers run inside the platform server, which this tooling
+// never does. It is therefore exempt from the in-process-safety family of checks
+// (forbidden/review module imports, eval/new Function, process.exit) — but NOT
+// from packaging hygiene (secrets, symlinks, executable extensions, size, or the
+// app-directory-escape rule), which apply to everything a package ships. To keep
+// the exemption from becoming a bypass, runtime code may not IMPORT into these
+// dirs (see the scan): a handler can't reach forbidden constructs by importing a
+// tooling file. Published bundles should exclude these dirs outright; scoping the
+// runtime-safety scan to runtime code keeps dev-source vetting consistent with a
+// stripped package regardless.
+const NON_RUNTIME_DIRS = ['__tests__', 'infra']
+
+/**
+ * True when a package-relative path is dev-only tooling the platform never loads
+ * at runtime — a test/spec file, anything under a `__tests__/` dir, or anything
+ * under the app's top-level `infra/` bring-up dir.
+ */
+function isNonRuntimePath(relFile: string): boolean {
+  const norm = relFile.replace(/\\/g, '/')
+  if (/\.(test|spec)\.[a-z]+$/.test(norm)) return true
+  if (/(^|\/)__tests__\//.test(norm)) return true
+  return /^infra\//.test(norm)
+}
 // Dotfiles that are legitimately part of a repo checkout but never a package
 const ALLOWED_DOTFILES = new Set(['.gitignore', '.npmrc', '.eslintrc', '.eslintrc.json', '.prettierrc'])
 const TEXT_EXTENSIONS = new Set(['.yaml', '.yml', '.json', '.md'])
@@ -615,7 +644,9 @@ export async function vetApp(appDirArg: string): Promise<VetResult> {
   const IMPORT_RE = /(?:from\s+|require\(\s*|import\(\s*)['"]([^'"]+)['"]/g
   for (const file of codeFiles) {
     const relFile = path.relative(appDir, file)
-    const isTestFile = /(^|[\\/])__tests__[\\/]/.test(relFile) || /\.test\.[a-z]+$/.test(relFile)
+    // The in-process-safety rules below apply to RUNTIME code only — dev-only
+    // tooling (tests, infra/) never runs inside the platform server.
+    const nonRuntime = isNonRuntimePath(relFile)
     const source = fs.readFileSync(file, 'utf8')
     for (const match of source.matchAll(IMPORT_RE)) {
       const spec = match[1]
@@ -626,20 +657,30 @@ export async function vetApp(appDirArg: string): Promise<VetResult> {
             `${relFile} imports "${spec}" which escapes the app directory — ` +
               'apps may only import their own files and published packages',
           )
+        } else if (!nonRuntime && isNonRuntimePath(path.relative(appDir, resolved))) {
+          // Runtime code must not reach into dev-only tooling: it would let a
+          // handler pull in forbidden constructs (child_process, process.exit)
+          // through an exempt `infra/`/`__tests__` file, and that tooling is
+          // excluded from the published bundle so the import breaks at runtime.
+          err(
+            `security: ${relFile} imports "${spec}" — runtime code must not import ` +
+              'dev-only tooling (infra/ or __tests__), which the platform never loads ' +
+              'and the published app excludes',
+          )
         }
       } else if (spec === '@prisma/client' || spec.startsWith('@prisma/')) {
         err(
           `${relFile} imports "${spec}" — apps must not depend on the platform's ` +
             'Prisma client. Use ctx.platform / ctx.db from @veltrixsecops/app-sdk instead.',
         )
-      } else if (FORBIDDEN_MODULES.has(spec)) {
+      } else if (FORBIDDEN_MODULES.has(spec) && !nonRuntime) {
         err(`security: ${relFile} imports "${spec}" — apps run in-process and must not spawn processes or evaluate code`)
-      } else if (REVIEW_MODULES.has(spec) && !isTestFile) {
+      } else if (REVIEW_MODULES.has(spec) && !nonRuntime) {
         warn(`security: ${relFile} imports "${spec}" — filesystem/OS access is rarely needed by an API-driven app; expect review scrutiny`)
       }
     }
 
-    if (isTestFile) continue
+    if (nonRuntime) continue
     if (/\beval\s*\(/.test(source)) {
       err(`security: ${relFile} uses eval() — string evaluation is not allowed in app code`)
     }

@@ -229,6 +229,33 @@ describe('vetApp', () => {
     expect(errorsMatching(result, /process\.exit/)).toEqual([])
   })
 
+  test('app infra/ bring-up tooling is exempt from in-process safety errors', async () => {
+    // Self-hosted-tool apps ship an `infra/` bring-up harness (docker
+    // orchestration, health gates) the platform never loads at runtime — it may
+    // spawn processes and exit like any CLI tool.
+    const result = await vetApp(
+      makeApp({
+        'infra/bringup/orchestrator.ts':
+          "import { exec } from 'node:child_process'\n" +
+          'export function up() {\n  exec("docker compose up")\n  process.exit(0)\n}\n',
+      }),
+    )
+    expect(errorsMatching(result, /child_process|process\.exit|eval/)).toEqual([])
+  })
+
+  test('runtime code importing dev-only tooling (infra/) is an error', async () => {
+    // The exemption must not become a bypass: a handler importing an infra/ file
+    // could reach forbidden constructs through it, and infra/ is excluded from
+    // the published bundle so the import breaks at runtime anyway.
+    const result = await vetApp(
+      makeApp({
+        'infra/helper.ts': 'export const x = 1\n',
+        'config-types/configs/deploy.ts': "import { x } from '../../infra/helper'\n" + HANDLER,
+      }),
+    )
+    expect(errorsMatching(result, /runtime code must not import dev-only tooling/)).toHaveLength(1)
+  })
+
   test('canvas: unknown fieldType and optionless select are errors', async () => {
     const badCanvas = CANVAS.replace('fieldType: text', 'fieldType: dropdown').replace(
       /        options:[\s\S]*$/m,
