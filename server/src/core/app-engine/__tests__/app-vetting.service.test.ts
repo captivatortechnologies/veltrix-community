@@ -78,6 +78,47 @@ const DEFAULTS = `General:
   mode: fast
 `
 
+// Preferred `item` schema (one repeatable object across presentational groups),
+// exercising the field types the real catalog uses (remote-select /
+// remote-multiselect). This is how ~all published config types author canvases.
+const ITEM_CANVAS = `id: fixture-configs
+name: Configs
+toolType: fixture-app
+entityType: configs
+item:
+  label: Token
+  identityField: name
+  repeatable: true
+  minItems: 1
+  maxItems: 10
+  groups:
+    - name: General
+      fields:
+        - key: name
+          label: Name
+          fieldType: text
+          required: true
+        - key: kind
+          label: Kind
+          fieldType: remote-select
+          optionsSource: kinds
+    - name: Routing
+      fields:
+        - key: indexes
+          label: Indexes
+          fieldType: remote-multiselect
+          optionsSource: indexes
+        - key: enabled
+          label: Enabled
+          fieldType: checkbox
+          defaultValue: true
+`
+
+// Item defaults are FLAT (`{ <fieldKey>: value }`) — they seed every instance.
+const ITEM_DEFAULTS = `name: ""
+enabled: true
+`
+
 const CLIENT_SECTION = `client:
   entry: client/index
   pages:
@@ -212,6 +253,60 @@ describe('vetApp', () => {
     const result = await vetApp(makeApp({ 'config-types/configs/canvas.yaml': badCanvas }))
     expect(
       errorsMatching(result, /canvas: .*"turbo" is not one of its option values/),
+    ).toHaveLength(1)
+  })
+
+  test('canvas: preferred item schema (with remote-select/-multiselect) passes clean', async () => {
+    const result = await vetApp(
+      makeApp({
+        'config-types/configs/canvas.yaml': ITEM_CANVAS,
+        'config-types/configs/defaults.yaml': ITEM_DEFAULTS,
+      }),
+    )
+    expect(result.errors).toEqual([])
+    expect(warningsMatching(result, /canvas:/)).toEqual([])
+  })
+
+  test('canvas: item flat defaults cross-check warns on an unknown field key', async () => {
+    const result = await vetApp(
+      makeApp({
+        'config-types/configs/canvas.yaml': ITEM_CANVAS,
+        'config-types/configs/defaults.yaml': ITEM_DEFAULTS + 'ghost: 1\n',
+      }),
+    )
+    expect(warningsMatching(result, /defaults key "ghost" does not match/)).toHaveLength(1)
+  })
+
+  test('canvas: an item declaring no field groups is an error', async () => {
+    const badCanvas = ITEM_CANVAS.replace(/  groups:[\s\S]*$/m, '  groups: []\n')
+    const result = await vetApp(makeApp({ 'config-types/configs/canvas.yaml': badCanvas }))
+    expect(errorsMatching(result, /"item" must declare at least one field group/)).toHaveLength(1)
+  })
+
+  test('canvas: a key duplicated across item groups is an error', async () => {
+    // Re-use "name" (declared in General) as a second field in Routing — the
+    // whole item is one flat record, so keys must be unique across groups.
+    const badCanvas = ITEM_CANVAS.replace(
+      '        - key: enabled\n          label: Enabled\n          fieldType: checkbox\n          defaultValue: true\n',
+      '        - key: name\n          label: Dup\n          fieldType: text\n',
+    )
+    const result = await vetApp(makeApp({ 'config-types/configs/canvas.yaml': badCanvas }))
+    expect(errorsMatching(result, /duplicates key "name"/)).toHaveLength(1)
+  })
+
+  test('canvas: item.identityField must reference a real field key', async () => {
+    const badCanvas = ITEM_CANVAS.replace('identityField: name', 'identityField: missing')
+    const result = await vetApp(makeApp({ 'config-types/configs/canvas.yaml': badCanvas }))
+    expect(
+      errorsMatching(result, /"item\.identityField" \("missing"\) is not one of its field keys/),
+    ).toHaveLength(1)
+  })
+
+  test('canvas: a template with neither item nor sections is an error', async () => {
+    const badCanvas = 'id: fixture-configs\nname: Configs\ntoolType: fixture-app\n'
+    const result = await vetApp(makeApp({ 'config-types/configs/canvas.yaml': badCanvas }))
+    expect(
+      errorsMatching(result, /must declare an "item" \(preferred\) or at least one "section"/),
     ).toHaveLength(1)
   })
 

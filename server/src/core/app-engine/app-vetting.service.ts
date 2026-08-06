@@ -63,16 +63,25 @@ const CATEGORIES = new Set(['SIEM', 'EDR', 'SOAR', 'IAM', 'NETWORK', 'CLOUD', 'C
 // App UI & navigation contract (mirrors @veltrixsecops/app-sdk)
 const APP_PAGE_LAYOUTS = ['standard', 'full-bleed', 'canvas']
 const APP_PAGE_NAV = ['sidebar', 'tab', 'hidden']
-// Configuration Canvas contract (mirrors the platform's canvas renderer)
+// Configuration Canvas contract (mirrors the platform's canvas renderer). This
+// set MUST stay in sync with the client's `FieldType` union in
+// client/src/components/shared/ConfigurationCanvas/types.ts — anything the
+// renderer can draw is a valid authored field type, and vetting that rejected a
+// renderable type would block install of apps the platform can display fine.
 const CANVAS_FIELD_TYPES = new Set([
   'text',
   'number',
   'select',
+  'multiselect',
   'checkbox',
   'textarea',
   'tags',
   'password',
   'path',
+  'files',
+  'keyvalue',
+  'remote-select',
+  'remote-multiselect',
 ])
 const SETTING_TYPES = new Set(['string', 'number', 'boolean', 'select'])
 // Onboarding providers the platform can drive. Mirrors the registry in
@@ -730,9 +739,147 @@ export async function vetApp(appDirArg: string): Promise<VetResult> {
 type Reporter = (message: string) => void
 
 /**
- * Validate a canvas.yaml template's structure and return its shape
- * (Map of section name → Set of field keys) for defaults cross-checking.
- * Returns null when the file is missing (already reported) or unparseable.
+ * The validated shape of a canvas template, used to cross-check its defaults.
+ * The two authoring schemas seed defaults differently, so the shape records
+ * which one this template used:
+ *   - `item` (preferred): ONE repeatable object; defaults are FLAT
+ *     `{ <fieldKey>: value }` and seed every instance, so the shape is a single
+ *     flat set of field keys.
+ *   - `sections` (legacy): each section IS an item; defaults are NESTED
+ *     `{ <sectionName>: { <fieldKey>: value } }`, so the shape maps name → keys.
+ * This mirrors the client adapter (client/src/pages/apps/canvasTemplate.ts —
+ * `resolveItemSpec` / `defaultsForGroup`), which reads `item` first and treats
+ * `sections` as the legacy fallback.
+ */
+type CanvasShape =
+  | { kind: 'item'; fields: Set<string> }
+  | { kind: 'sections'; sections: Map<string, Set<string>> }
+
+/**
+ * Validate one flat list of canvas fields against the field contract, adding
+ * each field's key to `keys`. Duplicates are reported against `keys`, so a
+ * caller that shares ONE set across an item's groups gets cross-group
+ * uniqueness (every group's fields live in the same flat record) while a
+ * per-section set gets within-section uniqueness. Every per-field rule lives
+ * here so the `item` and `sections` schemas enforce them identically.
+ */
+function validateCanvasFields(
+  fields: unknown,
+  label: string,
+  keys: Set<string>,
+  err: Reporter,
+  warn: Reporter,
+): void {
+  if (!Array.isArray(fields) || fields.length === 0) {
+    err(`canvas: ${label} declares no fields`)
+    return
+  }
+  fields.forEach((field: any, fi: number) => {
+    const fLabel = `${label}.fields[${fi}]${field?.key ? ` ("${field.key}")` : ''}`
+    if (!field?.key) {
+      err(`canvas: ${fLabel} is missing "key"`)
+    } else if (keys.has(field.key)) {
+      err(`canvas: ${fLabel} duplicates key "${field.key}"`)
+    } else {
+      keys.add(field.key)
+    }
+    if (!field?.label) warn(`canvas: ${fLabel} is missing "label"`)
+    if (!CANVAS_FIELD_TYPES.has(field?.fieldType)) {
+      err(
+        `canvas: ${fLabel}.fieldType must be one of ${[...CANVAS_FIELD_TYPES].join(', ')} ` +
+          `(got "${field?.fieldType}")`,
+      )
+    }
+
+    if (field?.fieldType === 'select') {
+      if (!Array.isArray(field.options) || field.options.length === 0) {
+        err(`canvas: ${fLabel} is a select but declares no options`)
+      } else {
+        field.options.forEach((option: any, oi: number) => {
+          if (option?.label === undefined || option?.value === undefined) {
+            err(`canvas: ${fLabel}.options[${oi}] needs both "label" and "value"`)
+          }
+        })
+        if (
+          field.defaultValue !== undefined &&
+          !field.options.some((o: any) => o?.value === field.defaultValue)
+        ) {
+          err(`canvas: ${fLabel}.defaultValue "${field.defaultValue}" is not one of its option values`)
+        }
+      }
+    }
+    if (field?.fieldType === 'number' && field.defaultValue !== undefined && typeof field.defaultValue !== 'number') {
+      err(`canvas: ${fLabel}.defaultValue must be a number for a number field`)
+    }
+    if (field?.fieldType === 'checkbox' && field.defaultValue !== undefined && typeof field.defaultValue !== 'boolean') {
+      err(`canvas: ${fLabel}.defaultValue must be a boolean for a checkbox field`)
+    }
+
+    const v = field?.validation
+    if (v && typeof v === 'object') {
+      if (v.pattern !== undefined) {
+        try {
+          new RegExp(v.pattern)
+        } catch (e: any) {
+          err(`canvas: ${fLabel}.validation.pattern is not a valid regex: ${e.message}`)
+        }
+      }
+      for (const bound of ['min', 'max', 'minLength', 'maxLength']) {
+        if (v[bound] !== undefined && typeof v[bound] !== 'number') {
+          err(`canvas: ${fLabel}.validation.${bound} must be a number`)
+        }
+      }
+      if (typeof v.min === 'number' && typeof v.max === 'number' && v.min > v.max) {
+        err(`canvas: ${fLabel}.validation has min (${v.min}) greater than max (${v.max})`)
+      }
+    }
+  })
+}
+
+/**
+ * Validate the preferred `item` schema — ONE repeatable object laid out across
+ * presentational `groups`, the user adds as many as they need. Returns the flat
+ * set of every field key across all groups (item defaults seed against it).
+ */
+function validateCanvasItem(item: any, label: string, err: Reporter, warn: Reporter): CanvasShape | null {
+  if (typeof item !== 'object' || Array.isArray(item)) {
+    err(`canvas: ${label} "item" must be a mapping`)
+    return null
+  }
+  if (!Array.isArray(item.groups) || item.groups.length === 0) {
+    err(`canvas: ${label} "item" must declare at least one field group`)
+    return null
+  }
+  for (const bound of ['minItems', 'maxItems']) {
+    if (item[bound] !== undefined && typeof item[bound] !== 'number') {
+      err(`canvas: ${label} "item.${bound}" must be a number`)
+    }
+  }
+  if (typeof item.minItems === 'number' && typeof item.maxItems === 'number' && item.minItems > item.maxItems) {
+    err(`canvas: ${label} "item" has minItems (${item.minItems}) greater than maxItems (${item.maxItems})`)
+  }
+
+  // Every group's fields land in ONE flat item record, so keys must be unique
+  // across the whole item — share a single set across the groups.
+  const keys = new Set<string>()
+  item.groups.forEach((group: any, gi: number) => {
+    const gLabel = `${label} item.groups[${gi}]${group?.name ? ` ("${group.name}")` : ''}`
+    if (!group?.name) err(`canvas: ${gLabel} is missing "name"`)
+    validateCanvasFields(group?.fields, gLabel, keys, err, warn)
+  })
+
+  if (item.identityField !== undefined && !keys.has(item.identityField)) {
+    err(`canvas: ${label} "item.identityField" ("${item.identityField}") is not one of its field keys`)
+  }
+  return { kind: 'item', fields: keys }
+}
+
+/**
+ * Validate a canvas.yaml template's structure and return its shape (for
+ * defaults cross-checking). Accepts the preferred `item` schema and the legacy
+ * `sections` schema — see the client adapter, which reads `item` first and
+ * falls back to `sections`. Returns null when the file is missing (already
+ * reported) or unparseable.
  */
 function validateCanvasTemplate(
   appDir: string,
@@ -740,7 +887,7 @@ function validateCanvasTemplate(
   label: string,
   err: Reporter,
   warn: Reporter,
-): Map<string, Set<string>> | null {
+): CanvasShape | null {
   if (typeof ref !== 'string' || !ref.trim()) return null
   const file = path.join(appDir, ref)
   if (!fs.existsSync(file) || !fs.statSync(file).isFile()) return null
@@ -759,8 +906,15 @@ function validateCanvasTemplate(
   for (const key of ['id', 'name']) {
     if (!canvas[key]) warn(`canvas: ${label} template is missing "${key}"`)
   }
+
+  // `item` (a single repeatable object the user adds N of) is the preferred
+  // schema the whole catalog authors against; `sections` (one section = one
+  // item) is the legacy form. A template that declares neither is unusable.
+  if (canvas.item != null) {
+    return validateCanvasItem(canvas.item, label, err, warn)
+  }
   if (!Array.isArray(canvas.sections) || canvas.sections.length === 0) {
-    err(`canvas: ${label} template must declare at least one section`)
+    err(`canvas: ${label} template must declare an "item" (preferred) or at least one "section"`)
     return null
   }
 
@@ -768,74 +922,11 @@ function validateCanvasTemplate(
   canvas.sections.forEach((section: any, si: number) => {
     const sLabel = `${label} section[${si}]${section?.name ? ` ("${section.name}")` : ''}`
     if (!section?.name) err(`canvas: ${sLabel} is missing "name"`)
-    if (!Array.isArray(section?.fields) || section.fields.length === 0) {
-      err(`canvas: ${sLabel} declares no fields`)
-      return
-    }
     const keys = new Set<string>()
-    section.fields.forEach((field: any, fi: number) => {
-      const fLabel = `${sLabel}.fields[${fi}]${field?.key ? ` ("${field.key}")` : ''}`
-      if (!field?.key) {
-        err(`canvas: ${fLabel} is missing "key"`)
-      } else if (keys.has(field.key)) {
-        err(`canvas: ${fLabel} duplicates key "${field.key}" within its section`)
-      } else {
-        keys.add(field.key)
-      }
-      if (!field?.label) warn(`canvas: ${fLabel} is missing "label"`)
-      if (!CANVAS_FIELD_TYPES.has(field?.fieldType)) {
-        err(
-          `canvas: ${fLabel}.fieldType must be one of ${[...CANVAS_FIELD_TYPES].join(', ')} ` +
-            `(got "${field?.fieldType}")`,
-        )
-      }
-
-      if (field?.fieldType === 'select') {
-        if (!Array.isArray(field.options) || field.options.length === 0) {
-          err(`canvas: ${fLabel} is a select but declares no options`)
-        } else {
-          field.options.forEach((option: any, oi: number) => {
-            if (option?.label === undefined || option?.value === undefined) {
-              err(`canvas: ${fLabel}.options[${oi}] needs both "label" and "value"`)
-            }
-          })
-          if (
-            field.defaultValue !== undefined &&
-            !field.options.some((o: any) => o?.value === field.defaultValue)
-          ) {
-            err(`canvas: ${fLabel}.defaultValue "${field.defaultValue}" is not one of its option values`)
-          }
-        }
-      }
-      if (field?.fieldType === 'number' && field.defaultValue !== undefined && typeof field.defaultValue !== 'number') {
-        err(`canvas: ${fLabel}.defaultValue must be a number for a number field`)
-      }
-      if (field?.fieldType === 'checkbox' && field.defaultValue !== undefined && typeof field.defaultValue !== 'boolean') {
-        err(`canvas: ${fLabel}.defaultValue must be a boolean for a checkbox field`)
-      }
-
-      const v = field?.validation
-      if (v && typeof v === 'object') {
-        if (v.pattern !== undefined) {
-          try {
-            new RegExp(v.pattern)
-          } catch (e: any) {
-            err(`canvas: ${fLabel}.validation.pattern is not a valid regex: ${e.message}`)
-          }
-        }
-        for (const bound of ['min', 'max', 'minLength', 'maxLength']) {
-          if (v[bound] !== undefined && typeof v[bound] !== 'number') {
-            err(`canvas: ${fLabel}.validation.${bound} must be a number`)
-          }
-        }
-        if (typeof v.min === 'number' && typeof v.max === 'number' && v.min > v.max) {
-          err(`canvas: ${fLabel}.validation has min (${v.min}) greater than max (${v.max})`)
-        }
-      }
-    })
+    validateCanvasFields(section?.fields, sLabel, keys, err, warn)
     if (section?.name) shape.set(section.name, keys)
   })
-  return shape
+  return { kind: 'sections', sections: shape }
 }
 
 /** Cross-check a defaults.yaml against the canvas template's shape. */
@@ -843,7 +934,7 @@ function validateDefaultsFile(
   appDir: string,
   ref: string,
   label: string,
-  canvasShape: Map<string, Set<string>>,
+  shape: CanvasShape,
   err: Reporter,
   warn: Reporter,
 ): void {
@@ -859,11 +950,28 @@ function validateDefaultsFile(
   }
   if (defaults == null) return // an empty defaults file is fine
   if (typeof defaults !== 'object' || Array.isArray(defaults)) {
-    err(`canvas: ${label} defaults must be a mapping of section name → field defaults`)
+    err(
+      `canvas: ${label} defaults must be a mapping of ${
+        shape.kind === 'item' ? 'field key → default value' : 'section name → field defaults'
+      }`,
+    )
     return
   }
+
+  // `item` templates ship FLAT defaults: each top-level key is a field key that
+  // seeds every instance of the item.
+  if (shape.kind === 'item') {
+    for (const key of Object.keys(defaults)) {
+      if (!shape.fields.has(key)) {
+        warn(`canvas: ${label} defaults key "${key}" does not match any canvas field`)
+      }
+    }
+    return
+  }
+
+  // Legacy `sections` templates ship NESTED defaults, keyed by section name.
   for (const [sectionName, fields] of Object.entries(defaults)) {
-    const keys = canvasShape.get(sectionName)
+    const keys = shape.sections.get(sectionName)
     if (!keys) {
       warn(`canvas: ${label} defaults section "${sectionName}" does not match any canvas section`)
       continue
