@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { APP_ID } from './helpers'
+import { APP_ID, openConfigTypeViaNav } from './helpers'
 
 /**
  * App Shell + navigation E2E for an installed marketplace app (crowdstrike-edr,
@@ -27,15 +27,17 @@ const APP_NAV_LABEL = `${APP_NAME} navigation`
 const COLLAPSE_KEY = 'veltrix:appSidebarCollapsed'
 const APP_HOME = `/apps/${APP_ID}`
 
-// The three configuration-type nav items the app declares.
-const CONFIG_TYPE_ITEMS = [
-  'Host Group Configuration',
-  'Prevention Policy Configuration',
-  'Custom IOC Configuration',
-]
+// crowdstrike-edr declares many configuration types clustered under collapsible
+// sub-group headers (manifest `group`); these three lead the "Configurations"
+// section. A config type's link only renders once its sub-group is expanded.
+const CONFIG_TYPE_GROUPS = ['Host & Assets', 'Endpoint Policies', 'Indicators']
+
+// A representative configuration type (under "Host & Assets") + its route/heading.
+const SAMPLE_CONFIG_TYPE = 'Host Group Configuration'
+const SAMPLE_CONFIG_ROUTE = 'host-groups'
 
 test.describe('Installed app: branded App Shell + navigation', () => {
-  test('branded shell renders a persistent header with the app name and a nav listing the config types', async ({
+  test('branded shell renders a persistent header with the app name and a nav listing the config-type groups', async ({
     page,
   }) => {
     await page.goto(APP_HOME)
@@ -45,11 +47,12 @@ test.describe('Installed app: branded App Shell + navigation', () => {
     await expect(header).toBeVisible()
     await expect(header.getByText(APP_NAME, { exact: true })).toBeVisible()
 
-    // The embedded app nav (sidebar layout) lists each config-type item.
+    // The embedded app nav (sidebar layout) groups the config types under
+    // collapsible sub-group headers — assert each header is listed.
     const appNav = page.getByRole('navigation', { name: APP_NAV_LABEL })
     await expect(appNav).toBeVisible()
-    for (const label of CONFIG_TYPE_ITEMS) {
-      await expect(appNav.getByRole('link', { name: label, exact: true })).toBeVisible()
+    for (const group of CONFIG_TYPE_GROUPS) {
+      await expect(appNav.getByRole('button', { name: group, exact: true })).toBeVisible()
     }
     // ...and the app's bundle-page nav items.
     await expect(appNav.getByRole('link', { name: 'Overview', exact: true })).toBeVisible()
@@ -61,13 +64,11 @@ test.describe('Installed app: branded App Shell + navigation', () => {
   }) => {
     await page.goto(APP_HOME)
 
-    const appNav = page.getByRole('navigation', { name: APP_NAV_LABEL })
-    await appNav.getByRole('link', { name: 'Host Group Configuration', exact: true }).click()
+    // Expands the config type's sub-group, then clicks it.
+    await openConfigTypeViaNav(page, APP_NAME, SAMPLE_CONFIG_TYPE)
 
-    await expect(page).toHaveURL(new RegExp(`/apps/${APP_ID}/config/host-groups$`))
-    await expect(
-      page.getByRole('heading', { name: 'Host Group Configuration', level: 1 }),
-    ).toBeVisible()
+    await expect(page).toHaveURL(new RegExp(`/apps/${APP_ID}/config/${SAMPLE_CONFIG_ROUTE}$`))
+    await expect(page.getByRole('heading', { name: SAMPLE_CONFIG_TYPE, level: 1 })).toBeVisible()
 
     // App identity persists across views (still in the header).
     await expect(page.getByTestId('app-header-bar').getByText(APP_NAME, { exact: true })).toBeVisible()
@@ -96,21 +97,28 @@ test.describe('Installed app: branded App Shell + navigation', () => {
     await expect(page.getByTestId('app-header-bar').getByText(APP_NAME, { exact: true })).toBeVisible()
   })
 
-  test('sidebar collapse toggle hides the nav and persists across reload', async ({ page }) => {
+  test('collapse toggle swaps the full sidebar for the icon rail and persists across reload', async ({
+    page,
+  }) => {
     await page.goto(APP_HOME)
 
     const header = page.getByTestId('app-header-bar')
     const toggle = header.getByRole('button') // the sole button in the header bar
     const appNav = page.getByRole('navigation', { name: APP_NAV_LABEL })
+    // The "Configurations" section heading renders only in the FULL sidebar; the
+    // collapsed icon rail drops the text headings — a reliable expanded/collapsed
+    // signal (the nav element itself stays mounted as the icon rail, same label).
+    const sectionHeading = appNav.getByText('Configurations', { exact: true })
 
-    // Starts expanded: nav visible, toggle offers "Collapse navigation".
+    // Starts expanded: full sidebar visible, toggle offers "Collapse navigation".
     await expect(appNav).toBeVisible()
+    await expect(sectionHeading).toBeVisible()
     await expect(toggle).toHaveAttribute('aria-expanded', 'true')
     await expect(toggle).toHaveAttribute('aria-label', 'Collapse navigation')
 
-    // Collapse — the rail unmounts; the toggle flips.
+    // Collapse — the full sidebar becomes the icon rail (headings gone); toggle flips.
     await toggle.click()
-    await expect(appNav).toHaveCount(0)
+    await expect(sectionHeading).toHaveCount(0)
     await expect(toggle).toHaveAttribute('aria-expanded', 'false')
     await expect(toggle).toHaveAttribute('aria-label', 'Expand navigation')
     expect(await page.evaluate((k) => localStorage.getItem(k), COLLAPSE_KEY)).toBe('1')
@@ -119,12 +127,16 @@ test.describe('Installed app: branded App Shell + navigation', () => {
     await page.reload()
     const toggleAfter = page.getByTestId('app-header-bar').getByRole('button')
     await expect(toggleAfter).toHaveAttribute('aria-expanded', 'false')
-    await expect(page.getByRole('navigation', { name: APP_NAV_LABEL })).toHaveCount(0)
+    await expect(
+      page.getByRole('navigation', { name: APP_NAV_LABEL }).getByText('Configurations', { exact: true }),
+    ).toHaveCount(0)
     expect(await page.evaluate((k) => localStorage.getItem(k), COLLAPSE_KEY)).toBe('1')
 
-    // Expand again — nav returns, preference cleared.
+    // Expand again — the full sidebar (headings) returns, preference cleared.
     await toggleAfter.click()
-    await expect(page.getByRole('navigation', { name: APP_NAV_LABEL })).toBeVisible()
+    await expect(
+      page.getByRole('navigation', { name: APP_NAV_LABEL }).getByText('Configurations', { exact: true }),
+    ).toBeVisible()
     await expect(toggleAfter).toHaveAttribute('aria-expanded', 'true')
     expect(await page.evaluate((k) => localStorage.getItem(k), COLLAPSE_KEY)).toBe('0')
   })

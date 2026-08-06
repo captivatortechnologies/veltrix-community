@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import type { APIRequestContext, Page } from '@playwright/test'
+import type { APIRequestContext, Locator, Page } from '@playwright/test'
 import { expect, request as pwRequest } from '@playwright/test'
 
 /**
@@ -406,4 +406,63 @@ export async function expectLoginToFail(page: Page, email: string, password: str
 export async function selectOption(page: Page, label: string, optionName: string | RegExp): Promise<void> {
   await page.getByRole('combobox', { name: label }).click()
   await page.getByRole('option', { name: optionName, exact: typeof optionName === 'string' }).click()
+}
+
+/**
+ * Within one nav, reveal a link by expanding collapsed sub-group headers.
+ *
+ * Config-heavy apps cluster configuration types under collapsible sub-group headers
+ * (AppShell's `SidebarSubGroup` — a `<button aria-expanded>`) that start CLOSED, so
+ * a config type's link is not in the DOM until its sub-group is opened. This expands
+ * collapsed sub-groups one at a time (bounded) until the link renders. The only
+ * `aria-expanded` buttons inside these navs are sub-group headers. Returns the link
+ * locator (which may still be empty if it does not live in this nav).
+ */
+async function revealNavLink(nav: Locator, name: string): Promise<Locator> {
+  const link = nav.getByRole('link', { name, exact: true })
+  for (let i = 0; i < 25 && (await link.count()) === 0; i++) {
+    const collapsed = nav.getByRole('button', { expanded: false })
+    if ((await collapsed.count()) === 0) break
+    await collapsed.first().click()
+  }
+  return link
+}
+
+/**
+ * Open an app configuration type through its nav — the real user path — for BOTH
+ * app nav layouts:
+ *  - `sidebar`: config types live in the app nav (`"<appName> navigation"`) itself,
+ *    under collapsible sub-groups (crowdstrike-edr, splunk-enterprise).
+ *  - `tab`: config types are collapsed behind a single "Configurations" group tab
+ *    and rendered in a SEPARATE `"Configurations sub-navigation"` (with its own
+ *    collapsible sub-groups) that appears only once that group is active
+ *    (splunk-cloud).
+ */
+export async function openConfigTypeViaNav(
+  page: Page,
+  appName: string,
+  configTypeName: string,
+): Promise<void> {
+  const appNav = page.getByRole('navigation', { name: `${appName} navigation` })
+  await expect(appNav).toBeVisible()
+
+  // Sidebar layout: the link is in the app nav itself.
+  const inAppNav = await revealNavLink(appNav, configTypeName)
+  if ((await inAppNav.count()) > 0) {
+    await inAppNav.first().click()
+    return
+  }
+
+  // Tab layout: activate the "Configurations" group tab (unless its sub-nav is
+  // already open — e.g. an editor is already on a config page), then reveal the
+  // link in the "Configurations sub-navigation".
+  const subNav = page.getByRole('navigation', { name: 'Configurations sub-navigation' })
+  if ((await subNav.count()) === 0) {
+    const configTab = appNav.getByRole('link', { name: 'Configurations', exact: true })
+    if ((await configTab.count()) > 0) await configTab.first().click()
+  }
+  await expect(subNav).toBeVisible({ timeout: 10_000 })
+  const inSubNav = await revealNavLink(subNav, configTypeName)
+  await expect(inSubNav).toBeVisible({ timeout: 10_000 })
+  await inSubNav.click()
 }
