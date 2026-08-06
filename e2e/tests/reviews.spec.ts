@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { uniq, CREDS } from './helpers'
+import { uniq, CREDS, selectApprovalEnvironment } from './helpers'
 import { createDraftConfig, configRow } from './configHelpers'
 
 // The GitHub-PR-style review pipeline on the generic config surface:
@@ -70,8 +70,9 @@ test.describe('Review pipeline', () => {
     })
     await expect(approvalModal).toBeVisible()
 
-    // Environment (required): pick the seeded "dev" tag.
-    await approvalModal.getByRole('button', { name: 'dev', exact: true }).click()
+    // Environment (required): pick the seeded "dev" tag from the Target
+    // Environments MultiSelect.
+    await selectApprovalEnvironment(approvalModal, 'dev')
 
     // Approver (required): search + select the signed-in dev user (self-review).
     await approvalModal.getByPlaceholder('Search users...').fill(CREDS.email)

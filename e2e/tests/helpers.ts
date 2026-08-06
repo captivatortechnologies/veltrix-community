@@ -409,6 +409,28 @@ export async function selectOption(page: Page, label: string, optionName: string
 }
 
 /**
+ * Select an environment tag in a "Submit for Approval" modal's Target Environments
+ * picker — a shared MultiSelect (WAI-ARIA combobox + option list) that replaced the
+ * old one-button-per-tag UI. Idempotent: skips the click when the option is already
+ * selected (e.g. pre-selected on an approval re-request), and collapses the listbox
+ * afterward so it doesn't cover the approver field below. `scope` is the modal.
+ */
+export async function selectApprovalEnvironment(scope: Page | Locator, envName: string): Promise<void> {
+  // The combobox trigger is inside the modal; the listbox popup is rendered in a
+  // PORTAL at document.body (outside the modal), so its options must be located at
+  // page scope, not within `scope`.
+  const page: Page = typeof (scope as Locator).page === 'function' ? (scope as Locator).page() : (scope as Page)
+  const combo = scope.getByRole('combobox', { name: 'Target environments' })
+  await combo.click()
+  const option = page.getByRole('option', { name: envName, exact: true })
+  await expect(option).toBeVisible()
+  if ((await option.getAttribute('aria-selected')) !== 'true') {
+    await option.click()
+  }
+  await combo.click()
+}
+
+/**
  * Within one nav, reveal a link by expanding collapsed sub-group headers.
  *
  * Config-heavy apps cluster configuration types under collapsible sub-group headers

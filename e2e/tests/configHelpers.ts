@@ -43,7 +43,17 @@ export function configRow(page: Page, name: string): Locator {
  */
 export async function createDraftConfig(
   page: Page,
-  opts: { configTypeId: string; name: string; requiredField?: { label: string; value: string } },
+  opts: {
+    configTypeId: string
+    name: string
+    requiredField?: { label: string; value: string }
+    /**
+     * Fill any ADDITIONAL required fields a config type declares beyond the single
+     * `requiredField` (e.g. custom-iocs also requires a `Platforms` tags field), so
+     * Save enables. Runs after the name + `requiredField` are set, before Save.
+     */
+    beforeSave?: (page: Page) => Promise<void>
+  },
 ): Promise<void> {
   const requiredField = opts.requiredField ?? { label: 'Group Name', value: opts.name }
 
@@ -54,14 +64,19 @@ export async function createDraftConfig(
   const save = page.getByRole('button', { name: 'Save', exact: true })
   await expect(save).toBeVisible({ timeout: 30_000 })
 
-  // Rename the configuration.
-  await page.getByTitle('Click to rename').click()
+  // Rename the configuration. The toolbar's rename affordance is titled either
+  // "Click to rename" (name shown) or "Rename this configuration" (name hidden),
+  // depending on `showConfigName` — match either.
+  await page.getByTitle(/rename/i).first().click()
   const nameInput = page.getByPlaceholder('Enter configuration name')
   await nameInput.fill(opts.name)
   await nameInput.press('Enter')
 
   // Fill the required canvas field so validation passes and Save enables.
   await canvasField(page, requiredField.label).fill(requiredField.value)
+
+  // Fill any additional required fields (config-type-specific).
+  await opts.beforeSave?.(page)
 
   await expect(save).toBeEnabled({ timeout: 10_000 })
   await save.click()

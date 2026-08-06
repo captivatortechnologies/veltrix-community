@@ -107,15 +107,19 @@ test.describe('Configuration Canvas CRUD (host-groups)', () => {
       await expect(dialog).toBeVisible()
 
       await dialog.getByLabel('Name').fill(credName)
-      // Scoped to the dialog — the list's own Environment *filter* combobox (in the
-      // FilterBar behind the dialog) shares the same accessible name.
+      // The trigger is scoped to the dialog — the list's own Environment *filter*
+      // combobox (in the FilterBar behind the dialog) shares the same accessible
+      // name. Its option list renders in a portal at document.body (outside the
+      // dialog), so the option itself is located at page scope.
       await dialog.getByRole('combobox', { name: 'Environment' }).click()
-      await dialog.getByRole('option', { name: envName, exact: true }).click()
+      await page.getByRole('option', { name: envName, exact: true }).click()
       await dialog.getByLabel('Endpoint (optional)').fill(endpoint)
       // Auth method defaults to "API client (id + secret)" — the Falcon-native flow
       // this test exercises — so "Client ID"/"Client secret" are already the active labels.
       await dialog.getByLabel('Client ID').fill(clientId)
-      await dialog.getByLabel('Client secret').fill(uniq('secret'))
+      // The token/secret input is rendered with the accessible name "Password"
+      // (the app's tokenLabel "Client secret" is a visible hint, not the input's label).
+      await dialog.getByLabel('Password', { exact: true }).fill(uniq('secret'))
 
       await dialog.getByRole('button', { name: 'Add connection', exact: true }).click()
 

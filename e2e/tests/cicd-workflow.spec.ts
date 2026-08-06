@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
-import { uniq, CREDS, API_URL, authHeaders } from './helpers'
+import { uniq, CREDS, API_URL, authHeaders, selectApprovalEnvironment } from './helpers'
 import { createDraftConfig, configRow, listConfigs } from './configHelpers'
 
 /**
@@ -31,11 +31,9 @@ async function completeApprovalDialog(page: Page, envName: string) {
   })
   await expect(modal).toBeVisible()
 
-  // Environment (required). On re-request it may already be selected — only click
-  // if it isn't (selected chips carry bg-blue-600).
-  const envBtn = modal.getByRole('button', { name: envName, exact: true })
-  await expect(envBtn).toBeVisible()
-  if (!((await envBtn.getAttribute('class')) || '').includes('bg-blue-600')) await envBtn.click()
+  // Environment (required) — the Target Environments MultiSelect. Idempotent, so
+  // a re-request (where the env is already pre-selected) is a no-op.
+  await selectApprovalEnvironment(modal, envName)
 
   // Approver (required, starts empty each open): the signed-in dev user.
   await modal.getByPlaceholder('Search users...').fill(CREDS.email)
@@ -111,9 +109,17 @@ test.describe('CICD review workflow', () => {
       expect(item?.status).toBe('APPROVED')
       configId = item?.id
     } finally {
-      // Best-effort cleanup (config first so its approval-env link releases the tag).
-      if (configId) await request.delete(`${API_URL}/configuration-canvas/${configId}`, { headers: authHeaders() })
-      await request.delete(`${API_URL}/environments/${envId}`, { headers: authHeaders() })
+      // Best-effort cleanup (config first so its approval-env link releases the
+      // tag). A slow/blocked cleanup DELETE must never fail an otherwise-passing
+      // workflow, so cap it and swallow errors.
+      if (configId) {
+        await request
+          .delete(`${API_URL}/configuration-canvas/${configId}`, { headers: authHeaders(), timeout: 10_000 })
+          .catch(() => {})
+      }
+      await request
+        .delete(`${API_URL}/environments/${envId}`, { headers: authHeaders(), timeout: 10_000 })
+        .catch(() => {})
     }
   })
 })

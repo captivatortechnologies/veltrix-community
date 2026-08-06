@@ -28,9 +28,10 @@ test.describe('Splunk Enterprise app', () => {
     await openBundlePage(page, 'Overview')
     await expect(page).toHaveURL(new RegExp(`/apps/${APP_ID}/overview$`))
 
-    await expect(page.getByRole('heading', { name: APP_NAME, exact: true })).toBeVisible()
+    // App identity lives in the persistent shell header, not an Overview heading.
+    await expect(page.getByTestId('app-header-bar').getByText(APP_NAME, { exact: true })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'What this app manages' })).toBeVisible()
-    for (const label of ['Indexes', 'Roles', 'HEC Tokens', 'BYOL Infrastructure']) {
+    for (const label of ['Splunk Apps', 'HEC Tokens', 'BYOL Infrastructure']) {
       await expect(page.locator('strong', { hasText: label }).first()).toBeVisible()
     }
     await expect(page.getByText('This app page crashed')).toHaveCount(0)
@@ -45,10 +46,9 @@ test.describe('Splunk Enterprise app', () => {
 
   test('bundle pages render without crashing', async ({ page }) => {
     for (const [link, urlSuffix] of [
-      ['BYOL Infrastructure', 'byol'],
-      ['Versions', 'versions'],
-      ['Index Defaults', 'index-defaults'],
-      ['Role Defaults', 'role-defaults'],
+      ['Infrastructure', 'byol'],
+      ['License', 'license'],
+      ['Access Servers', 'access-servers'],
     ] as const) {
       await openBundlePage(page, link)
       await expect(page).toHaveURL(new RegExp(`/apps/${APP_ID}/${urlSuffix}$`))

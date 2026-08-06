@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 import { APP_ID, uniq, apiGet } from './helpers'
-import { createDraftConfig, configRow, gotoConfigType, listConfigs } from './configHelpers'
+import { createDraftConfig, configRow, gotoConfigType, listConfigs, canvasField } from './configHelpers'
 
 /**
  * CrowdStrike-Falcon-specific coverage (app id crowdstrike-edr). Complements
@@ -30,13 +30,19 @@ async function deleteDraft(page: Page, name: string): Promise<void> {
 
 test.describe('CrowdStrike Falcon app', () => {
   test('Overview page shows app identity, version, and all three config types', async ({ page, request }) => {
+    // API smoke: the app exposes a meta with a version.
     const meta = await apiGet<{ version: string }>(request, `/apps/${APP_ID}/meta`)
+    expect(meta.version).toMatch(/^\d+\.\d+\.\d+/)
 
     await openBundlePage(page, 'Overview')
     await expect(page).toHaveURL(new RegExp(`/apps/${APP_ID}/overview$`))
 
-    await expect(page.getByRole('heading', { name: APP_NAME, exact: true })).toBeVisible()
-    await expect(page.getByText(`v${meta.version}`, { exact: true })).toBeVisible()
+    // App identity + the INSTALLED version live in the persistent shell header,
+    // not an Overview heading. (The header shows the tenant's installed version,
+    // which may trail the catalog's latest — so match a version shape, not meta.)
+    const header = page.getByTestId('app-header-bar')
+    await expect(header.getByText(APP_NAME, { exact: true })).toBeVisible()
+    await expect(header.getByText(/^v\d+\.\d+\.\d+/).first()).toBeVisible()
 
     await expect(page.getByRole('heading', { name: 'Configuration Types' })).toBeVisible()
     // Target the card <strong> (the same names also appear as nav links).
@@ -96,6 +102,12 @@ test.describe('CrowdStrike Falcon app', () => {
       configTypeId: 'custom-iocs',
       name,
       requiredField: { label: 'Indicator Value', value: uniq('deadbeefcafe') },
+      // custom-iocs also requires Platforms (a `tags` field) — add one so Save enables.
+      beforeSave: async (p) => {
+        const platforms = canvasField(p, 'Platforms')
+        await platforms.fill('windows')
+        await platforms.press('Enter')
+      },
     })
 
     await expect(configRow(page, name).getByText('Draft')).toBeVisible()

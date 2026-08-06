@@ -1,7 +1,10 @@
 /**
- * E2E app-fixture seed — enables a fixed set of app-scoped apps for the default
- * Organization so the Playwright app specs (which `goto('/apps/<id>')` and
- * assume the app is installed) run unattended.
+ * E2E fixture seed — provisions what the Playwright app/pipeline specs assume
+ * already exists in the tenant so the suite runs unattended:
+ *   1. enables a fixed set of app-scoped apps for the default Organization
+ *      (the app specs `goto('/apps/<id>')` and assume the app is installed), and
+ *   2. ensures a "dev" environment tag exists (the review/approval + pipeline
+ *      specs assign an environment tag when submitting for approval).
  *
  * Intentionally a STANDALONE script, NOT part of `seed/index.ts` (which runs on
  * every deploy) — so this fixture can never accidentally land in a production
@@ -87,7 +90,45 @@ async function seedE2eApps(): Promise<void> {
         },
         update: { enabled: true, status: 'ENABLED' },
       });
+
+      // Mirror AppRegistry.enable()'s tool linking: connections can only be
+      // registered against a Tool the Organization owns (CustomerTool). Ensure
+      // the app's Tool exists (keyed by the app name, as enable() looks it up) and
+      // is linked to the Organization — otherwise the app's Connections dialog
+      // rejects with "No <app> tool found for your organization".
+      const tool = await prisma.tool.upsert({
+        where: { name: app.name },
+        create: {
+          name: app.name,
+          description: app.description,
+          vendor: app.vendor,
+          category: app.category,
+          isActive: true,
+        },
+        update: {},
+      });
+      await prisma.customerTool.upsert({
+        where: { customerId_toolId: { customerId: DEFAULT_ORGANIZATION_ID, toolId: tool.id } },
+        create: { customerId: DEFAULT_ORGANIZATION_ID, toolId: tool.id },
+        update: {},
+      });
+
       enabled.push(appId);
+    }
+
+    // The review/approval + pipeline specs target an environment "tag" and
+    // expect a "dev" one to exist. Tag has no unique constraint, so find-or-create.
+    const TAG_NAME = 'dev';
+    const existingTag = await prisma.tag.findFirst({
+      where: { name: TAG_NAME, customerId: DEFAULT_ORGANIZATION_ID },
+    });
+    if (!existingTag) {
+      await prisma.tag.create({
+        data: { name: TAG_NAME, customerId: DEFAULT_ORGANIZATION_ID, ownerId: actor?.id ?? null },
+      });
+      console.log(`E2E environment tag created: "${TAG_NAME}"`);
+    } else {
+      console.log(`E2E environment tag already present: "${TAG_NAME}"`);
     }
 
     console.log(
