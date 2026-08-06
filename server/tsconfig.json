@@ -1,5 +1,19 @@
 {
   "extends": "../tsconfig.base.json",
+  // The dev server (`ts-node src/server.ts`) runs transpile-only. Type safety is
+  // owned by `tsc --noEmit` (the `lint` script + CI), not the dev runtime. This
+  // is REQUIRED, not just a speed-up: the dev app loader `require()`s third-party
+  // app handlers from APPS_DIR, which are authored under their OWN strict
+  // tsconfig. Type-checking them here — against this package's deliberately
+  // relaxed config (strict:false / strictNullChecks:false / moduleResolution
+  // "node") — throws FALSE errors on perfectly correct apps (discriminated-union
+  // narrowing needs strictNullChecks; fastify 5's `FastifyInstance` type export
+  // needs a modern moduleResolution), which made the loader skip those apps'
+  // handlers entirely. Transpile-only loads every app as authored, and removes
+  // the per-app type-check cost from boot (33 apps went from minutes to seconds).
+  "ts-node": {
+    "transpileOnly": true
+  },
   "compilerOptions": {
     "target": "ES2022",
     "module": "CommonJS",
