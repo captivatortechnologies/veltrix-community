@@ -8,9 +8,30 @@ Postgres database.
 
 - A running Veltrix dev stack — client on `http://localhost:5173`, API on
   `http://localhost:5000/api` (see the repository root `README` / `docker-compose.yml`).
-- A seeded database with the dev fixture user and the admin account.
+- The API started with `APPS_DIR` pointing at a local `veltrix-apps` checkout, so it
+  registers the published apps the app-scoped specs drive.
+- A seeded database with the dev fixture user, the admin account, and the app-scoped
+  fixtures enabled for the default Organization (see "App fixtures" below).
 - Google Chrome installed (the suite uses `channel: 'chrome'`; no browser download needed).
 - Node >= 20.12 (for the built-in `.env` file loader used by `playwright.config.ts`).
+
+### App fixtures
+
+Several specs (`app-shell`, `config-canvas`, `crowdstrike`, `config-type-switch`) open
+`/apps/<id>` and assume the app is installed for the tenant. After the API has booted
+once with `APPS_DIR` set (which registers the apps), enable them for the default
+Organization with the standalone seed:
+
+```bash
+cd server
+npm run seed:e2e     # enables crowdstrike-edr, splunk-enterprise, splunk-cloud
+# override the set:  E2E_APP_IDS=crowdstrike-edr,axonius npm run seed:e2e
+```
+
+It is idempotent and refuses to touch a production database. Apps that have not been
+registered yet (API not booted with `APPS_DIR`, or a missing checkout) are skipped with a
+hint rather than failing. The **E2E (Playwright)** GitHub workflow does this automatically
+(checks out `veltrix-apps`, sets `APPS_DIR`, then runs `seed:e2e` after the API is up).
 
 ## Setup
 

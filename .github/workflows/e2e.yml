@@ -54,9 +54,22 @@ jobs:
       # (helpers.adminToken()). Must match the E2E_ADMIN_* values below.
       VELTRIX_ADMIN_EMAIL: admin@example.com
       VELTRIX_ADMIN_PASSWORD: E2eAdmin-ci-000
+      # App catalog for the app-scoped specs (crowdstrike-edr, splunk-enterprise,
+      # splunk-cloud). Checked out below into veltrix-apps/; the API registers
+      # each app from here on boot, and seed:e2e then installs them for the org.
+      APPS_DIR: ${{ github.workspace }}/veltrix-apps/apps
 
     steps:
       - uses: actions/checkout@v4
+
+      # The app-scoped specs drive real published apps served from APPS_DIR.
+      # Check out the public apps repo alongside so the API can register them.
+      # (If veltrix-apps is ever made private, add `token: ${{ secrets.APPS_REPO_TOKEN }}`.)
+      - name: Check out veltrix-apps (app catalog)
+        uses: actions/checkout@v4
+        with:
+          repository: captivatortechnologies/veltrix-apps
+          path: veltrix-apps
 
       - uses: pnpm/action-setup@v4
         with:
@@ -103,6 +116,13 @@ jobs:
             sleep 2
           done
           echo "client did not become healthy"; cat client.log; exit 1
+
+      - name: Seed e2e app installs
+        # The API boot above registered each app from APPS_DIR (the App rows);
+        # this enables the app-scoped fixtures for the default Organization so
+        # their specs (app-shell, config-canvas, crowdstrike, config-type-switch)
+        # find the apps installed. Runs the COMPILED seed, like the seeds above.
+        run: node server/dist/server/prisma/seed/e2e-apps.js
 
       - name: Install e2e deps + Playwright Chrome
         working-directory: e2e

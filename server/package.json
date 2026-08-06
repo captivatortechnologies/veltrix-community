@@ -21,7 +21,8 @@
     "prisma:migrate:dev": "prisma migrate dev",
     "db:seed": "ts-node prisma/seed/index.ts",
     "seed": "node dist/server/prisma/seed/index.js",
-    "seed:dev": "ts-node prisma/seed/dev-user.ts"
+    "seed:dev": "ts-node prisma/seed/dev-user.ts",
+    "seed:e2e": "ts-node prisma/seed/e2e-apps.ts"
   },
   "dependencies": {
     "@aws-sdk/client-cognito-identity-provider": "^3.760.0",
